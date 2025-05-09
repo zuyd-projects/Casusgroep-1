@@ -49,11 +49,20 @@ noaheutz301/devops-11-one-drive-omgeving-opzetten
 
 
 ### **Pull Request & Review Policy**
-#### **Pre-Main Branch Merges**
-- **Requires at least 2 reviews** before merging.
+#### **Branch Protection Rules & Workflow**
+We follow a strict promotion workflow: `test` → `staging` → `main`
 
-#### **Staging Branch Merges**
-- **Requires at least 1 reviewer** before merging.
+- **Main Branch Merges**
+  - **Requires at least 3 reviewers** before merging
+  - Production-ready code only
+
+- **Staging Branch Merges**
+  - **Requires at least 2 reviewers** before merging
+  - Pre-production testing environment
+
+- **Test Branch Merges**
+  - **Requires at least 1 reviewer** before merging
+  - Initial integration testing environment
 
 ## ✅ Code Commenting Standards (Conventional Comments)
 All comments should follow the [Conventional Comments](https://conventionalcomments.org/) format for clarity and consistency.
