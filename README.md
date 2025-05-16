@@ -1,4 +1,4 @@
-# Innovatie in de zorg
+# Casusgroep-1
 🤖 Monorepo for the: Casus DEVOPS "Innovatie in de zorg"
 
 # Project Contribution Guidelines
