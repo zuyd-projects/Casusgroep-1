@@ -21,7 +21,7 @@ const customers = [
     email: 'jane@example.com', 
     phone: '+1 (555) 987-6543',
     totalOrders: 2,
-    totalSpent: 75.00,
+    totalSpent: 76.00,
     lastOrderDate: '2025-05-14'
   },
   { 
