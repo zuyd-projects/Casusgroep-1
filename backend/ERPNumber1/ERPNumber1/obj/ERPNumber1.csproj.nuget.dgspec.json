@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\RSLT\\Source\\Repos\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj": {}
+    "C:\\Users\\vande\\OneDrive\\Bureaublad\\HBO ICT 2024-2025\\DevoOps_BPA\\CodeCasus\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj": {}
   },
   "projects": {
-    "C:\\Users\\RSLT\\Source\\Repos\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj": {
+    "C:\\Users\\vande\\OneDrive\\Bureaublad\\HBO ICT 2024-2025\\DevoOps_BPA\\CodeCasus\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\RSLT\\Source\\Repos\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj",
+        "projectUniqueName": "C:\\Users\\vande\\OneDrive\\Bureaublad\\HBO ICT 2024-2025\\DevoOps_BPA\\CodeCasus\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj",
         "projectName": "ERPNumber1",
-        "projectPath": "C:\\Users\\RSLT\\Source\\Repos\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj",
-        "packagesPath": "C:\\Users\\RSLT\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\RSLT\\Source\\Repos\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\obj\\",
+        "projectPath": "C:\\Users\\vande\\OneDrive\\Bureaublad\\HBO ICT 2024-2025\\DevoOps_BPA\\CodeCasus\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\ERPNumber1.csproj",
+        "packagesPath": "C:\\Users\\vande\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\vande\\OneDrive\\Bureaublad\\HBO ICT 2024-2025\\DevoOps_BPA\\CodeCasus\\Casusgroep-1\\backend\\ERPNumber1\\ERPNumber1\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\RSLT\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\vande\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -78,7 +78,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
