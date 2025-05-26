@@ -2,16 +2,12 @@
 import '../styles.css';
 
 import React, { useState, useEffect } from 'react';
-
-{/*Imports to support 3D object from Blender for now (Check down the line) */}
-import {  Clock, CheckCircle, AlertCircle, Play, RotateCcw, ZoomIn, ZoomOut, Move3D 
-} 
-from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Play, RotateCcw, ZoomIn, ZoomOut, Move3D } from 'lucide-react';
 
 const ProductionLineDashboard = () => {
+  // TODO: Replace with backend data in the future
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([
-    // Sample orders data
     { 
       id: 'ORD-001',
       productName: 'Assembly Unit A-100',
@@ -61,7 +57,7 @@ const ProductionLineDashboard = () => {
     { id: 7, name: 'Complete', description: 'Order Finished' }
   ];
 
-  // Simulate real-time updates
+  // Simulate real-time updates (dummy data only)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -85,6 +81,7 @@ const ProductionLineDashboard = () => {
     return () => clearInterval(interval);
   }, [orders.length]);
 
+  // Placeholder functions for future backend integration
   const completeOrder = (orderId) => {
     setOrders(prev => prev.filter(order => order.id !== orderId));
     if (selectedOrder && selectedOrder.id === orderId) {
@@ -129,7 +126,6 @@ const ProductionLineDashboard = () => {
 
   return (
     <div className="h-screen bg-white">
-      {/* Main Content */}
       <div className="w-full overflow-hidden">
         {/* Progress Bar */}
         {selectedOrder && (
@@ -174,26 +170,24 @@ const ProductionLineDashboard = () => {
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-black">Production Line A</h2>
             <p className="text-gray-600">Total Orders of Product A</p>
+            {/* Move the badge here and align left */}
+            <div className="left-aligned-badge-container">
+              <span className="total-product-orders-badge">
+                Total: {orders.length} {/* Replace with backend data in the future */}
+              </span>
+            </div>
           </div>
-
-          {/* Total order of product A label */}
-          <div className="w-full mb-8">
-            <span className="total-product-orders-badge"style={{ marginLeft: '20%' }}>
-              Total: 3 {/*Harcoded number for orders , change to proper back-end notation*/}
-            </span>
-          </div>
-
+          
           <div className="dashboard-grid">
-            {/* Left Side - Orders Overview */}
+            {/* Orders Overview */}
             <div className="order-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="section-header-order">  Incoming Orders</h3>
+              <div className="order-header-text">
+                <h3 className="section-header-order">Incoming Orders</h3>
                 <div className="live-indicator-satus-text">
                   <div className="live-indicator"></div>
                   <span className="text-sm text-gray-600">Live</span>
                 </div>
               </div>
-              
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {orders.map((order) => (
                   <div
@@ -219,17 +213,14 @@ const ProductionLineDashboard = () => {
                         </span>
                       </div>
                     </div>
-                    
                     <div className="flex justify-between text-sm text-gray-500">
                       <span>{order.quantity}</span>
                       <span>{order.unit}</span>
                     </div>
-                    
                     <div className="flex justify-between text-xs text-gray-400 mt-1">
                       <span>{order.customer}</span>
                       <span>Due: {formatTime(order.dueDate)}</span>
                     </div>
-
                     {/* Mini progress indicator */}
                     <div className="mt-2">
                       <div className="mini-progress-bar">
@@ -244,7 +235,7 @@ const ProductionLineDashboard = () => {
               </div>
             </div>
 
-            {/* Right Side - 3D Product Placeholder */}
+            {/* 3D Product Placeholder and Order Details */}
             <div className="order-card">
               {selectedOrder ? (
                 <div>
@@ -252,7 +243,6 @@ const ProductionLineDashboard = () => {
                     <h3 className="text-xl font-bold text-black">{selectedOrder.productName}</h3>
                     <p className="text-gray-600">Order: {selectedOrder.id}</p>
                   </div>
-
                   {/* 3D Product Viewer Placeholder */}
                   <div className="mb-6">
                     <div className="w-full h-80 bg-gradient-to-br from-purple-100 to-cyan-100 rounded-lg flex items-center justify-center border-2 border-dashed border-purple-300 relative">
@@ -262,7 +252,6 @@ const ProductionLineDashboard = () => {
                         <p className="text-sm text-gray-600">Interactive 3D model will be displayed here</p>
                         <p className="text-xs text-gray-500 mt-2">Rotate • Zoom • Inspect</p>
                       </div>
-                      
                       {/* 3D Controls Placeholder */}
                       <div className="absolute top-4 right-4 flex flex-col space-y-2">
                         <button className="p-2 bg-white rounded-lg shadow-md hover:bg-purple-50 transition-colors">
@@ -277,7 +266,6 @@ const ProductionLineDashboard = () => {
                       </div>
                     </div>
                   </div>
-
                   {/* Order Information */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="bg-purple-50 p-3 rounded-lg">
@@ -299,7 +287,6 @@ const ProductionLineDashboard = () => {
                       </span>
                     </div>
                   </div>
-
                   {/* Action Buttons */}
                   <div className="flex space-x-3">
                     {selectedOrder.status === 'In Queue' && (
@@ -311,7 +298,6 @@ const ProductionLineDashboard = () => {
                         Start Assembly
                       </button>
                     )}
-                    
                     {selectedOrder.status === 'In Progress' && (
                       <button
                         onClick={() => completeOrder(selectedOrder.id)}
