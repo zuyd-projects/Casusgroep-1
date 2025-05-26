@@ -1,0 +1,68 @@
+/* Badge for total orders */
+.total-product-orders-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: #9333ea; /* Tailwind's purple-600 */
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: none; 
+}
+
+.order-card {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  border: 1px solid #e9d5ff;
+}
+
+.section-header {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.live-indicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: #06b6d4;
+  border-radius: 9999px;
+}
+
+.status-pill {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.mini-progress-bar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.25rem;
+}
+
+.mini-progress-bar-fill {
+  background-color: #06b6d4;
+  height: 0.25rem;
+  border-radius: 9999px;
+  transition: all 0.3s;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  height: 100%;
+}
+
+.centered-badge-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  margin-left: -50%;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}

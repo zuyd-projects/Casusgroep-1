@@ -1,21 +1,18 @@
 "use client";
+import './styles.css';
+
 import React, { useState, useEffect } from 'react';
 
-import { 
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Play,
-  RotateCcw,
-  ZoomIn,
-  ZoomOut,
-  Move3D
-} from 'lucide-react';
+{/*Imports to support 3D object from Blender for now (Check down the line) */}
+import {  Clock, CheckCircle, AlertCircle, Play, RotateCcw, ZoomIn, ZoomOut, Move3D 
+} 
+from 'lucide-react';
 
 const ProductionLineDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([
-    {
+    // Sample orders data
+    { 
       id: 'ORD-001',
       productName: 'Assembly Unit A-100',
       customer: 'TechCorp Industries',
@@ -179,21 +176,20 @@ const ProductionLineDashboard = () => {
             <p className="text-gray-600">Total Orders of Product A</p>
           </div>
 
-          {/* Total order of A label */}
+          {/* Total order of product A label */}
+          <div className="w-full mb-8">
+            <span className="total-product-orders-badge"style={{ marginLeft: '20%' }}>
+              Total: 3 {/*Harcoded number for orders , change to proper back-end notation*/}
+            </span>
+          </div>
 
-        <div className="flex justify-center mb-8 ml-[-50%]">
-          <span className="inline-flex items-center px-6 py-2 rounded-full bg-cyan-500 text-white text-lg font-bold shadow-lg">
-          Total: 3 {/*Harcoded number for orders , change to proper back-end notation*/}
-          </span>
-        </div>
-
-          <div className="grid grid-cols-2 gap-6 h-full">
+          <div className="dashboard-grid">
             {/* Left Side - Orders Overview */}
-            <div className="bg-white rounded-lg shadow-md border border-purple-200 p-6">
+            <div className="order-card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-black">Incoming Orders</h3>
+                <h3 className="section-header">  Incoming Orders</h3>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-cyan-500 rounded-full animate-pulse"></div>
+                  <div className="live-indicator"></div>
                   <span className="text-sm text-gray-600">Live</span>
                 </div>
               </div>
@@ -215,10 +211,10 @@ const ProductionLineDashboard = () => {
                         <p className="text-sm text-gray-600">{order.productName}</p>
                       </div>
                       <div className="flex space-x-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(order.priority)}`}>
+                        <span className={`status-pill ${getPriorityColor(order.priority)}`}>
                           {order.priority}
                         </span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
+                        <span className={`status-pill ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
                       </div>
@@ -236,9 +232,9 @@ const ProductionLineDashboard = () => {
 
                     {/* Mini progress indicator */}
                     <div className="mt-2">
-                      <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div className="mini-progress-bar">
                         <div 
-                          className="bg-cyan-500 h-1 rounded-full transition-all duration-300" 
+                          className="mini-progress-bar-fill" 
                           style={{ width: `${(order.currentStep / 7) * 100}%` }}
                         ></div>
                       </div>
@@ -249,7 +245,7 @@ const ProductionLineDashboard = () => {
             </div>
 
             {/* Right Side - 3D Product Placeholder */}
-            <div className="bg-white rounded-lg shadow-md border border-purple-200 p-6">
+            <div className="order-card">
               {selectedOrder ? (
                 <div>
                   <div className="mb-4">
