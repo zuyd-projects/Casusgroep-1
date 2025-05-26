@@ -23,7 +23,6 @@
   font-size: 1.125rem;
   font-weight: 600;
   color: #000;
-  margin-left: 5%;
   margin-top: 2%;
 }
 
@@ -70,10 +69,9 @@
   margin-left: -50%;
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
 }
-.live-indicator-satus
+.live-indicator-satus-text
 {
   display: flex;
   align-items: center;
-  margin-right: 5%;
   margin-top: 2%;
 }

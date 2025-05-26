@@ -188,7 +188,7 @@ const ProductionLineDashboard = () => {
             <div className="order-card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="section-header-order">  Incoming Orders</h3>
-                <div className="live-indicator-satus">
+                <div className="live-indicator-satus-text">
                   <div className="live-indicator"></div>
                   <span className="text-sm text-gray-600">Live</span>
                 </div>
