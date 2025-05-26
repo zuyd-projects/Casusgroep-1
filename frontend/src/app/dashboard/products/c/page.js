@@ -67,7 +67,7 @@ const ProductionLineDashboard = () => {
           productName: `Assembly Unit A-${Math.floor(Math.random() * 300) + 100}`,
           customer: ['TechCorp Industries', 'Manufacturing Plus', 'Global Systems', 'Industrial Co.'][Math.floor(Math.random() * 4)],
           quantity: Math.floor(Math.random() * 100) + 10,
-          unit: ['A', 'B', 'C'][Math.floor(Math.random() * 3)],
+          unit: 'C',
           priority: ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)],
           status: 'In Queue',
           orderDate: now.toISOString(),
