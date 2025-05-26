@@ -176,8 +176,16 @@ const ProductionLineDashboard = () => {
         <div className="p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-black">Production Line A</h2>
-            <p className="text-gray-600">Real-time assembly line management</p>
+            <p className="text-gray-600">Total Orders of Product A</p>
           </div>
+
+          {/* Total order of A label */}
+
+        <div className="flex justify-center mb-8 ml-[-50%]">
+          <span className="inline-flex items-center px-6 py-2 rounded-full bg-cyan-500 text-white text-lg font-bold shadow-lg">
+          Total: 3 {/*Harcoded number for orders , change to proper back-end notation*/}
+          </span>
+        </div>
 
           <div className="grid grid-cols-2 gap-6 h-full">
             {/* Left Side - Orders Overview */}
