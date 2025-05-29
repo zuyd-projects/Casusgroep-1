@@ -1,11 +1,3 @@
-# provider "azurerm" {
-#   # Replace with your Azure credentials
- 
-#ADD AZURE CREDENTIALS HERE!
-#FINDABLE IN GITHUB
-
-#    features {}
-# }
 
 resource "azurerm_resource_group" "example" {
   name     = "2425-B2C6-B2C-3"
