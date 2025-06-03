@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# Ignore obj for merge conflicts
+.env
+
 # next.js
 /.next/
 /out/
