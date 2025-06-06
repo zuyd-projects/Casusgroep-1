@@ -13,9 +13,20 @@ namespace ERPNumber1.Models
         public string Signature { get; set; }
         public DateTime OrderDate { get; set; }
         public List<Product> Products { get; set; }
-        public Order(int Id, int RoundId, int DeliveryId, int UserId, char MotorType, int Quantity, string Signature, DateTime OrderDate, List<Product> Products)
+        public Delivery Deliveries { get; set; }
+
+        public Order(int id, int roundId, int deliveryId, int userId, char motorType, int quantity, string signature, DateTime orderDate, List<Product> products, Delivery deliveries)
         {
-            
+            Id = id;
+            RoundId = roundId;
+            DeliveryId = deliveryId;
+            UserId = userId;
+            MotorType = motorType;
+            Quantity = quantity;
+            Signature = signature;
+            OrderDate = orderDate;
+            Products = products;
+            Deliveries = deliveries;
         }
     }
 }
