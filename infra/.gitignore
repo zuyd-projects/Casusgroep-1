@@ -1,0 +1,4 @@
+credentials.tf
+.terraform/
+secrets.auto.tfvars
+*.tfvars
