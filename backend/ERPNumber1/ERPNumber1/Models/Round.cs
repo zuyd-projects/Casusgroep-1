@@ -10,6 +10,7 @@ namespace ERPNumber1.Models
 
         // Navigation
         public required Simulation Simulation { get; set; }
+<<<<<<< HEAD
         
         // Default constructor for EF Core
         public Round() 
@@ -24,4 +25,8 @@ namespace ERPNumber1.Models
             RoundNumber = roundNumber;
         }
     }
+=======
+    }
+
+>>>>>>> 7f8c5bc6f5cac49e20165c74bf4999d15c9a366a
 }
