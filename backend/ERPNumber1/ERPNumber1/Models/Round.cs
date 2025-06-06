@@ -9,7 +9,7 @@ namespace ERPNumber1.Models
         public int RoundNumber { get; set; }
 
         // Navigation
-        public required Simulation Simulation { get; set;
+        public required Simulation Simulation { get; set; }
 
         // Default constructor for EF Core
         public Round()
