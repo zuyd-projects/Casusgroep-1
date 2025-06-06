@@ -11,6 +11,11 @@ namespace ERPNumber1.Data
 
         public DbSet<Simulation> Simulations { get; set; }
         public DbSet<Round> Rounds { get; set; }
+        public DbSet<ERPNumber1.Models.User> User { get; set; } = default!;
+
+        // Added DbSet for Product and Material
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Material> Materials { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -18,7 +23,13 @@ namespace ERPNumber1.Data
                 .HasMany(s => s.Rounds)
                 .WithOne(r => r.Simulation)
                 .HasForeignKey(r => r.SimulationId);
+
+            // Configure Product-Material relationship
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.materials)
+                .WithOne(m => m.product)
+                .HasForeignKey(m => m.productId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
-        public DbSet<ERPNumber1.Models.User> User { get; set; } = default!;
     }
 }
