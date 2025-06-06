@@ -1,3 +1,4 @@
+using ERPNumber1.Auth;
 using ERPNumber1.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+// Register custom authentication
+builder.Services.AddAuthentication(MyAuthenticationOptions.DefaultScheme)
+    .AddScheme<MyAuthenticationOptions, MyAuthenticationHandler>(
+        MyAuthenticationOptions.DefaultScheme, options => { });
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -19,6 +25,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
