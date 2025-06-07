@@ -18,23 +18,30 @@ export default function Customers() {
   const [showReport, setShowReport] = useState(null);
   const [reportText, setReportText] = useState("");
   const [reportSent, setReportSent] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
 
   const timerRef = useRef(null);
 
   useEffect(() => {
+    if (!timerStarted) return;
+
     timerRef.current = setInterval(() => {
       setPeriod((prev) => (prev < MAX_PERIODS ? prev + 1 : prev));
       setTimeLeft(PERIOD_DURATION_MS / 1000);
     }, PERIOD_DURATION_MS);
+
     return () => clearInterval(timerRef.current);
-  }, []);
+  }, [timerStarted]);
 
   useEffect(() => {
+    if (!timerStarted) return;
+
     const countdown = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
+
     return () => clearInterval(countdown);
-  }, []);
+  }, [timerStarted]);
 
   const shuffleProducts = () => {
     const baseProducts = [
@@ -49,6 +56,10 @@ export default function Customers() {
     if (customers.length >= MAX_CUSTOMERS) {
       alert("Maximaal 6 klanten toegestaan.");
       return;
+    }
+
+    if (!timerStarted) {
+      setTimerStarted(true);
     }
 
     const dice = Math.ceil(Math.random() * 6);
@@ -119,13 +130,11 @@ export default function Customers() {
         <table className="min-w-full">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Orders</th>
-              <th>Lego Block 1</th>
-              <th>Lego Block 2</th>
-              <th>Lego Block 3</th>
-              <th>Period</th>
-              <th>Actions</th>
+              <th className="text-left">Name</th>
+              <th className="text-center">Orders</th>
+              <th className="text-center" colSpan={3}>Products</th>
+              <th className="text-center">Period</th>
+              <th className="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -134,13 +143,28 @@ export default function Customers() {
               const [p1, p2, p3] = lastOrder.products;
               return (
                 <tr key={customer.id}>
-                  <td>{customer.name}</td>
-                  <td>{customer.orders.length}</td>
-                  <td>{p1.quantity}x</td>
-                  <td>{p2.quantity}x</td>
-                  <td>{p3.quantity}x</td>
-                  <td>{lastOrder.period}</td>
-                  <td>
+                  <td className="text-left">{customer.name}</td>
+                  <td className="text-center">{customer.orders.length}</td>
+                  <td className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-semibold">Lego Block 1</span>
+                      <span>{p1.quantity}x</span>
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-semibold">Lego Block 2</span>
+                      <span>{p2.quantity}x</span>
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-semibold">Lego Block 3</span>
+                      <span>{p3.quantity}x</span>
+                    </div>
+                  </td>
+                  <td className="text-center">{lastOrder.period}</td>
+                  <td className="text-center">
                     <button
                       onClick={() => setShowReport(customer.id)}
                       className="text-red-500 text-xs underline"
