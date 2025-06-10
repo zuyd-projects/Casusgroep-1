@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERPNumber1.Models;
+using ERPNumber1.Data;
 
 namespace ERPNumber1.Controllers
 {
@@ -8,9 +9,9 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class InventoryController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
 
-        public InventoryController(ApplicationDbContext context)
+        public InventoryController(AppDbContext context)
         {
             _context = context;
         }

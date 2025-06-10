@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERPNumber1.Models;
+using ERPNumber1.Data;
 
 namespace ERPNumber1.Controllers
 {
@@ -8,9 +9,9 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
 
-        public OrderController(ApplicationDbContext context)
+        public OrderController(AppDbContext context)
         {
             _context = context;
         }
