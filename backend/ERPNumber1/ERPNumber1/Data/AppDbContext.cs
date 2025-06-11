@@ -43,9 +43,9 @@ namespace ERPNumber1.Data
                 .HasForeignKey<Delivery>(d => d.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Inventory-Products one-to-many
+            // Inventory-Materials one-to-many
             modelBuilder.Entity<Inventory>()
-                .HasMany(i => i.Products)
+                .HasMany(i => i.Materials)
                 .WithOne()
                 .OnDelete(DeleteBehavior.Cascade);
 
