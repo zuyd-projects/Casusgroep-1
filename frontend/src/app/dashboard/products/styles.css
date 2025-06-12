@@ -137,3 +137,38 @@
   margin-bottom: 0.25rem;
   display: block;
 }
+
+/* Button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-deny-assembly {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex: 1;
+  background-color: #dc2626; /* red-600 */
+  color: #fff;
+  border-radius: 0.5rem;
+}
+
+.btn-deny-assembly:hover {
+  background-color: #b91c1c; /* red-700 */
+}

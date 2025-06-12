@@ -5,14 +5,13 @@ import React, { useState } from 'react';
 import { CheckCircle, AlertCircle, Play, RotateCcw, ZoomIn, ZoomOut, Move3D } from 'lucide-react';
 
 const ProductionLineDashboard = () => {
-  // TODO: Replace with backend data in the future
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([
     { 
       id: 'ORD-001',
       productName: 'Assembly Unit A-100',
       customer: 'TechCorp Industries',
-      quantity: 2,
+      quantity: 10,
       unit: 'A',
       status: 'In Queue',
       orderDate: 5,
@@ -22,23 +21,25 @@ const ProductionLineDashboard = () => {
       id: 'ORD-002',
       productName: 'Assembly Unit A-200',
       customer: 'Manufacturing Plus',
-      quantity: 2,
+      quantity: 6,
       unit: 'A',
       status: 'In Progress',
       orderDate: 12,
-      currentStep: 4
+      currentStep: 3
     },
     {
       id: 'ORD-003',
       productName: 'Assembly Unit A-150',
       customer: 'Global Systems',
-      quantity: 3,
+      quantity: 8,
       unit: 'A',
       status: 'In Queue',
       orderDate: 2,
       currentStep: 0
     }
   ]);
+  const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
+  const [restoredOrderId, setRestoredOrderId] = useState(null);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -49,7 +50,6 @@ const ProductionLineDashboard = () => {
     }
   };
 
-  // handler in page to start assembly
   const handleStartAssembly = () => {
     if (!selectedOrder) return;
     setOrders((prevOrders) =>
@@ -64,7 +64,6 @@ const ProductionLineDashboard = () => {
     );
   };
 
-  //handler for completing the order
   const handleCompleteOrder = () => {
     if (!selectedOrder) return;
     setOrders((prevOrders) =>
@@ -77,13 +76,21 @@ const ProductionLineDashboard = () => {
 
   const handleDenyAssembly = () => {
     if (!selectedOrder) return;
-    setOrders((prevOrders) =>
-      prevOrders.filter((order) => order.id !== selectedOrder.id)
-    );
+    setOrders((prevOrders) => {
+      const filtered = prevOrders.filter((order) => order.id !== selectedOrder.id);
+      setLastRemovedOrder(selectedOrder);
+      return filtered;
+    });
     setSelectedOrder(null);
   };
 
-  // Helper to render order details
+  const handleRestoreLastOrder = () => {
+    if (!lastRemovedOrder) return;
+    setOrders((prevOrders) => [...prevOrders, lastRemovedOrder]);
+    setRestoredOrderId(lastRemovedOrder.id); // Track the restored order
+    setLastRemovedOrder(null);
+  };
+
   const renderOrderDetails = (order) => (
     <div className="grid grid-cols-2 gap-4 mb-6">
       <div className="bg-purple-50 p-3 rounded-lg">
@@ -138,10 +145,15 @@ const ProductionLineDashboard = () => {
                     key={order.id}
                     onClick={() => setSelectedOrder(order)}
                     className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                      selectedOrder?.id === order.id 
+                      selectedOrder?.id === order.id
                         ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200 hover:border-purple-300'
+                        : restoredOrderId === order.id
+                          ? 'bg-yellow-50 border-yellow-300'
+                          : 'border-gray-200 hover:border-purple-300'
                     }`}
+                    onMouseEnter={() => {
+                      if (restoredOrderId === order.id) setRestoredOrderId(null);
+                    }}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -219,7 +231,7 @@ const ProductionLineDashboard = () => {
                         Start Assembly
                       </button>
                       <button
-                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="btn-deny-assembly"
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
@@ -239,7 +251,7 @@ const ProductionLineDashboard = () => {
                         Complete Order
                       </button>
                       <button
-                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="btn-deny-assembly"
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
@@ -268,6 +280,17 @@ const ProductionLineDashboard = () => {
           </div>
         </div>
       </div>
+      {/* Restore button for last removed order */}
+      {lastRemovedOrder && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
+            onClick={handleRestoreLastOrder}
+          >
+            Restore Last Removed Order
+          </button>
+        </div>
+      )}
     </div>
   );
 };

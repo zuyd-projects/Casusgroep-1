@@ -38,6 +38,8 @@ const ProductionLineDashboard = () => {
       currentStep: 0
     }
   ]);
+  const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
+  const [restoredOrderId, setRestoredOrderId] = useState(null);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -74,17 +76,19 @@ const ProductionLineDashboard = () => {
 
   const handleDenyAssembly = () => {
     if (!selectedOrder) return;
-    setOrders((prevOrders) =>
-      prevOrders.filter((order) => order.id !== selectedOrder.id)
-    );
+    setOrders((prevOrders) => {
+      const filtered = prevOrders.filter((order) => order.id !== selectedOrder.id);
+      setLastRemovedOrder(selectedOrder);
+      return filtered;
+    });
     setSelectedOrder(null);
   };
 
-  const handleBackToAssembly = () => {
-    if (!selectedOrder) return;
-    setSelectedOrder((prev) =>
-      prev ? { ...prev, status: 'In Progress' } : prev
-    );
+  const handleRestoreLastOrder = () => {
+    if (!lastRemovedOrder) return;
+    setOrders((prevOrders) => [...prevOrders, lastRemovedOrder]);
+    setRestoredOrderId(lastRemovedOrder.id); // Track the restored order
+    setLastRemovedOrder(null);
   };
 
   const renderOrderDetails = (order) => (
@@ -141,10 +145,15 @@ const ProductionLineDashboard = () => {
                     key={order.id}
                     onClick={() => setSelectedOrder(order)}
                     className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                      selectedOrder?.id === order.id 
+                      selectedOrder?.id === order.id
                         ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200 hover:border-purple-300'
+                        : restoredOrderId === order.id
+                          ? 'bg-yellow-50 border-yellow-300'
+                          : 'border-gray-200 hover:border-purple-300'
                     }`}
+                    onMouseEnter={() => {
+                      if (restoredOrderId === order.id) setRestoredOrderId(null);
+                    }}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -222,7 +231,7 @@ const ProductionLineDashboard = () => {
                         Start Assembly
                       </button>
                       <button
-                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="btn-deny-assembly"
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
@@ -242,7 +251,7 @@ const ProductionLineDashboard = () => {
                         Complete Order
                       </button>
                       <button
-                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="btn-deny-assembly"
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
@@ -256,7 +265,6 @@ const ProductionLineDashboard = () => {
                       <CheckCircle className="w-10 h-10 mx-auto text-pink-600 mb-2" />
                       <p className="text-pink-700 font-semibold">Order Completed!</p>
                     </div>
-                    {/* Remove the action buttons here */}
                   </>
                 )}
               </div>
@@ -272,6 +280,17 @@ const ProductionLineDashboard = () => {
           </div>
         </div>
       </div>
+      {/* Restore button for last removed order */}
+      {lastRemovedOrder && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
+            onClick={handleRestoreLastOrder}
+          >
+            Restore Last Removed Order
+          </button>
+        </div>
+      )}
     </div>
   );
 };
