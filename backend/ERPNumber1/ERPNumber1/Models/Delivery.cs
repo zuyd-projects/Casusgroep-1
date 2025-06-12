@@ -9,6 +9,9 @@
         public bool ApprovedByCustomer { get; set; }
         public Order Order { get; set; }
 
+        public Delivery()
+        {
+        }
         public Delivery(int id, int orderId, bool isDelivered, bool qualityCheckPassed, bool approvedByCustomer, Order order)
         {
             Id = id;

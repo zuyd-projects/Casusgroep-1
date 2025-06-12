@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERPNumber1.Data;
 using ERPNumber1.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ERPNumber1.Controllers
 {
@@ -22,6 +23,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/Simulations
+        [Authorize(Roles ="User")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Simulation>>> GetSimulations()
         {
