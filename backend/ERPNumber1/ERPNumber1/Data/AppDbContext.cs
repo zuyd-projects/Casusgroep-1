@@ -1,65 +1,95 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Reflection.Emit;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ERPNumber1.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace ERPNumber1.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<AppUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Simulation> Simulations { get; set; }
         public DbSet<Round> Rounds { get; set; }
-        public DbSet<ERPNumber1.Models.User> User { get; set; } = default!;
-
-        // Added DbSet for Product and Material
-        public DbSet<Product> Products { get; set; }
         public DbSet<Material> Materials { get; set; }
-
-        // Added DbSet for Delivery, Order, and Inventory
-        public DbSet<Delivery> Deliveries { get; set; }
-        public DbSet<Order> Orders { get; set; }
+        public DbSet<Product> Products { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<Delivery> Deliveries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder); // ✅ Belangrijk voor Identity
+
+            // Simulation - Round (1-many)
             modelBuilder.Entity<Simulation>()
                 .HasMany(s => s.Rounds)
                 .WithOne(r => r.Simulation)
                 .HasForeignKey(r => r.SimulationId);
 
-            // Product-Material relationship
-            modelBuilder.Entity<Product>()
-                .HasMany(p => p.materials)
-                .WithOne(m => m.product)
-                .HasForeignKey(m => m.productId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // Round - Order (1-many)
+            modelBuilder.Entity<Round>()
+                .HasMany<Order>()
+                .WithOne(o => o.Round)
+                .HasForeignKey(o => o.RoundId);
 
-            // Order-Delivery one-to-one relationship
+            // Order - Delivery (1-1)
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Deliveries)
                 .WithOne(d => d.Order)
-                .HasForeignKey<Delivery>(d => d.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey<Delivery>(d => d.OrderId);
 
-            // Inventory-Materials one-to-many
+            // Order - Product (1-many)
+            modelBuilder.Entity<Order>()
+                .HasMany(o => o.Products)
+                .WithOne(p => p.Order)
+                .HasForeignKey(p => p.orderId);
+
+            // Product - Material (1-many)
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.materials)
+                .WithOne(m => m.product)
+                .HasForeignKey(m => m.productId);
+
+            // Inventory - Material (1-many)
             modelBuilder.Entity<Inventory>()
                 .HasMany(i => i.Materials)
                 .WithOne()
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Inventory-User many-to-one (or one-to-one if needed)
-            modelBuilder.Entity<Inventory>()
-                .HasOne(i => i.User)
-                .WithMany()
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Inventory-Round many-to-one (or one-to-one if needed)
-            modelBuilder.Entity<Inventory>()
-                .HasOne(i => i.Round)
-                .WithMany()
+            // AppUser - Inventory (1-1)
+            modelBuilder.Entity<AppUser>()
+                .HasOne(u => u.Inventory)
+                .WithOne(i => i.AppUser)
+                .HasForeignKey<Inventory>(i => i.AppUserId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // AppUser - Order (many-to-one)
+            modelBuilder.Entity<AppUser>()
+                .HasOne(u => u.Order)
+                .WithMany(o => o.appUsers)
+                .HasForeignKey(u => u.OrderId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            List<IdentityRole> roles = new List<IdentityRole>
+            {
+                new IdentityRole
+                {
+                    Id = "1",
+                    Name = "Admin",
+                    NormalizedName = "ADMIN"
+                },
+
+                new IdentityRole
+                {
+                    Id = "2",
+                    Name = "User",
+                    NormalizedName = "USER"
+                },
+            };
+            modelBuilder.Entity<IdentityRole>().HasData(roles);
         }
     }
 }

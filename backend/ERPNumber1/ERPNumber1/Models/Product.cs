@@ -6,6 +6,7 @@
         public int orderId { get; set; }
         public char type { get; set; }
         public List<Material> materials { get; set; } = new List<Material>();
+        public Order? Order { get; set; }   
 
         public Product()
         {

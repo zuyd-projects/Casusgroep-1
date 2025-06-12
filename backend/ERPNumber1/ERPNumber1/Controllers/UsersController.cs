@@ -1,108 +1,102 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
+﻿
+using ERPNumber1.Auth;
+using ERPNumber1.Dtos.User;
 using ERPNumber1.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Rewrite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
+using ERPNumber1.Interfaces;
 
-namespace ERPNumber1.Controllers
+namespace api.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/account")]
     [ApiController]
-    public class UsersController : ControllerBase
+    public class AccountController : ControllerBase
     {
-        private readonly AppDbContext _context;
-
-        public UsersController(AppDbContext context)
+        private readonly UserManager<AppUser> _userManager;
+        private readonly ITokenService _tokenService;
+        private readonly SignInManager<AppUser> _signInManager;
+        public AccountController(UserManager<AppUser> userManager, ITokenService tokenService, SignInManager<AppUser> signInManager)
         {
-            _context = context;
+            _userManager = userManager;
+            _tokenService = tokenService;
+            _signInManager = signInManager;
         }
 
-        // GET: api/Users
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUser()
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            return await _context.User.ToListAsync();
-        }
-
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
-        {
-            var user = await _context.User.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return user;
-        }
-
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
-        {
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(user).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var appUser = new AppUser
                 {
-                    return NotFound();
+                    UserName = registerDto.Name,
+                    Email = registerDto.Email,
+                    Role = registerDto.Role, 
+                };
+
+                var createUser = await _userManager.CreateAsync(appUser, registerDto.Password);
+
+                if (createUser.Succeeded)
+                {
+                    var roleResult = await _userManager.AddToRoleAsync(appUser, "User");
+                    if (roleResult.Succeeded)
+                    {
+                        return Ok(
+                                new NewUserDto
+                                {
+                                    Name = appUser.UserName,
+                                    Email = appUser.Email,
+                                    Role = appUser.Role,
+                                    Token = _tokenService.CreateToken(appUser),
+                                }
+                            );
+
+                    }
+                    else
+                    {
+                        return StatusCode(500, roleResult.Errors);
+                    }
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, createUser.Errors);
                 }
             }
-
-            return NoContent();
-        }
-
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
-        {
-            _context.User.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
-
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
-        {
-            var user = await _context.User.FindAsync(id);
-            if (user == null)
+            catch (Exception e)
             {
-                return NotFound();
+                return StatusCode(500, e);
             }
-
-            _context.User.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
 
-        private bool UserExists(int id)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto loginDto)
         {
-            return _context.User.Any(e => e.Id == id);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
+
+            if (user == null) return Unauthorized("Invalid Username");
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+
+            if (!result.Succeeded) return Unauthorized("Username not found and/or password incorrect");
+
+            return Ok(
+                new NewUserDto
+                {
+                    Name = user.UserName,
+                    Email = user.Email,
+                    Token = _tokenService.CreateToken(user),
+                }
+                );
         }
     }
 }
