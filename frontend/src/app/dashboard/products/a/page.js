@@ -8,42 +8,36 @@ const ProductionLineDashboard = () => {
   // TODO: Replace with backend data in the future
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([
-    { 
-      id: 'ORD-001',
-      productName: 'Assembly Unit A-100',
-      customer: 'TechCorp Industries',
-      quantity: 2,
-      unit: 'A',
-      priority: 'High',
-      status: 'In Queue',
-      orderDate: '2025-05-26T09:00:00Z',
-      dueDate: '2025-05-26T15:00:00Z',
-      currentStep: 1
-    },
-    {
-      id: 'ORD-002',
-      productName: 'Assembly Unit A-200',
-      customer: 'Manufacturing Plus',
-      quantity: 2,
-      unit: 'A',
-      priority: 'Medium',
-      status: 'In Progress',
-      orderDate: '2025-05-26T10:30:00Z',
-      dueDate: '2025-05-26T16:00:00Z',
-      currentStep: 4
-    },
-    {
-      id: 'ORD-003',
-      productName: 'Assembly Unit A-150',
-      customer: 'Global Systems',
-      quantity: 3,
-      unit: 'A',
-      priority: 'High',
-      status: 'In Queue',
-      orderDate: '2025-05-26T11:00:00Z',
-      dueDate: '2025-05-26T17:30:00Z',
-      currentStep: 0
-    }
+  { 
+    id: 'ORD-001',
+    productName: 'Assembly Unit A-100',
+    customer: 'TechCorp Industries',
+    quantity: 2,
+    unit: 'A',
+    status: 'In Queue',
+    orderDate: 5, // Example period number
+    currentStep: 1
+  },
+  {
+    id: 'ORD-002',
+    productName: 'Assembly Unit A-200',
+    customer: 'Manufacturing Plus',
+    quantity: 2,
+    unit: 'A',
+    status: 'In Progress',
+    orderDate: 12, // Example period number
+    currentStep: 4
+  },
+  {
+    id: 'ORD-003',
+    productName: 'Assembly Unit A-150',
+    customer: 'Global Systems',
+    quantity: 3,
+    unit: 'A',
+    status: 'In Queue',
+    orderDate: 2, // Example period number
+    currentStep: 0
+  }
   ]);
 
   // Progress steps for the delivery-like progress bar
@@ -68,10 +62,8 @@ const ProductionLineDashboard = () => {
           customer: ['TechCorp Industries', 'Manufacturing Plus', 'Global Systems', 'Industrial Co.'][Math.floor(Math.random() * 4)],
           quantity: Math.floor(Math.random() * 100) + 10,
           unit: 'A',
-          priority: ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)],
           status: 'In Queue',
           orderDate: now.toISOString(),
-          dueDate: new Date(now.getTime() + (Math.random() * 8 + 4) * 60 * 60 * 1000).toISOString(),
           currentStep: Math.floor(Math.random() * 4) + 1
         };
         setOrders(prev => [...prev, newOrder]);
@@ -106,13 +98,9 @@ const ProductionLineDashboard = () => {
     });
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'High': return 'text-pink-600 bg-pink-100';
-      case 'Medium': return 'text-purple-600 bg-purple-100';
-      case 'Low': return 'text-cyan-600 bg-cyan-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
   };
 
   const getStatusColor = (status) => {
@@ -126,47 +114,7 @@ const ProductionLineDashboard = () => {
 
   return (
     <div className="h-screen bg-white">
-      <div className="w-full overflow-hidden">
-        {/* Progress Bar */}
-        {selectedOrder && (
-          <div className="bg-purple-50 border-b border-purple-200 p-4">
-            <div className="w-full">
-              <h3 className="text-sm font-medium text-black mb-3">Order Progress - {selectedOrder.id}</h3>
-              <div className="flex items-center w-full">
-                {progressSteps.map((step, index) => (
-                  <div key={step.id} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center w-full">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        step.id <= selectedOrder.currentStep 
-                          ? 'bg-cyan-500 text-white' 
-                          : step.id === selectedOrder.currentStep + 1
-                          ? 'bg-pink-500 text-white'
-                          : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {step.id <= selectedOrder.currentStep ? (
-                          <CheckCircle className="w-4 h-4" />
-                        ) : (
-                          step.id
-                        )}
-                      </div>
-                      <div className="mt-2 text-center">
-                        <p className="text-xs font-medium text-black">{step.name}</p>
-                        <p className="text-xs text-gray-600">{step.description}</p>
-                      </div>
-                    </div>
-                    {index < progressSteps.length - 1 && (
-                      <div className={`flex-1 h-0.5 mx-4 ${
-                        step.id < selectedOrder.currentStep ? 'bg-cyan-500' : 'bg-gray-200'
-                      }`} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="p-6">
+         <div className="p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-black">Production Line A</h2>
             <p className="text-gray-600">Total Orders of Product A</p>
@@ -189,49 +137,51 @@ const ProductionLineDashboard = () => {
                 </div>
               </div>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    onClick={() => setSelectedOrder(order)}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                      selectedOrder?.id === order.id 
-                        ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200 hover:border-purple-300'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-medium text-black">{order.id}</h4>
-                        <p className="text-sm text-gray-600">{order.productName}</p>
+                {orders
+                  .slice() // create a shallow copy to avoid mutating state
+                  .sort((a, b) => a.orderDate - b.orderDate) // sort by period (lowest first)
+                  .map((order) => (
+                    <div
+                      key={order.id}
+                      onClick={() => setSelectedOrder(order)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                        selectedOrder?.id === order.id 
+                          ? 'border-purple-500 bg-purple-50' 
+                          : 'border-gray-200 hover:border-purple-300'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-medium text-black">{order.id}</h4>
+                          <p className="text-sm text-gray-600">{order.productName}</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <span className="status-pill period-pill">
+                            Period Ordered: {order.orderDate}
+                          </span>
+                          <span className={`status-pill ${getStatusColor(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <span className={`status-pill ${getPriorityColor(order.priority)}`}>
-                          {order.priority}
-                        </span>
-                        <span className={`status-pill ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>{order.quantity}</span>
+                        <span>{order.unit}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>{order.customer}</span>
+                      </div>
+                      {/* Mini progress indicator */}
+                      <div className="mt-2">
+                        <div className="mini-progress-bar">
+                          <div 
+                            className="mini-progress-bar-fill" 
+                            style={{ width: `${(order.currentStep / 7) * 100}%` }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <span>{order.quantity}</span>
-                      <span>{order.unit}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-400 mt-1">
-                      <span>{order.customer}</span>
-                      <span>Due: {formatTime(order.dueDate)}</span>
-                    </div>
-                    {/* Mini progress indicator */}
-                    <div className="mt-2">
-                      <div className="mini-progress-bar">
-                        <div 
-                          className="mini-progress-bar-fill" 
-                          style={{ width: `${(order.currentStep / 7) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
@@ -280,10 +230,11 @@ const ProductionLineDashboard = () => {
                       <label className="text-sm font-medium text-pink-700">Unit</label>
                       <p className="text-black font-medium">{selectedOrder.unit}</p>
                     </div>
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <label className="text-sm font-medium text-purple-700">Priority</label>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(selectedOrder.priority)}`}>
-                        {selectedOrder.priority}
+                    {/* Replace Priority with Period */}
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <label className="text-sm font-medium text-blue-700">Period Ordered:</label>
+                      <span className="px-2 py-1 text-xs rounded-full period-pill">
+                        {selectedOrder.orderDate}
                       </span>
                     </div>
                   </div>
@@ -322,7 +273,6 @@ const ProductionLineDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

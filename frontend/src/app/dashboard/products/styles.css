@@ -114,3 +114,14 @@
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
+
+/* Period pill for timeframes */
+.period-pill {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  display: inline-block;
+}
