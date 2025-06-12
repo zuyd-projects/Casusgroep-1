@@ -177,14 +177,6 @@ const ProductionLineDashboard = () => {
                     <div className="flex justify-between text-xs text-gray-400 mt-1">
                       <span>{order.customer}</span>
                     </div>
-                    <div className="mt-2">
-                      <div className="mini-progress-bar">
-                        <div 
-                          className="mini-progress-bar-fill" 
-                          style={{ width: `${(order.currentStep / 7) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
                   </div>
                 ))}
             </div>

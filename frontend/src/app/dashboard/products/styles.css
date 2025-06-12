@@ -59,21 +59,6 @@
   margin-right: 0.25rem;
 }
 
-/* Mini progress bar container */
-.mini-progress-bar {
-  width: 100%;
-  background-color: #e5e7eb;
-  border-radius: 9999px;
-  height: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.mini-progress-bar-fill {
-  background-color: #06b6d4;
-  height: 0.25rem;
-  border-radius: 9999px;
-  transition: all 0.3s;
-}
 
 /* Main grid for dashboard */
 .dashboard-grid {
@@ -172,3 +157,5 @@
 .btn-deny-assembly:hover {
   background-color: #b91c1c; /* red-700 */
 }
+
+
