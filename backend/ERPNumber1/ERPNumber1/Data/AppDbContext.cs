@@ -16,6 +16,8 @@ namespace ERPNumber1.Data
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<Delivery> Deliveries { get; set; }
+        public DbSet<Statistics> Statistics { get; set; }
+        public DbSet<SupplierOrder> SupplierOrders { get; set; }    
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
