@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 import { CheckCircle, AlertCircle, Play, RotateCcw, ZoomIn, ZoomOut, Move3D } from 'lucide-react';
 
 const ProductionLineDashboard = () => {
-  // TODO: Replace with backend data in the future
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([
     { 
@@ -48,6 +47,68 @@ const ProductionLineDashboard = () => {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  const handleStartAssembly = () => {
+    if (!selectedOrder) return;
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.id === selectedOrder.id
+          ? { ...order, status: 'In Progress' }
+          : order
+      )
+    );
+    setSelectedOrder((prev) =>
+      prev ? { ...prev, status: 'In Progress' } : prev
+    );
+  };
+
+  const handleCompleteOrder = () => {
+    if (!selectedOrder) return;
+    setOrders((prevOrders) =>
+      prevOrders.filter((order) => order.id !== selectedOrder.id)
+    );
+    setSelectedOrder((prev) =>
+      prev ? { ...prev, status: 'Completed' } : prev
+    );
+  };
+
+  const handleDenyAssembly = () => {
+    if (!selectedOrder) return;
+    setOrders((prevOrders) =>
+      prevOrders.filter((order) => order.id !== selectedOrder.id)
+    );
+    setSelectedOrder(null);
+  };
+
+  const handleBackToAssembly = () => {
+    if (!selectedOrder) return;
+    setSelectedOrder((prev) =>
+      prev ? { ...prev, status: 'In Progress' } : prev
+    );
+  };
+
+  const renderOrderDetails = (order) => (
+    <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="bg-purple-50 p-3 rounded-lg">
+        <label className="text-sm font-medium text-purple-700">Customer</label>
+        <p className="text-black font-medium">{order.customer}</p>
+      </div>
+      <div className="bg-cyan-50 p-3 rounded-lg">
+        <label className="text-sm font-medium text-cyan-700">Quantity</label>
+        <p className="text-black font-medium">{order.quantity}</p>
+      </div>
+      <div className="bg-pink-50 p-3 rounded-lg">
+        <label className="text-sm font-medium text-pink-700">Unit</label>
+        <p className="text-black font-medium">{order.unit}</p>
+      </div>
+      <div className="bg-blue-50 p-3 rounded-lg">
+        <label className="text-sm font-medium text-blue-700">Period Ordered:</label>
+        <span className="px-2 py-1 text-xs rounded-full period-pill">
+          {order.orderDate}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="h-screen bg-white">
@@ -135,7 +196,6 @@ const ProductionLineDashboard = () => {
                       <p className="text-sm text-gray-600">Interactive 3D model will be displayed here</p>
                       <p className="text-xs text-gray-500 mt-2">Rotate • Zoom • Inspect</p>
                     </div>
-                    {/* 3D Controls */}
                     <div className="absolute top-4 right-4 flex flex-col space-y-2">
                       <button className="p-2 bg-white rounded-lg shadow-md hover:bg-purple-50 transition-colors">
                         <RotateCcw className="w-4 h-4 text-purple-600" />
@@ -149,46 +209,56 @@ const ProductionLineDashboard = () => {
                     </div>
                   </div>
                 </div>
-                {/* Order Information */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-purple-50 p-3 rounded-lg">
-                    <label className="text-sm font-medium text-purple-700">Customer</label>
-                    <p className="text-black font-medium">{selectedOrder.customer}</p>
-                  </div>
-                  <div className="bg-cyan-50 p-3 rounded-lg">
-                    <label className="text-sm font-medium text-cyan-700">Quantity</label>
-                    <p className="text-black font-medium">{selectedOrder.quantity}</p>
-                  </div>
-                  <div className="bg-pink-50 p-3 rounded-lg">
-                    <label className="text-sm font-medium text-pink-700">Unit</label>
-                    <p className="text-black font-medium">{selectedOrder.unit}</p>
-                  </div>
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <label className="text-sm font-medium text-blue-700">Period Ordered:</label>
-                    <span className="px-2 py-1 text-xs rounded-full period-pill">
-                      {selectedOrder.orderDate}
-                    </span>
-                  </div>
-                </div>
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  {selectedOrder.status === 'In Queue' && (
-                    <button
-                      className="flex-1 flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Assembly
-                    </button>
-                  )}
-                  {selectedOrder.status === 'In Progress' && (
-                    <button
-                      className="flex-1 flex items-center justify-center px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Complete Order
-                    </button>
-                  )}
-                </div>
+                {/* Conditional rendering based on status */}
+                {selectedOrder.status === 'In Queue' && (
+                  <>
+                    {renderOrderDetails(selectedOrder)}
+                    <div className="flex space-x-3">
+                      <button
+                        className="flex-1 flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        onClick={handleStartAssembly}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Start Assembly
+                      </button>
+                      <button
+                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        onClick={handleDenyAssembly}
+                      >
+                        Deny Assembly
+                      </button>
+                    </div>
+                  </>
+                )}
+                {selectedOrder.status === 'In Progress' && (
+                  <>
+                    {renderOrderDetails(selectedOrder)}
+                    <div className="flex space-x-3">
+                      <button
+                        className="flex-1 flex items-center justify-center px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+                        onClick={handleCompleteOrder}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Complete Order
+                      </button>
+                      <button
+                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        onClick={handleDenyAssembly}
+                      >
+                        Deny Assembly
+                      </button>
+                    </div>
+                  </>
+                )}
+                {selectedOrder.status === 'Completed' && (
+                  <>
+                    <div className="mb-6 text-center">
+                      <CheckCircle className="w-10 h-10 mx-auto text-pink-600 mb-2" />
+                      <p className="text-pink-700 font-semibold">Order Completed!</p>
+                    </div>
+                    {/* Remove the action buttons here */}
+                  </>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">

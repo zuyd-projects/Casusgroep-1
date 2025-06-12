@@ -13,19 +13,18 @@
 
 /* Card container for order lists and details */
 .order-card {
-  background-color: #fff;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-  border: 1px solid #e9d5ff;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Section header for cards */
 .section-header-order {
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #000;
+  font-weight: 700;
+  color: #7c3aed;
   margin-bottom: 0;
 }
 .order-header-text{
@@ -50,16 +49,14 @@
   margin-right: 0.5rem;
 }
 
-/* Status and priority pill */
+/* Shared pill style */
 .status-pill {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  margin-left: 0.25rem;
+  margin-right: 0.25rem;
 }
 
 /* Mini progress bar container */
@@ -124,4 +121,19 @@
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
   display: inline-block;
+}
+
+/* Period label pill */
+.period-label {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* Order info label */
+.order-info-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 0.25rem;
+  display: block;
 }
