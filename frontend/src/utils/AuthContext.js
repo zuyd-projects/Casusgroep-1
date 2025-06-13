@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { tokenService } from './auth';
 
-const AuthContext = createContext({});
+const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === null) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
