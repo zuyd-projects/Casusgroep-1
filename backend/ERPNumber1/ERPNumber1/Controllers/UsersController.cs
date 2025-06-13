@@ -1,13 +1,12 @@
-﻿
-//using ERPNumber1.Auth;
-using ERPNumber1.Dtos.User;
+
+﻿using ERPNumber1.Dtos.User;
+
 using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using ERPNumber1.Interfaces;
 
 namespace api.Controllers

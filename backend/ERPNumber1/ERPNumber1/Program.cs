@@ -1,4 +1,4 @@
-//using ERPNumber1.Auth;
+
 using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +89,23 @@ builder.Services.AddSwaggerGen(option =>
 });
 
 var app = builder.Build();
+
+// Ensure database is created and apply migrations
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        // This will create the database if it doesn't exist and apply all migrations
+        context.Database.EnsureCreated();
+        Console.WriteLine("Database ensured and ready.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error ensuring database: {ex.Message}");
+        // Don't fail the startup, just log the error
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
