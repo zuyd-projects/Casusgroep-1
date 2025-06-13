@@ -1,11 +1,11 @@
-name: Set Azure Credentials for Terraform
+name: Deploy infrastructure
 
 on:
   workflow_dispatch:
 
 jobs:
-  export-azure-credentials:
-    name: 'Set Azure credentials'
+  deploy-terraform:
+    name: 'Deploy infrastructure'
     runs-on: ubuntu-latest
 
     env:
