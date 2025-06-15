@@ -13,19 +13,18 @@
 
 /* Card container for order lists and details */
 .order-card {
-  background-color: #fff;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-  border: 1px solid #e9d5ff;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Section header for cards */
 .section-header-order {
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #000;
+  font-weight: 700;
+  color: #7c3aed;
   margin-bottom: 0;
 }
 .order-header-text{
@@ -50,33 +49,16 @@
   margin-right: 0.5rem;
 }
 
-/* Status and priority pill */
+/* Shared pill style */
 .status-pill {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  margin-left: 0.25rem;
+  margin-right: 0.25rem;
 }
 
-/* Mini progress bar container */
-.mini-progress-bar {
-  width: 100%;
-  background-color: #e5e7eb;
-  border-radius: 9999px;
-  height: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.mini-progress-bar-fill {
-  background-color: #06b6d4;
-  height: 0.25rem;
-  border-radius: 9999px;
-  transition: all 0.3s;
-}
 
 /* Main grid for dashboard */
 .dashboard-grid {
@@ -114,3 +96,66 @@
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
+
+/* Period pill for timeframes */
+.period-pill {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  display: inline-block;
+}
+
+/* Period label pill */
+.period-label {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* Order info label */
+.order-info-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+/* Button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-deny-assembly {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex: 1;
+  background-color: #dc2626; /* red-600 */
+  color: #fff;
+  border-radius: 0.5rem;
+}
+
+.btn-deny-assembly:hover {
+  background-color: #b91c1c; /* red-700 */
+}
+
+

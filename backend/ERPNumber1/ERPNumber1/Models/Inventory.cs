@@ -1,0 +1,26 @@
+﻿using Microsoft.EntityFrameworkCore.Storage;
+
+namespace ERPNumber1.Models
+{
+    public class Inventory
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Quantity { get; set; }
+        public string? AppUserId { get; set; }
+        public AppUser? AppUser { get; set; }
+        public List<Material> Materials { get; set; }
+       
+
+        public Inventory()
+        {
+        }
+        public Inventory(int id, string name, int quantity, List<Material> materials)
+        {
+            Id = id;
+            Name = name;
+            Quantity = quantity;
+            Materials = materials;
+        }
+    }
+}
