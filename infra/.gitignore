@@ -1,2 +1,6 @@
 credentials.tf
 .terraform/
+secrets.auto.tfvars
+*.tfvars
+terraform.tfstate
+terraform.tfstate.backup

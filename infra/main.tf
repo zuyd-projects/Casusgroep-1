@@ -1,52 +1,63 @@
-
-resource "azurerm_resource_group" "example" {
-  name     = "2425-B2C6-B2C-3"
-  location = "West Europe"  # Change to your desired Azure region
+provider "azurerm" {
+  features {}
 }
 
-resource "azurerm_virtual_network" "example" {
-  name                = "my-vnet"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
+data "azurerm_resource_group" "rg" {
+  name = "2425-B2C6-B2C-3"
+}
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "backendVNET"
   address_space       = ["10.0.0.0/16"]
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 }
 
-resource "azurerm_subnet" "example" {
-  name                 = "my-subnet"
-  resource_group_name  = azurerm_resource_group.example.name
-  virtual_network_name = azurerm_virtual_network.example.name
+resource "azurerm_subnet" "subnet" {
+  name                 = "backendSubnet"
+  resource_group_name  = data.azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-resource "azurerm_public_ip" "example" {
-  name                = "my-public-ip"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
-  allocation_method   = "Static"  # Change this to "Static" for Standard SKU public IP
-  sku                  = "Standard"  # Set SKU to Standard
-}
+resource "azurerm_network_interface" "nic" {
+  name                = "nic-linux-docker"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
-
-resource "azurerm_network_interface" "example" {
-  name                = "my-nic"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
   ip_configuration {
-    name                          = "my-ip-config"
-    subnet_id                     = azurerm_subnet.example.id
+    name                          = "ipconfig1"
+    subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.example.id
+    public_ip_address_id          = azurerm_public_ip.public_ip.id
   }
 }
 
-resource "azurerm_linux_virtual_machine" "example" {
-  name                = "mylinuxvm"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
-  size                = "Standard_B1s"
-  admin_username      = "azureuser"
-  admin_password      = "AzureP@ssw0rd!"  # Replace with your desired password
-  network_interface_ids = [azurerm_network_interface.example.id]
+resource "azurerm_public_ip" "public_ip" {
+  name                = "pip-linux-docker"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  allocation_method   = "Dynamic"
+}
+
+resource "azurerm_linux_virtual_machine" "vm" {
+  name                            = "vm-linux-docker"
+  resource_group_name             = data.azurerm_resource_group.rg.name
+  location                        = data.azurerm_resource_group.rg.location
+  size                            = "Standard_B1s"
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+
+  network_interface_ids = [
+    azurerm_network_interface.nic.id,
+  ]
+
+  os_disk {
+    name                 = "disk-linux-docker"
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
 
   source_image_reference {
     publisher = "Canonical"
@@ -55,21 +66,12 @@ resource "azurerm_linux_virtual_machine" "example" {
     version   = "latest"
   }
 
-  os_disk {
-    storage_account_type = "Standard_LRS"
-    caching              = "ReadOnly"
+  computer_name      = "linuxdocker"
+  provision_vm_agent = true
+
+  custom_data = base64encode(file("cloud-init.yaml"))
+
+  tags = {
+    environment = "dev"
   }
-
-  disable_password_authentication = false  # Password authentication enabled
-
-  custom_data = base64encode(<<-EOT
-    #!/bin/bash
-    sudo apt-get update
-    sudo apt-get install -y nginx
-    sudo systemctl enable nginx
-    sudo systemctl start nginx
-  EOT
-  )
 }
-
-
