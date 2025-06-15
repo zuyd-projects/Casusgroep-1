@@ -1,10 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { tokenService } from "../utils/auth";
+import LogoutButton from "./LogoutButton";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Get user data from localStorage
+    const userData = tokenService.getUserData();
+    const token = tokenService.getToken();
+    
+    if (token && userData) {
+      setUser(userData);
+    }
+  }, []);
+
+  const getUserInitials = (name) => {
+    if (!name) return "U";
+    const nameParts = name.split(" ");
+    if (nameParts.length >= 2) {
+      return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
+  };
 
   return (
     <header className="w-full z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
@@ -44,7 +66,7 @@ export default function Header() {
             <input
               type="text"
               placeholder="Search..."
-              className="py-1.5 pl-8 pr-4 w-48 lg:w-64 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-brand-pink text-zinc-800 dark:text-white"
+              className="py-1.5 pl-8 pr-4 w-48 lg:w-64 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-zinc-800 dark:text-white"
             />
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -80,12 +102,40 @@ export default function Header() {
               </svg>
             </button>
 
-            <div className="ml-3">
-              <button className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-brand-purple dark:bg-brand-pink flex items-center justify-center text-sm font-bold text-zinc-800 dark:text-white">
-                  AD
+            <div className="ml-3 flex items-center gap-3">
+              {user ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-purple-600 dark:bg-pink-600 flex items-center justify-center text-sm font-bold text-white">
+                      {getUserInitials(user.name)}
+                    </div>
+                    <div className="hidden md:block">
+                      <span className="text-sm font-medium text-zinc-800 dark:text-white">
+                        {user.name}
+                      </span>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {user.role}
+                      </div>
+                    </div>
+                  </div>
+                  <LogoutButton className="text-sm py-1 px-3" />
+                </>
+              ) : (
+                <div className="flex gap-2">
+                  <Link
+                    href="/login"
+                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                  >
+                    Register
+                  </Link>
                 </div>
-              </button>
+              )}
             </div>
           </div>
         </div>
@@ -95,16 +145,41 @@ export default function Header() {
       {isMenuOpen && (
         <div className="lg:hidden border-t border-zinc-200 dark:border-zinc-800">
           <nav className="px-2 py-3 space-y-1">
-            {["dashboard", "orders", "customers", "products", "settings"].map(
-              (route) => (
+            {user ? (
+              <>
+                <div className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  Welcome, {user.name} ({user.role})
+                </div>
+                {["dashboard", "orders", "customers", "products", "settings"].map(
+                  (route) => (
+                    <Link
+                      key={route}
+                      href={`/dashboard/${route === "dashboard" ? "" : route}`}
+                      className="block px-3 py-2 rounded-md text-base font-medium transition-colors bg-pink-400/80 text-white shadow dark:bg-zinc-800 dark:text-white"
+                    >
+                      {route.charAt(0).toUpperCase() + route.slice(1)}
+                    </Link>
+                  )
+                )}
+                <div className="px-3 py-2">
+                  <LogoutButton className="w-full" />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2 px-3">
                 <Link
-                  key={route}
-                  href={`/dashboard/${route === "dashboard" ? "" : route}`}
-                  className="block px-3 py-2 rounded-md text-base font-medium transition-colors bg-pink-400/80 text-white shadow dark:bg-zinc-800 dark:text-white"
+                  href="/login"
+                  className="block w-full text-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                 >
-                  {route.charAt(0).toUpperCase() + route.slice(1)}
+                  Login
                 </Link>
-              )
+                <Link
+                  href="/register"
+                  className="block w-full text-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
+                  Register
+                </Link>
+              </div>
             )}
           </nav>
         </div>
