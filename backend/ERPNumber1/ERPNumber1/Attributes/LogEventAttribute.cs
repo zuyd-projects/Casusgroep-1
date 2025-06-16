@@ -25,33 +25,32 @@ namespace ERPNumber1.Attributes
             _logResponse = logResponse;
         }
 
-        public override void OnActionExecuting(ActionExecutingContext context)
+        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             _startTime = DateTime.UtcNow;
             _actionArguments = context.ActionArguments;
-            base.OnActionExecuting(context);
-        }
 
-        public override async void OnActionExecuted(ActionExecutedContext context)
-        {
+            // Proceed to the next action in the pipeline
+            var executedContext = await next();
+
             try
             {
-                var eventLogService = context.HttpContext.RequestServices.GetService<IEventLogService>();
+                var eventLogService = executedContext.HttpContext.RequestServices.GetService<IEventLogService>();
                 if (eventLogService == null) return;
 
                 var endTime = DateTime.UtcNow;
-                var userId = context.HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                var resource = $"{context.Controller.GetType().Name}.{context.ActionDescriptor.DisplayName}";
-                var sessionId = context.HttpContext.Session?.Id;
+                var userId = executedContext.HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var resource = $"{executedContext.Controller.GetType().Name}.{executedContext.ActionDescriptor.DisplayName}";
+                var sessionId = executedContext.HttpContext.Session?.Id;
 
                 // Try to extract case ID from route parameters or request body
-                var caseId = ExtractCaseId(context);
+                var caseId = ExtractCaseId(executedContext);
 
                 // Determine status based on response
-                var status = context.Exception == null ? "Completed" : "Failed";
+                var status = executedContext.Exception == null ? "Completed" : "Failed";
 
                 // Prepare additional data
-                var additionalData = PrepareAdditionalData(context);
+                var additionalData = PrepareAdditionalData(executedContext);
 
                 await eventLogService.LogTimedEventAsync(
                     caseId,
