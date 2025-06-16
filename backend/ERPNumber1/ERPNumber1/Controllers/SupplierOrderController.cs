@@ -157,7 +157,6 @@ namespace ERPNumber1.Controllers
                         roundNumber = supplierOrder.round_number
                     }
                 }), id.ToString(), userId: userId);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
