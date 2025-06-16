@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.light {
+  --background: #f3f4f6;
+  --sidebar: #6d28d9;
+  --sidebar-active: #a78bfa;
+  --card: #fff;
+  --accent-pink: #ec4899;
+  --accent-cyan: #22d3ee;
+  --accent-purple: #6d28d9;
+  --text-main: #312e81;
+  --text-muted: #64748b;
+}
