@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using ERPNumber1.Data;
 using ERPNumber1.Models;
 using Microsoft.AspNetCore.Authorization;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Extensions;
+using ERPNumber1.Attributes;
+using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
 {
@@ -16,15 +20,18 @@ namespace ERPNumber1.Controllers
     public class SimulationsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IEventLogService _eventLogService;
 
-        public SimulationsController(AppDbContext context)
+        public SimulationsController(AppDbContext context, IEventLogService eventLogService)
         {
             _context = context;
+            _eventLogService = eventLogService;
         }
 
         // GET: api/Simulations
         [Authorize(Roles ="User")]
         [HttpGet]
+        [LogEvent("Simulation", "Get All Simulations")]
         public async Task<ActionResult<IEnumerable<Simulation>>> GetSimulations()
         {
             return await _context.Simulations.ToListAsync();
@@ -32,12 +39,16 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Simulations/5
         [HttpGet("{id}")]
+        [LogEvent("Simulation", "Get Simulation by ID")]
         public async Task<ActionResult<Simulation>> GetSimulation(int id)
         {
             var simulation = await _context.Simulations.FindAsync(id);
 
             if (simulation == null)
             {
+                await _eventLogService.LogSimulationEventAsync(id, "Simulation Retrieval Failed", 
+                    "SimulationsController", "Failed", 
+                    new { reason = "Simulation not found" });
                 return NotFound();
             }
 

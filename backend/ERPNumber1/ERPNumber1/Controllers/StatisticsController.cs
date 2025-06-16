@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Extensions;
+using ERPNumber1.Attributes;
+using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
 {
@@ -12,14 +16,17 @@ namespace ERPNumber1.Controllers
     public class StatisticsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IEventLogService _eventLogService;
 
-        public StatisticsController(AppDbContext context)
+        public StatisticsController(AppDbContext context, IEventLogService eventLogService)
         {
             _context = context;
+            _eventLogService = eventLogService;
         }
 
         // GET: api/Statistics
         [HttpGet]
+        [LogEvent("Statistics", "Get All Statistics")]
         public async Task<ActionResult<IEnumerable<Statistics>>> GetStatistics()
         {
             return await _context.Statistics.ToListAsync();
@@ -27,12 +34,17 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Statistics/5
         [HttpGet("{id}")]
+        [LogEvent("Statistics", "Get Statistics by ID")]
         public async Task<ActionResult<Statistics>> GetStatistics(int id)
         {
             var statistics = await _context.Statistics.FindAsync(id);
 
             if (statistics == null)
             {
+                await _eventLogService.LogEventAsync($"Statistics_{id}", "Statistics Retrieval Failed", 
+                    "StatisticsController", "Statistics", "Failed", 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Statistics not found" }), 
+                    id.ToString());
                 return NotFound();
             }
 
