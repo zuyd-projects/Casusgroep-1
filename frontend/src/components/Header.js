@@ -29,7 +29,7 @@ export default function Header() {
   };
 
   return (
-    <header className="w-full z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+    <header className="w-full z-10 border-b border-zinc-200 dark:border-zinc-800 pb-2">
       <div className="flex items-center justify-between h-16 px-4 lg:px-6 lg:ml-60">
         {/* Mobile: Logo and menu */}
         <div className="flex items-center lg:hidden">

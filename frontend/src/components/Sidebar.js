@@ -18,7 +18,6 @@ const navItems = [
       { label: "Product C", href: "/dashboard/products/c" },
     ],
   },
-  { label: "Settings", href: "/dashboard/settings" },
 ];
 
 function SidebarItem({ item, pathname }) {
@@ -106,7 +105,7 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="absolute bottom-8 left-0 w-full px-6">
-        <span className="text-white/70 text-sm">Settings</span>
+        <span className="text-white/70 text-sm">About</span>
       </div>
     </aside>
   );
