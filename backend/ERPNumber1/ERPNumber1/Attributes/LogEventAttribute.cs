@@ -25,7 +25,7 @@ namespace ERPNumber1.Attributes
             _logResponse = logResponse;
         }
 
-        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             _startTime = DateTime.UtcNow;
             _actionArguments = context.ActionArguments;
@@ -71,8 +71,6 @@ namespace ERPNumber1.Attributes
                 var logger = context.HttpContext.RequestServices.GetService<ILogger<LogEventAttribute>>();
                 logger?.LogError(ex, "Failed to log event for action {Action}", _activity);
             }
-
-            base.OnActionExecuted(context);
         }
 
         private string ExtractCaseId(ActionExecutedContext context)
