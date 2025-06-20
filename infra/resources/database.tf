@@ -26,6 +26,11 @@ resource "azurerm_linux_virtual_machine" "database" {
   admin_username                  = "azureuser"
   disable_password_authentication = true
 
+  admin_ssh_key {
+    username   = "azureuser"
+    public_key = var.admin_ssh_public_key
+  }
+
   network_interface_ids = [
     azurerm_network_interface.database.id,
   ]
