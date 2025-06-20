@@ -1,26 +1,13 @@
-resource "azurerm_network_security_group" "NSG_Frontend" {
-  name                = "NSGFrontend"
+resource "azurerm_network_security_group" "frontend" {
+  name                = "prod-frontend-nsg"
   location            = var.location
   resource_group_name = var.resource_group_name
 
-  security_rule {
-    name                       = "deny-all-inbound"
-    description                = "Deny all inbound traffic"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Deny"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
 
   security_rule {
-    name                       = "HTTPS-Access"
+    name                       = "AllowHTTPSAccess"
     description                = "Allow HTTPS access"
-    priority                   = 130
+    priority                   = 1011
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -33,9 +20,9 @@ resource "azurerm_network_security_group" "NSG_Frontend" {
 
 
   security_rule {
-    name                       = "HTTP-Access"
+    name                       = "AllowHTTPAccess"
     description                = "Allow HTTP access"
-    priority                   = 135
+    priority                   = 1010
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -45,6 +32,6 @@ resource "azurerm_network_security_group" "NSG_Frontend" {
     destination_address_prefix = "*"
   }
   tags = {
-    environment = "Production"
+    environment = "production"
   }
 }
