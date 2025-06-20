@@ -1,3 +1,4 @@
+# These variables will be made available from the Terraform Cloud Secrets.
 variable "private_key" {
   type      = string
   sensitive = true
