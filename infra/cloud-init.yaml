@@ -7,12 +7,6 @@ packages:
   - gnupg
   - lsb-release
 
-write_files:
-  - path: /home/azureuser/private.key.b64
-    permissions: '0600'
-    owner: azureuser:azureuser
-    content: ${private_key}
-
 runcmd:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
   - echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
@@ -23,6 +17,10 @@ runcmd:
   - curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
   - chmod +x /usr/local/bin/docker-compose
   - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+  - |
+    cat <<EOF > /home/azureuser/private.key.b64
+    ${private_key}
+    EOF
   - base64 -d /home/azureuser/private.key.b64 > /home/azureuser/private.key
   - chmod 600 /home/azureuser/private.key
   - chown azureuser:azureuser /home/azureuser/private.key
