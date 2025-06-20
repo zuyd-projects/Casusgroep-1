@@ -33,5 +33,5 @@ variable "admin_ssh_public_key" {
 variable "force_recreate" {
   description = "Force recreate the VM if updated"
   type        = string
-  default     = "2025-06-20.2"
+  default     = "2025-06-20.3"
 }
