@@ -31,5 +31,5 @@ jobs:
         id: build-image
         run: |
           IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/bootstrap:latest
-          docker build -t $IMAGE_TAG ./frontend
+          docker build -t $IMAGE_TAG ./infra-bootstrap-agent
           docker push $IMAGE_TAG
