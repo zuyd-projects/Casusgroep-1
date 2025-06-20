@@ -31,7 +31,7 @@ module "frontend" {
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
-    private_key = base64encode(var.private_key)
+    private_key = var.private_key
   }))
 
   depends_on = [
@@ -49,7 +49,7 @@ module "backend" {
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
-    private_key = base64encode(var.private_key)
+    private_key = var.private_key
   }))
 
   depends_on = [
@@ -67,7 +67,7 @@ module "database" {
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
-    private_key = base64encode(var.private_key)
+    private_key = var.private_key
   }))
 
   depends_on = [
