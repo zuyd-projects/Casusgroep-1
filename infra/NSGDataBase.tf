@@ -32,7 +32,7 @@ resource "azurerm_network_security_group" "NSG_database" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3306"
-    source_address_prefix      = "10.2.1.10"
+    source_address_prefix      = "10.0.3.10"
     destination_address_prefix = "*"
 
   }
