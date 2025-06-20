@@ -41,7 +41,6 @@ const ProductionLineDashboard = () => {
   ]);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
   const modelViewerRef = useRef(null);
 
   const getStatusColor = (status) => {
