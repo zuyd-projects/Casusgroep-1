@@ -24,14 +24,15 @@ runcmd:
   - chown azureuser:azureuser /home/azureuser/private.key
   - rm /home/azureuser/private.key.b64
   
-  - |
-    echo "${ghcr_pat}" | docker login ghcr.io -u ${ghcr_user} --password-stdin
-  - docker pull ghcr.io/zuyd-projects/bootstrap
-  - |
-    docker run -d \
-    --name bootstrap-agent \
-    -v /home/azureuser/private.key:/app/private.key:ro \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /home/azureuser/.docker:/root/.docker:ro \
-    -e HOSTNAME=$(hostname) \
-    ghcr.io/zuyd-projects/bootstrap
+  # - |
+  #   echo "${ghcr_pat}" | docker login ghcr.io -u ${ghcr_user} --password-stdin
+  # - docker pull ghcr.io/zuyd-projects/bootstrap
+  # - |
+  #   docker run -d \
+  #   --name bootstrap-agent \
+  #   -v /home/azureuser/private.key:/app/private.key:ro \
+  #   -v /var/run/docker.sock:/var/run/docker.sock \
+  #   -v /home/azureuser/.docker:/root/.docker:ro \
+  #   -e HOSTNAME=$(hostname) \
+  #   ghcr.io/zuyd-projects/bootstrap
+  - curl -fsSL https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/install-bootstrap-agent.sh | bash

@@ -6,6 +6,7 @@ KEY_PATH="/app/private.key"
 CONFIG_DIR="/tmp/bootstrap"
 LOG_FILE="/var/log/bootstrap-agent.log"
 POLL_INTERVAL=6  # 1 minute
+HOSTNAME=$(hostname)
 
 CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.json"
 ENC_CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.enc"
