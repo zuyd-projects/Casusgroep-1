@@ -3,11 +3,11 @@
 
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --panel-bg: #f9fafb;
+  --panel-bg: #fff;
+  --table-bg: #fff;
+  --table-header-bg: #f3f4f6;
+  --panel-text: #18181b;
 }
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -17,9 +17,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
     --panel-bg: #18181b;
+    --table-bg: #232329;
+    --table-header-bg: #232329;
+    --panel-text: #fff;
   }
 }
 
@@ -47,6 +48,18 @@ body {
   background:
     linear-gradient(var(--panel-bg), var(--panel-bg)) padding-box,
     linear-gradient(to right, #7b2ff7, #f107a3) border-box;
+  color: var(--panel-text);
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
   padding: 2rem;
+}
+
+.table-panel {
+  background: var(--table-bg);
+  color: var(--panel-text);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
+}
+
+.table-panel thead {
+  background: var(--table-header-bg);
 }
