@@ -21,12 +21,14 @@ Product (depends on Order)
     ↓
 Material (depends on Product)
 
-Independent Entities:
-- User/AppUser
-- Inventory
-- SupplierOrder
-- Delivery
-- Statistics
+
+# TODO: Add these relationships from the diagram
+Independent Entities (can be created anytime):
+- User/AppUser (no dependencies - base user entities)
+- Inventory (depends on AppUserId - references user)
+- SupplierOrder (depends on UserId - references user) 
+- Delivery (optional OrderId - can exist independently)
+- Statistics (no dependencies - standalone metrics)
 ```
 
 ## 📝 Complete Creation Workflow
