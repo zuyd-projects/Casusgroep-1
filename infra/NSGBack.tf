@@ -34,7 +34,7 @@ resource "azurerm_network_security_group" "NSG_Backend" {
 
 
   security_rule {
-    name                       = "MySQL-Accesout"
+    name                       = "MySQL-Access-Outbound"
     description                = "Allow MySQL access"
     priority                   = 140
     direction                  = "Outbound"
