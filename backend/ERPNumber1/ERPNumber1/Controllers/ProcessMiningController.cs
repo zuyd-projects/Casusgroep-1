@@ -106,6 +106,162 @@ namespace ERPNumber1.Controllers
         }
 
         /// <summary>
+        /// Detect process anomalies and bottlenecks
+        /// </summary>
+        [HttpGet("anomalies")]
+        public async Task<ActionResult<object>> GetProcessAnomalies(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? severity = null)
+        {
+            try
+            {
+                var anomalies = await _eventLogService.DetectAnomaliesAsync(startDate, endDate, severity);
+                return Ok(anomalies);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error detecting process anomalies");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get process flow visualization data
+        /// </summary>
+        [HttpGet("flow")]
+        public async Task<ActionResult<object>> GetProcessFlow(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var flowData = await _eventLogService.GetProcessFlowAsync(startDate, endDate);
+                return Ok(flowData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving process flow data");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get delivery time predictions and warnings for planners
+        /// </summary>
+        [HttpGet("delivery-predictions")]
+        public async Task<ActionResult<object>> GetDeliveryPredictions()
+        {
+            try
+            {
+                var predictions = await _eventLogService.GetDeliveryPredictionsAsync();
+                return Ok(predictions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving delivery predictions");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Seed sample process mining data for demonstration (Development only)
+        /// </summary>
+        [HttpPost("seed-sample-data")]
+        public async Task<ActionResult> SeedSampleData()
+        {
+            try
+            {
+                var random = new Random();
+                var activities = new[] { "Order Created", "Order Validated", "Production Started", "Quality Check", "Packaging", "Shipped", "Delivered" };
+                var resources = new[] { "OrderSystem", "ValidationTeam", "ProductionLine1", "QualityTeam", "PackagingTeam", "ShippingTeam", "DeliveryService" };
+                var statuses = new[] { "Completed", "In Progress", "Failed", "Delayed" };
+
+                // Create sample orders with events
+                for (int orderId = 1; orderId <= 20; orderId++)
+                {
+                    var caseId = $"ORDER-{orderId:D4}";
+                    var orderStartTime = DateTime.UtcNow.AddDays(-random.Next(1, 30));
+                    var currentTime = orderStartTime;
+
+                    for (int activityIndex = 0; activityIndex < activities.Length; activityIndex++)
+                    {
+                        var activity = activities[activityIndex];
+                        var resource = resources[activityIndex];
+                        var status = "Completed";
+                        
+                        // Simulate some delays and failures
+                        if (random.NextDouble() < 0.1) // 10% chance of failure
+                        {
+                            status = "Failed";
+                        }
+                        else if (random.NextDouble() < 0.2) // 20% chance of delay
+                        {
+                            status = "Delayed";
+                            currentTime = currentTime.AddHours(random.Next(2, 24)); // Add delay
+                        }
+
+                        // Add some randomness to activity duration
+                        var duration = random.Next(30, 480); // 30 minutes to 8 hours
+                        currentTime = currentTime.AddMinutes(duration);
+
+                        await _eventLogService.LogEventAsync(
+                            caseId: caseId,
+                            activity: activity,
+                            resource: resource,
+                            eventType: "Order",
+                            status: status,
+                            additionalData: System.Text.Json.JsonSerializer.Serialize(new { 
+                                orderId = orderId,
+                                duration = duration,
+                                step = activityIndex + 1,
+                                totalSteps = activities.Length 
+                            }),
+                            entityId: orderId.ToString(),
+                            priority: orderId % 3 == 0 ? "High" : "Normal",
+                            userId: "SYSTEM",
+                            sessionId: Guid.NewGuid().ToString()
+                        );
+
+                        // Break if order failed
+                        if (status == "Failed")
+                            break;
+
+                        // For some orders, stop before completion to simulate ongoing orders
+                        if (orderId > 15 && activityIndex >= random.Next(2, activities.Length - 1))
+                            break;
+                    }
+                }
+
+                // Add some anomalous events
+                for (int i = 0; i < 5; i++)
+                {
+                    var anomalyCaseId = $"ANOMALY-{i:D3}";
+                    await _eventLogService.LogEventAsync(
+                        caseId: anomalyCaseId,
+                        activity: "Unusual Processing",
+                        resource: "AnomalySystem",
+                        eventType: "Anomaly",
+                        status: "Completed",
+                        additionalData: System.Text.Json.JsonSerializer.Serialize(new { 
+                            type = "duration_anomaly",
+                            expected = 60,
+                            actual = random.Next(300, 1000) // Very long duration
+                        }),
+                        priority: "High"
+                    );
+                }
+
+                return Ok(new { message = "Sample data seeded successfully", ordersCreated = 20, anomaliesCreated = 5 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error seeding sample data");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// Manually log an event (for testing or special cases)
         /// </summary>
         [HttpPost("log")]
