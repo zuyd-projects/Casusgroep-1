@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ERPNumber1.Data;
 using ERPNumber1.Models;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Extensions;
+using ERPNumber1.Attributes;
+using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
 {
@@ -15,14 +19,17 @@ namespace ERPNumber1.Controllers
     public class RoundsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IEventLogService _eventLogService;
 
-        public RoundsController(AppDbContext context)
+        public RoundsController(AppDbContext context, IEventLogService eventLogService)
         {
             _context = context;
+            _eventLogService = eventLogService;
         }
 
         // GET: api/Rounds
         [HttpGet]
+        [LogEvent("Round", "Get All Rounds")]
         public async Task<ActionResult<IEnumerable<Round>>> GetRounds()
         {
             return await _context.Rounds.ToListAsync();
@@ -30,12 +37,17 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Rounds/5
         [HttpGet("{id}")]
+        [LogEvent("Round", "Get Round by ID")]
         public async Task<ActionResult<Round>> GetRound(int id)
         {
             var round = await _context.Rounds.FindAsync(id);
 
             if (round == null)
             {
+                await _eventLogService.LogEventAsync($"Round_{id}", "Round Retrieval Failed", 
+                    "RoundsController", "Round", "Failed", 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Round not found" }), 
+                    id.ToString());
                 return NotFound();
             }
 

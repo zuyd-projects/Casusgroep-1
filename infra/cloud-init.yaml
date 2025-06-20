@@ -16,13 +16,11 @@ runcmd:
   - usermod -aG docker azureuser
 
   - |
-    cat <<EOF > /home/azureuser/private.key
+    cat <<EOF > /home/azureuser/private.key.b64
     ${private_key}
     EOF
+  - base64 -d /home/azureuser/private.key.b64 > /home/azureuser/private.key
   - chmod 600 /home/azureuser/private.key
-<<<<<<< Updated upstream
-  - chown azureuser:azureuser /home/azureuser/private.key
-=======
   - chown azureuser:azureuser /home/azureuser/private.key
   - rm /home/azureuser/private.key.b64
   
@@ -37,4 +35,3 @@ runcmd:
     -v /home/azureuser/.docker:/root/.docker:ro \
     -e HOSTNAME=$(hostname) \
     ghcr.io/zuyd-projects/bootstrap
->>>>>>> Stashed changes

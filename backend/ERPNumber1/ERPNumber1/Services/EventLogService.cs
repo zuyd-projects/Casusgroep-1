@@ -1,0 +1,536 @@
+using ERPNumber1.Data;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using System.Xml.Linq;
+
+namespace ERPNumber1.Services
+{
+    public class EventLogService : IEventLogService
+    {
+        private readonly AppDbContext _context;
+        private readonly ILogger<EventLogService> _logger;
+
+        public EventLogService(AppDbContext context, ILogger<EventLogService> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        public async Task LogEventAsync(string caseId, string activity, string resource, string eventType = "", string? additionalData = null)
+        {
+            await LogEventAsync(caseId, activity, resource, eventType, "Completed", additionalData);
+        }
+
+        public async Task LogEventAsync(string caseId, string activity, string resource, string eventType, 
+            string status, string? additionalData = null, string? entityId = null, 
+            string priority = "Normal", string? userId = null, string? sessionId = null)
+        {
+            try
+            {
+                var eventLog = new EventLog
+                {
+                    CaseId = caseId,
+                    Activity = activity,
+                    Resource = resource,
+                    Timestamp = DateTime.UtcNow,
+                    EventType = eventType,
+                    Status = status,
+                    AdditionalData = additionalData,
+                    EntityId = entityId,
+                    Priority = priority,
+                    UserId = userId,
+                    SessionId = sessionId
+                };
+
+                _context.EventLogs.Add(eventLog);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Event logged: Case={CaseId}, Activity={Activity}, Resource={Resource}", 
+                    caseId, activity, resource);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to log event: Case={CaseId}, Activity={Activity}", caseId, activity);
+                // Don't throw - event logging should not break the main process
+            }
+        }
+
+        public async Task LogTimedEventAsync(string caseId, string activity, string resource, string eventType,
+            DateTime startTime, DateTime endTime, string status = "Completed", 
+            string? additionalData = null, string? entityId = null, string? userId = null)
+        {
+            var duration = (long)(endTime - startTime).TotalMilliseconds;
+            
+            var eventLog = new EventLog
+            {
+                CaseId = caseId,
+                Activity = activity,
+                Resource = resource,
+                Timestamp = endTime,
+                EventType = eventType,
+                Status = status,
+                AdditionalData = additionalData,
+                EntityId = entityId,
+                UserId = userId,
+                DurationMs = duration
+            };
+
+            try
+            {
+                _context.EventLogs.Add(eventLog);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Timed event logged: Case={CaseId}, Activity={Activity}, Duration={Duration}ms", 
+                    caseId, activity, duration);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to log timed event: Case={CaseId}, Activity={Activity}", caseId, activity);
+            }
+        }
+
+        public async Task<IEnumerable<EventLog>> GetEventLogsByCaseAsync(string caseId)
+        {
+            return await _context.EventLogs
+                .Where(e => e.CaseId == caseId)
+                .OrderBy(e => e.Timestamp)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<EventLog>> GetEventLogsAsync(
+            string? eventType = null, 
+            string? resource = null, 
+            DateTime? startDate = null, 
+            DateTime? endDate = null,
+            string? status = null,
+            int skip = 0,
+            int take = 100)
+        {
+            var query = _context.EventLogs.AsQueryable();
+
+            if (!string.IsNullOrEmpty(eventType))
+                query = query.Where(e => e.EventType == eventType);
+
+            if (!string.IsNullOrEmpty(resource))
+                query = query.Where(e => e.Resource == resource);
+
+            if (startDate.HasValue)
+                query = query.Where(e => e.Timestamp >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(e => e.Timestamp <= endDate.Value);
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(e => e.Status == status);
+
+            return await query
+                .OrderByDescending(e => e.Timestamp)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        public async Task<string> ExportToXesAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var query = _context.EventLogs.AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(e => e.Timestamp >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(e => e.Timestamp <= endDate.Value);
+
+            var events = await query.OrderBy(e => e.CaseId).ThenBy(e => e.Timestamp).ToListAsync();
+
+            var xes = new XElement("log",
+                new XAttribute("version", "1.0"),
+                new XAttribute("xmlns", "http://www.xes-standard.org/"),
+                new XElement("extension", new XAttribute("name", "Concept"), new XAttribute("prefix", "concept"), new XAttribute("uri", "http://www.xes-standard.org/concept.xesext")),
+                new XElement("extension", new XAttribute("name", "Time"), new XAttribute("prefix", "time"), new XAttribute("uri", "http://www.xes-standard.org/time.xesext")),
+                new XElement("extension", new XAttribute("name", "Organizational"), new XAttribute("prefix", "org"), new XAttribute("uri", "http://www.xes-standard.org/org.xesext")),
+                new XElement("string", new XAttribute("key", "concept:name"), new XAttribute("value", "ERP Process Log")),
+                
+                events.GroupBy(e => e.CaseId).Select(caseGroup => 
+                    new XElement("trace",
+                        new XElement("string", new XAttribute("key", "concept:name"), new XAttribute("value", caseGroup.Key)),
+                        caseGroup.Select(evt => 
+                        {
+                            var elements = new List<XElement>
+                            {
+                                new XElement("string", new XAttribute("key", "concept:name"), new XAttribute("value", evt.Activity)),
+                                new XElement("date", new XAttribute("key", "time:timestamp"), new XAttribute("value", evt.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))),
+                                new XElement("string", new XAttribute("key", "org:resource"), new XAttribute("value", evt.Resource)),
+                                new XElement("string", new XAttribute("key", "lifecycle:transition"), new XAttribute("value", evt.Status))
+                            };
+
+                            if (!string.IsNullOrEmpty(evt.EventType))
+                                elements.Add(new XElement("string", new XAttribute("key", "event:type"), new XAttribute("value", evt.EventType)));
+
+                            if (evt.DurationMs.HasValue)
+                                elements.Add(new XElement("int", new XAttribute("key", "duration:ms"), new XAttribute("value", evt.DurationMs.Value)));
+
+                            return new XElement("event", elements);
+                        })
+                    )
+                )
+            );
+
+            return xes.ToString();
+        }
+
+        public async Task<object> GetProcessStatisticsAsync(string? eventType = null, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var query = _context.EventLogs.AsQueryable();
+
+            if (!string.IsNullOrEmpty(eventType))
+                query = query.Where(e => e.EventType == eventType);
+
+            if (startDate.HasValue)
+                query = query.Where(e => e.Timestamp >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(e => e.Timestamp <= endDate.Value);
+
+            var events = await query.ToListAsync();
+
+            var statistics = new
+            {
+                TotalEvents = events.Count,
+                UniqueCases = events.Select(e => e.CaseId).Distinct().Count(),
+                EventTypes = events.GroupBy(e => e.EventType)
+                    .Select(g => new { EventType = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count),
+                Resources = events.GroupBy(e => e.Resource)
+                    .Select(g => new { Resource = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count),
+                Activities = events.GroupBy(e => e.Activity)
+                    .Select(g => new { Activity = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count),
+                AverageCaseDuration = CalculateAverageCaseDuration(events),
+                DateRange = new
+                {
+                    Start = events.Any() ? events.Min(e => e.Timestamp) : (DateTime?)null,
+                    End = events.Any() ? events.Max(e => e.Timestamp) : (DateTime?)null
+                }
+            };
+
+            return statistics;
+        }
+
+        public async Task<object> DetectAnomaliesAsync(DateTime? startDate = null, DateTime? endDate = null, string? severity = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            _logger.LogInformation("Analyzing {EventCount} events for anomalies", events.Count);
+            
+            var anomalies = new List<object>();
+
+            // 1. Detect unusual duration patterns
+            var avgDurations = events
+                .Where(e => e.DurationMs.HasValue && e.DurationMs.Value > 0)
+                .GroupBy(e => e.Activity)
+                .Select(g => new { 
+                    Activity = g.Key, 
+                    AvgDuration = g.Average(e => e.DurationMs!.Value),
+                    StdDev = Math.Sqrt(g.Average(e => Math.Pow(e.DurationMs!.Value - g.Average(x => x.DurationMs!.Value), 2)))
+                })
+                .ToList();
+
+            foreach (var avg in avgDurations)
+            {
+                var outliers = events
+                    .Where(e => e.Activity == avg.Activity && e.DurationMs.HasValue)
+                    .Where(e => Math.Abs(e.DurationMs!.Value - avg.AvgDuration) > 2 * avg.StdDev)
+                    .ToList();
+
+                foreach (var outlier in outliers)
+                {
+                    anomalies.Add(new
+                    {
+                        Type = "Duration Anomaly",
+                        Severity = outlier.DurationMs > avg.AvgDuration + 2 * avg.StdDev ? "High" : "Medium",
+                        CaseId = outlier.CaseId,
+                        Activity = outlier.Activity,
+                        ActualDuration = outlier.DurationMs,
+                        ExpectedDuration = avg.AvgDuration,
+                        Timestamp = outlier.Timestamp,
+                        Description = $"Activity '{outlier.Activity}' took {outlier.DurationMs}ms, expected ~{avg.AvgDuration:F0}ms"
+                    });
+                }
+            }
+
+            // 2. Detect process bottlenecks
+            var activityCounts = events
+                .GroupBy(e => e.Activity)
+                .Select(g => new { Activity = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            var avgCount = activityCounts.Any() ? activityCounts.Average(x => x.Count) : 0;
+            var bottlenecks = activityCounts.Where(x => x.Count > avgCount * 2).ToList();
+
+            foreach (var bottleneck in bottlenecks)
+            {
+                anomalies.Add(new
+                {
+                    Type = "Process Bottleneck",
+                    Severity = "Medium",
+                    Activity = bottleneck.Activity,
+                    Count = bottleneck.Count,
+                    Description = $"Activity '{bottleneck.Activity}' has unusually high frequency ({bottleneck.Count} occurrences)"
+                });
+            }
+
+            // 3. Detect failed processes
+            var failedEvents = events
+                .Where(e => e.Status.ToLower().Contains("failed") || e.Status.ToLower().Contains("error"))
+                .GroupBy(e => e.Activity)
+                .Select(g => new { Activity = g.Key, FailureCount = g.Count() })
+                .Where(x => x.FailureCount > 0)
+                .ToList();
+
+            foreach (var failure in failedEvents)
+            {
+                anomalies.Add(new
+                {
+                    Type = "Process Failure",
+                    Severity = failure.FailureCount > 5 ? "High" : "Medium",
+                    Activity = failure.Activity,
+                    FailureCount = failure.FailureCount,
+                    Description = $"Activity '{failure.Activity}' has {failure.FailureCount} failed instances"
+                });
+            }
+
+            // 4. Detect delivery time issues
+            var orderEvents = events.Where(e => e.EventType.ToLower().Contains("order")).ToList();
+            var deliveryDelays = new List<object>();
+
+            var orderCases = orderEvents.GroupBy(e => e.CaseId).ToList();
+            foreach (var orderCase in orderCases)
+            {
+                var orderCreated = orderCase.FirstOrDefault(e => e.Activity.ToLower().Contains("created"));
+                var orderDelivered = orderCase.FirstOrDefault(e => e.Activity.ToLower().Contains("delivered") || e.Activity.ToLower().Contains("completed"));
+                
+                if (orderCreated != null && orderDelivered != null)
+                {
+                    var deliveryTime = (orderDelivered.Timestamp - orderCreated.Timestamp).TotalDays;
+                    if (deliveryTime > 7) // More than 7 days
+                    {
+                        anomalies.Add(new
+                        {
+                            Type = "Delivery Delay",
+                            Severity = deliveryTime > 14 ? "High" : "Medium",
+                            CaseId = orderCase.Key,
+                            DeliveryTime = deliveryTime,
+                            OrderCreated = orderCreated.Timestamp,
+                            OrderDelivered = orderDelivered.Timestamp,
+                            Description = $"Order {orderCase.Key} took {deliveryTime:F1} days to deliver (expected < 7 days)"
+                        });
+                    }
+                }
+            }
+
+            // Filter by severity if specified
+            if (!string.IsNullOrEmpty(severity))
+            {
+                anomalies = anomalies.Where(a => 
+                    ((dynamic)a).Severity.ToString().Equals(severity, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            return new
+            {
+                TotalAnomalies = anomalies.Count,
+                HighSeverity = anomalies.Count(a => ((dynamic)a).Severity.ToString() == "High"),
+                MediumSeverity = anomalies.Count(a => ((dynamic)a).Severity.ToString() == "Medium"),
+                Anomalies = anomalies.OrderByDescending(a => ((dynamic)a).Severity == "High" ? 1 : 0)
+            };
+        }
+
+        public async Task<object> GetProcessFlowAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            
+            // Create process flow nodes and edges
+            var activities = events.Select(e => e.Activity).Distinct().ToList();
+            var flows = new List<object>();
+
+            // Group by case to find activity sequences
+            var caseFlows = events.GroupBy(e => e.CaseId)
+                .Select(g => g.OrderBy(e => e.Timestamp).Select(e => e.Activity).ToList())
+                .ToList();
+
+            // Count transitions between activities
+            var transitions = new Dictionary<string, int>();
+            foreach (var flow in caseFlows)
+            {
+                for (int i = 0; i < flow.Count - 1; i++)
+                {
+                    var transition = $"{flow[i]} → {flow[i + 1]}";
+                    transitions[transition] = transitions.GetValueOrDefault(transition, 0) + 1;
+                }
+            }
+
+            var nodes = activities.Select(activity => new
+            {
+                Id = activity,
+                Label = activity,
+                Count = events.Count(e => e.Activity == activity),
+                Type = "activity"
+            }).ToList();
+
+            var edges = transitions.Select(t => new
+            {
+                Source = t.Key.Split(" → ")[0],
+                Target = t.Key.Split(" → ")[1],
+                Count = t.Value,
+                Weight = t.Value
+            }).ToList();
+
+            return new
+            {
+                Nodes = nodes,
+                Edges = edges,
+                TotalCases = events.Select(e => e.CaseId).Distinct().Count(),
+                TotalActivities = activities.Count,
+                DateRange = new
+                {
+                    Start = events.Any() ? events.Min(e => e.Timestamp) : (DateTime?)null,
+                    End = events.Any() ? events.Max(e => e.Timestamp) : (DateTime?)null
+                }
+            };
+        }
+
+        public async Task<object> GetDeliveryPredictionsAsync()
+        {
+            var recentEvents = await _context.EventLogs
+                .Where(e => e.Timestamp >= DateTime.UtcNow.AddDays(-30))
+                .OrderByDescending(e => e.Timestamp)
+                .ToListAsync();
+
+            _logger.LogInformation("Retrieved {EventCount} events for delivery predictions", recentEvents.Count);
+
+            var predictions = new List<object>();
+            var warnings = new List<object>();
+
+            // Analyze ongoing orders
+            var ongoingOrders = recentEvents
+                .Where(e => e.EventType.ToLower().Contains("order"))
+                .GroupBy(e => e.CaseId)
+                .Where(g => !g.Any(e => e.Activity.ToLower().Contains("delivered") || e.Activity.ToLower().Contains("completed")))
+                .ToList();
+
+            foreach (var order in ongoingOrders)
+            {
+                var orderStart = order.OrderBy(e => e.Timestamp).First();
+                var currentAge = (DateTime.UtcNow - orderStart.Timestamp).TotalDays;
+                var lastActivity = order.OrderByDescending(e => e.Timestamp).First();
+
+                // Predict delivery time based on historical data
+                var historicalOrders = recentEvents
+                    .Where(e => e.EventType.ToLower().Contains("order"))
+                    .GroupBy(e => e.CaseId)
+                    .Where(g => g.Any(e => e.Activity.ToLower().Contains("delivered")))
+                    .Select(g => new
+                    {
+                        CaseId = g.Key,
+                        Start = g.OrderBy(e => e.Timestamp).First().Timestamp,
+                        End = g.OrderByDescending(e => e.Timestamp).First().Timestamp
+                    })
+                    .Select(x => new
+                    {
+                        x.CaseId,
+                        DeliveryTime = (x.End - x.Start).TotalDays
+                    })
+                    .ToList();
+
+                var avgDeliveryTime = historicalOrders.Any() ? historicalOrders.Average(x => x.DeliveryTime) : 7.0;
+                var predictedDeliveryDate = orderStart.Timestamp.AddDays(avgDeliveryTime);
+                var isDelayed = currentAge > avgDeliveryTime;
+
+                var prediction = new
+                {
+                    CaseId = order.Key,
+                    OrderStarted = orderStart.Timestamp,
+                    CurrentAge = currentAge,
+                    PredictedDeliveryDate = predictedDeliveryDate,
+                    EstimatedDeliveryTime = avgDeliveryTime,
+                    LastActivity = lastActivity.Activity,
+                    LastActivityTime = lastActivity.Timestamp,
+                    Status = isDelayed ? "Delayed" : "On Track",
+                    DelayRisk = currentAge > avgDeliveryTime * 0.8 ? "High" : currentAge > avgDeliveryTime * 0.6 ? "Medium" : "Low"
+                };
+
+                predictions.Add(prediction);
+
+                // Add warnings for planners
+                if (isDelayed || currentAge > avgDeliveryTime * 0.8)
+                {
+                    warnings.Add(new
+                    {
+                        Type = isDelayed ? "Delivery Delayed" : "Delivery Risk",
+                        Severity = isDelayed ? "High" : "Medium",
+                        CaseId = order.Key,
+                        Message = isDelayed 
+                            ? $"Order {order.Key} is delayed by {currentAge - avgDeliveryTime:F1} days. Levertijd wordt later." 
+                            : $"Order {order.Key} at risk of delay. Current age: {currentAge:F1} days.",
+                        OrderAge = currentAge,
+                        ExpectedDelivery = avgDeliveryTime,
+                        LastActivity = lastActivity.Activity,
+                        RecommendedAction = isDelayed 
+                            ? "Prioritize this order and investigate bottlenecks" 
+                            : "Monitor closely and consider expediting"
+                    });
+                }
+            }
+
+            return new
+            {
+                TotalOngoingOrders = ongoingOrders.Count(),
+                DelayedOrders = predictions.Count(p => ((dynamic)p).Status.ToString() == "Delayed"),
+                AtRiskOrders = predictions.Count(p => ((dynamic)p).DelayRisk.ToString() == "High"),
+                AverageDeliveryTime = CalculateAverageDeliveryTime(recentEvents),
+                Predictions = predictions.OrderByDescending(p => ((dynamic)p).CurrentAge),
+                Warnings = warnings.OrderByDescending(w => ((dynamic)w).Severity == "High" ? 1 : 0)
+            };
+        }
+
+        private double CalculateAverageDeliveryTime(List<EventLog> events)
+        {
+            if (!events.Any())
+                return 0.0;
+
+            var completedOrders = events
+                .Where(e => e.EventType.ToLower().Contains("order"))
+                .GroupBy(e => e.CaseId)
+                .Where(g => g.Any(e => e.Activity.ToLower().Contains("delivered")))
+                .Select(g => (g.Max(e => e.Timestamp) - g.Min(e => e.Timestamp)).TotalDays)
+                .ToList();
+
+            return completedOrders.Any() ? completedOrders.Average() : 0.0;
+        }
+
+        private double CalculateAverageCaseDuration(List<EventLog> events)
+        {
+            var caseDurations = events.GroupBy(e => e.CaseId)
+                .Where(g => g.Count() > 1)
+                .Select(g => (g.Max(e => e.Timestamp) - g.Min(e => e.Timestamp)).TotalMinutes)
+                .ToList();
+
+            return caseDurations.Any() ? caseDurations.Average() : 0.0;
+        }
+
+        private async Task<List<EventLog>> GetFilteredEventsAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var query = _context.EventLogs.AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(e => e.Timestamp >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(e => e.Timestamp <= endDate.Value);
+
+            return await query.OrderBy(e => e.Timestamp).ToListAsync();
+        }
+    }
+}

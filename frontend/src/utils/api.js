@@ -18,9 +18,16 @@ const handleResponse = async (response) => {
     try {
       const errorData = JSON.parse(errorText);
       errorMessage = errorData.message || errorData.title || errorText;
-    } catch {
+    } catch (e) {
       errorMessage = errorText || `Request failed with status ${response.status}`;
     }
+    
+    // Log API errors for debugging
+    console.error(`API Error [${response.status}]:`, {
+      url: response.url,
+      status: response.status,
+      message: errorMessage
+    });
     
     throw new Error(errorMessage);
   }
