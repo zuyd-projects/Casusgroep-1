@@ -1,3 +1,4 @@
+#cloud-config
 package_update: true
 packages:
   - apt-transport-https
@@ -7,24 +8,19 @@ packages:
   - lsb-release
 
 write_files:
-  - path: /etc/myapp/private.key
-    content: "${private_key}"
-    permissions: '0600'
+  - path: /home/azureuser/private.key
+    content: |
+      ${private_key}
     owner: azureuser:azureuser
+    permissions: '0600'
 
 runcmd:
-  # Docker repo toevoegen
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-  - sh -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list'
+  - echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
   - apt-get update
   - apt-get install -y docker-ce docker-ce-cli containerd.io
-
-  # Docker starten en inschakelen
-  - systemctl start docker
-  - systemctl enable docker
+  - systemctl enable --now docker
   - usermod -aG docker azureuser
-
-  # Docker Compose installeren
   - curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
   - chmod +x /usr/local/bin/docker-compose
   - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose

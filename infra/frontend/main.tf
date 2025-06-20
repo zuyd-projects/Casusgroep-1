@@ -61,6 +61,7 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   }))
 
   tags = {
-    environment = "production"
+    environment    = "production"
+    force_recreate = "2025-06-20"
   }
 }
