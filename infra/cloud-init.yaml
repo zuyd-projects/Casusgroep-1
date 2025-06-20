@@ -16,13 +16,13 @@ runcmd:
   - usermod -aG docker azureuser
 
   - |
-    cat <<EOF > /home/azureuser/private.key.b64
+    cat <<EOF > /opt/private.key.b64
     ${private_key}
     EOF
-  - base64 -d /home/azureuser/private.key.b64 > /home/azureuser/private.key
-  - chmod 600 /home/azureuser/private.key
-  - chown azureuser:azureuser /home/azureuser/private.key
-  - rm /home/azureuser/private.key.b64
+  - base64 -d /opt/private.key.b64 > /opt/private.key
+  - chmod 600 /opt/private.key
+  - chown azureuser:azureuser /opt/private.key
+  - rm /opt/private.key.b64
   
   # - |
   #   echo "${ghcr_pat}" | docker login ghcr.io -u ${ghcr_user} --password-stdin
@@ -35,4 +35,4 @@ runcmd:
   #   -v /home/azureuser/.docker:/root/.docker:ro \
   #   -e HOSTNAME=$(hostname) \
   #   ghcr.io/zuyd-projects/bootstrap
-  - curl -fsSL https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/install-bootstrap-agent.sh | bash
+  - curl -fsSL https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh | bash

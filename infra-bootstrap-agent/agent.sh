@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-KEY_PATH="/app/private.key"
+KEY_PATH="/opt/private.key"
 CONFIG_DIR="/tmp/bootstrap"
 LOG_FILE="/var/log/bootstrap-agent.log"
 POLL_INTERVAL=6  # 1 minute
