@@ -20,8 +20,14 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      # - name: Terraform Init
+      #   run: terraform init
+      #   working-directory: ./infra
+
       - name: Terraform Plan
         run: terraform plan
+        working-directory: ./infra
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: ./infra
