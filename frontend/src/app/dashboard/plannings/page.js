@@ -24,7 +24,7 @@ export default function PlanningPage() {
         { ordernummer: 'ORD-005', motortype: 'C', aantal: 3, blauw: 9, rood: 9, grijs: 6, productielijn: 'C' },
         { ordernummer: 'ORD-006', motortype: 'B', aantal: 1, blauw: 3, rood: 3, grijs: 2, productielijn: 'C' },
         { ordernummer: 'ORD-007', motortype: 'A', aantal: 2, blauw: 4, rood: 4, grijs: 8, productielijn: 'A' },
-      ];
+      ].map(order => ({ ...order, status: 'pending' })); // Voeg status toe
 
       const currentData = JSON.stringify(orders);
       const newData = JSON.stringify(fetchedOrders);
@@ -38,6 +38,14 @@ export default function PlanningPage() {
 
       setLoading(false);
     }, 1500);
+  };
+
+  const updateOrderStatus = (index, newStatus) => {
+    setOrders(prev =>
+      prev.map((order, i) =>
+        i === index ? { ...order, status: newStatus } : order
+      )
+    );
   };
 
   return (
@@ -64,6 +72,7 @@ export default function PlanningPage() {
               <th className="border px-4 py-2">Rood</th>
               <th className="border px-4 py-2">Grijs</th>
               <th className="border px-4 py-2">Productielijn</th>
+              <th className="border px-4 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -76,6 +85,17 @@ export default function PlanningPage() {
                 <td className="border px-4 py-2">{order.rood}</td>
                 <td className="border px-4 py-2">{order.grijs}</td>
                 <td className="border px-4 py-2">{order.productielijn}</td>
+                <td className="border px-4 py-2">
+                  <select
+                    value={order.status}
+                    onChange={(e) => updateOrderStatus(index, e.target.value)}
+                    className="p-1 border rounded bg-black text-white"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="processed">Processed</option>
+                    <option value="error">Error</option>
+                  </select>
+                </td>
               </tr>
             ))}
           </tbody>
