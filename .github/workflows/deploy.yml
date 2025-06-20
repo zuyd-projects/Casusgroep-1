@@ -8,26 +8,17 @@ jobs:
     name: 'Deploy infrastructure'
     runs-on: ubuntu-latest
 
-    env:
-      TF_CLOUD_ORGANIZATION: Nummer1
-      TF_WORKSPACE: Casusgroep-1
-      TF_TOKEN_app_terraform_io: ${{ secrets.TERRAFORM_CLOUD_TOKEN }}
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
+      - name: Checkout code
+        uses: actions/checkout@v2
       - name: Terraform Init
         run: terraform init
         working-directory: ./infra
-
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
         working-directory: ./infra
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      - name: Terraform Cloud Apply
+        env:
+          TF_API_TOKEN: ${{ secrets.TERRAFORM_CLOUD_TOKEN }}
+        run: terraform cloud apply -auto-approve tfplan
         working-directory: ./infra
