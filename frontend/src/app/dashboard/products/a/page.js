@@ -1,8 +1,9 @@
 "use client";
 import '../styles.css';
+import Script from "next/script";
 
-import React, { useState } from 'react';
-import { CheckCircle, AlertCircle, Play, RotateCcw, ZoomIn, ZoomOut, Move3D } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { CheckCircle, AlertCircle, Play } from 'lucide-react';
 
 const ProductionLineDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -40,6 +41,7 @@ const ProductionLineDashboard = () => {
   ]);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
+  const modelViewerRef = useRef(null);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -87,9 +89,35 @@ const ProductionLineDashboard = () => {
   const handleRestoreLastOrder = () => {
     if (!lastRemovedOrder) return;
     setOrders((prevOrders) => [...prevOrders, lastRemovedOrder]);
-    setRestoredOrderId(lastRemovedOrder.id); // Track the restored order
+    setRestoredOrderId(lastRemovedOrder.id);
     setLastRemovedOrder(null);
   };
+
+  const render3DModel = () => (
+    <div className="w-full h-80 rounded-lg border-2 border-purple-300 overflow-hidden relative flex items-center justify-center bg-white">
+      <Script
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"
+        type="module"
+        strategy="afterInteractive"
+      />
+      <model-viewer
+        ref={modelViewerRef}
+        className="model-viewer"
+        style={{ width: "100%", height: "100%", background: "white" }}
+        alt="Ontwerp A"
+        src="/models/Ontwerp-A.glb"
+        camera-controls
+        interaction-prompt="none"
+        auto-rotate
+        auto-rotate-delay="200"
+        rotation-per-second="30deg"
+        shadow-intensity="1"
+        exposure="0.7"
+        camera-orbit="0rad 1.57rad 2.5m"
+        onLoad={() => setIsModelLoaded(true)}
+      ></model-viewer>
+    </div>
+  );
 
   const renderOrderDetails = (order) => (
     <div className="grid grid-cols-2 gap-4 mb-6">
@@ -127,7 +155,6 @@ const ProductionLineDashboard = () => {
           </div>
         </div>
         <div className="dashboard-grid">
-          {/* Orders Overview */}
           <div className="order-card">
             <div className="order-header-text">
               <h3 className="section-header-order">Incoming Orders</h3>
@@ -180,7 +207,6 @@ const ProductionLineDashboard = () => {
                 ))}
             </div>
           </div>
-          {/* 3D Product Placeholder and Order Details */}
           <div className="order-card">
             {selectedOrder ? (
               <div>
@@ -188,29 +214,9 @@ const ProductionLineDashboard = () => {
                   <h3 className="text-xl font-bold text-black">{selectedOrder.productName}</h3>
                   <p className="text-gray-600">Order: {selectedOrder.id}</p>
                 </div>
-                {/* 3D Product Viewer Placeholder */}
-                <div className="mb-6">
-                  <div className="w-full h-80 bg-gradient-to-br from-purple-100 to-cyan-100 rounded-lg flex items-center justify-center border-2 border-dashed border-purple-300 relative">
-                    <div className="text-center text-purple-600">
-                      <Move3D className="w-16 h-16 mx-auto mb-4" />
-                      <p className="text-lg font-medium">3D Product Viewer</p>
-                      <p className="text-sm text-gray-600">Interactive 3D model will be displayed here</p>
-                      <p className="text-xs text-gray-500 mt-2">Rotate • Zoom • Inspect</p>
-                    </div>
-                    <div className="absolute top-4 right-4 flex flex-col space-y-2">
-                      <button className="p-2 bg-white rounded-lg shadow-md hover:bg-purple-50 transition-colors">
-                        <RotateCcw className="w-4 h-4 text-purple-600" />
-                      </button>
-                      <button className="p-2 bg-white rounded-lg shadow-md hover:bg-purple-50 transition-colors">
-                        <ZoomIn className="w-4 h-4 text-purple-600" />
-                      </button>
-                      <button className="p-2 bg-white rounded-lg shadow-md hover:bg-purple-50 transition-colors">
-                        <ZoomOut className="w-4 h-4 text-purple-600" />
-                      </button>
-                    </div>
-                  </div>
+                <div className="mb-6 relative">
+                  {render3DModel()}
                 </div>
-                {/* Conditional rendering based on status */}
                 {selectedOrder.status === 'In Queue' && (
                   <>
                     {renderOrderDetails(selectedOrder)}
@@ -272,7 +278,6 @@ const ProductionLineDashboard = () => {
           </div>
         </div>
       </div>
-      {/* Restore button for last removed order */}
       {lastRemovedOrder && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
