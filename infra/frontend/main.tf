@@ -10,14 +10,14 @@ resource "azurerm_subnet_network_security_group_association" "frontend" {
   network_security_group_id = azurerm_network_security_group.frontend.id
 }
 
-resource "azurerm_network_interface" "database" {
-  name                = "prod-database-nic"
+resource "azurerm_network_interface" "frontend" {
+  name                = "prod-frontend-nic"
   location            = var.location
   resource_group_name = var.resource_group_name
 
   ip_configuration {
     name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.database.id
+    subnet_id                     = azurerm_subnet.frontend.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = var.public_ip_id
   }
