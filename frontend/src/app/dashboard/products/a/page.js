@@ -102,7 +102,7 @@ const ProductionLineDashboard = () => {
       />
       <model-viewer
         ref={modelViewerRef}
-        class="model-viewer"
+        className="model-viewer"
         style={{ width: "100%", height: "100%", background: "white" }}
         alt="Ontwerp A"
         src="/models/Ontwerp-A.glb"
