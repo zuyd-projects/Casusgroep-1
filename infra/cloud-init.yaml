@@ -11,7 +11,7 @@ write_files:
   - path: /home/azureuser/private.key.b64
     permissions: '0600'
     owner: azureuser:azureuser
-    content: ${private_key_b64}
+    content: ${private_key}
 
 runcmd:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
