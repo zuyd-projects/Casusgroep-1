@@ -1,12 +1,12 @@
 resource "azurerm_subnet" "database" {
-  name                 = "DatabaseSubnet"
+  name                 = "prod-database-subnet"
   resource_group_name  = var.resource_group_name
   virtual_network_name = var.vnet_name
   address_prefixes     = ["10.0.3.0/24"]
 }
 
 resource "azurerm_network_interface" "database" {
-  name                = "nic-linux-docker"
+  name                = "prod-database-nic"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -19,7 +19,7 @@ resource "azurerm_network_interface" "database" {
 }
 
 resource "azurerm_linux_virtual_machine" "database" {
-  name                            = "vm-linux-docker"
+  name                            = "prod-database-vm"
   resource_group_name             = var.resource_group_name
   location                        = var.location
   size                            = "Standard_B1s"
@@ -36,7 +36,7 @@ resource "azurerm_linux_virtual_machine" "database" {
   ]
 
   os_disk {
-    name                 = "disk-linux-docker"
+    name                 = "prod-database-osdisk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
