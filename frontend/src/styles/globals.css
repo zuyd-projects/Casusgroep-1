@@ -1,8 +1,11 @@
 @import "tailwindcss";
+@tailwind utilities;
+
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --panel-bg: #f9fafb;
 }
 
 @theme inline {
@@ -16,6 +19,7 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --panel-bg: #18181b;
   }
 }
 
@@ -35,4 +39,14 @@ body {
   --accent-purple: #6d28d9;
   --text-main: #312e81;
   --text-muted: #64748b;
+}
+
+.panel-gradient-border {
+  border: 4px solid transparent;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(var(--panel-bg), var(--panel-bg)) padding-box,
+    linear-gradient(to right, #7b2ff7, #f107a3) border-box;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  padding: 2rem;
 }
