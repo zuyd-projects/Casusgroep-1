@@ -49,5 +49,20 @@ namespace ERPNumber1.Interfaces
         /// Get aggregated statistics for process analysis
         /// </summary>
         Task<object> GetProcessStatisticsAsync(string? eventType = null, DateTime? startDate = null, DateTime? endDate = null);
+        
+        /// <summary>
+        /// Detect process anomalies and bottlenecks
+        /// </summary>
+        Task<object> DetectAnomaliesAsync(DateTime? startDate = null, DateTime? endDate = null, string? severity = null);
+        
+        /// <summary>
+        /// Get process flow visualization data
+        /// </summary>
+        Task<object> GetProcessFlowAsync(DateTime? startDate = null, DateTime? endDate = null);
+        
+        /// <summary>
+        /// Get delivery time predictions and warnings for planners
+        /// </summary>
+        Task<object> GetDeliveryPredictionsAsync();
     }
 }

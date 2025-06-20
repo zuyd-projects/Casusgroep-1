@@ -10,6 +10,7 @@ const navItems = [
   { label: "Customers", href: "/dashboard/customers" },
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Account Manager", href: "/dashboard/accountManager" },
+  { label: "Process Mining", href: "/dashboard/process-mining" },
   {
     label: "Products",
     children: [
@@ -18,6 +19,8 @@ const navItems = [
       { label: "Product C", href: "/dashboard/products/c" },
     ],
   },
+  { label: "Admin", href: "/dashboard/admin" },
+  { label: "Settings", href: "/dashboard/settings" },
 ];
 
 function SidebarItem({ item, pathname }) {
