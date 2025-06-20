@@ -59,17 +59,7 @@ resource "azurerm_linux_virtual_machine" "frontend" {
 
   custom_data = var.cloud_init
 
-  depends_on = [
-    null_resource.force_recreate
-  ]
-
   tags = {
     environment = "production"
-  }
-}
-
-resource "null_resource" "force_recreate" {
-  triggers = {
-    force_recreate = var.force_recreate
   }
 }

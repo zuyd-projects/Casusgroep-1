@@ -1,21 +1,21 @@
 variable "resource_group_name" {
   description = "The name of the resource group where resources will be deployed"
-  type = string
+  type        = string
 }
 
 variable "location" {
   description = "The Azure region where resources will be deployed"
-  type = string
+  type        = string
 }
 
 variable "vnet_name" {
   description = "The name of the virtual network where the VM will be deployed"
-  type = string
+  type        = string
 }
 
 variable "public_ip_id" {
   description = "The ID of the public IP address to associate with the VM"
-  type = string
+  type        = string
 }
 
 variable "cloud_init" {
