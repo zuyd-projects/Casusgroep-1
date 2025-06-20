@@ -1,0 +1,12 @@
+{
+  "env": {
+    "API_KEY": "super-secret-api-key",
+    "DB_PASSWORD": "verysecret"
+  },
+  "volumes": [
+    "/data/frontend:/app/data"
+  ],
+  "ports": [
+    "8080:80"
+  ]
+}

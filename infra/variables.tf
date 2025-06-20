@@ -9,3 +9,14 @@ variable "admin_ssh_public_key" {
   type        = string
   sensitive   = true
 }
+
+variable "ghcr_pat" {
+  description = "GitHub Release PAT"
+  type        = string
+  sensitive   = true
+}
+
+variable "ghcr_user" {
+  description = "GitHub Release username"
+  type        = string
+}

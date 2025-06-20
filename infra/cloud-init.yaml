@@ -14,12 +14,27 @@ runcmd:
   - apt-get install -y docker-ce docker-ce-cli containerd.io
   - systemctl enable --now docker
   - usermod -aG docker azureuser
-  - curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-  - chmod +x /usr/local/bin/docker-compose
-  - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
   - |
     cat <<EOF > /home/azureuser/private.key
     ${private_key}
     EOF
   - chmod 600 /home/azureuser/private.key
+<<<<<<< Updated upstream
   - chown azureuser:azureuser /home/azureuser/private.key
+=======
+  - chown azureuser:azureuser /home/azureuser/private.key
+  - rm /home/azureuser/private.key.b64
+  
+  - |
+    echo "${ghcr_pat}" | docker login ghcr.io -u ${ghcr_user} --password-stdin
+  - docker pull ghcr.io/zuyd-projects/bootstrap
+  - |
+    docker run -d \
+    --name bootstrap-agent \
+    -v /home/azureuser/private.key:/app/private.key:ro \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v /home/azureuser/.docker:/root/.docker:ro \
+    -e HOSTNAME=$(hostname) \
+    ghcr.io/zuyd-projects/bootstrap
+>>>>>>> Stashed changes

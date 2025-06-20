@@ -33,6 +33,8 @@ module "frontend" {
   private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    ghcr_pat    = var.ghcr_pat
+    ghcr_user   = var.ghcr_user
   }))
 
   depends_on = [
@@ -52,6 +54,8 @@ module "backend" {
   private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    ghcr_pat    = var.ghcr_pat
+    ghcr_user   = var.ghcr_user
   }))
 
   depends_on = [
@@ -71,6 +75,8 @@ module "database" {
   private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    ghcr_pat    = var.ghcr_pat
+    ghcr_user   = var.ghcr_user
   }))
 
   depends_on = [
