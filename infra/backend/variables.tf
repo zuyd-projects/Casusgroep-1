@@ -18,12 +18,6 @@ variable "public_ip_id" {
   type = string
 }
 
-variable "private_key" {
-  default   = "Private key used for pulling configuration files from GitHub"
-  type      = string
-  sensitive = true
-}
-
 variable "cloud_init" {
   description = "Base64 encoded cloud-init configuration"
   type        = string
