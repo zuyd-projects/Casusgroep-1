@@ -2,6 +2,7 @@
 using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
+using ERPNumber1.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -72,6 +73,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IEventLogService, EventLogService>();
 
 
 // Add Swagger/OpenAPI
