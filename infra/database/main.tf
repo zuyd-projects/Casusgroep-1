@@ -1,27 +1,27 @@
 resource "azurerm_subnet" "database" {
   name                 = "DatabaseSubnet"
-  resource_group_name  = data.azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = var.vnet_name
   address_prefixes     = ["10.0.3.0/24"]
 }
 
 resource "azurerm_network_interface" "database" {
   name                = "nic-linux-docker"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = var.location
+  resource_group_name = var.resource_group_name
 
   ip_configuration {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.database.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.public_ip.id
+    public_ip_address_id          = var.public_ip_id
   }
 }
 
 resource "azurerm_linux_virtual_machine" "database" {
   name                            = "vm-linux-docker"
-  resource_group_name             = data.azurerm_resource_group.rg.name
-  location                        = data.azurerm_resource_group.rg.location
+  resource_group_name             = var.resource_group_name
+  location                        = var.location
   size                            = "Standard_B1s"
   admin_username                  = "azureuser"
   disable_password_authentication = true
