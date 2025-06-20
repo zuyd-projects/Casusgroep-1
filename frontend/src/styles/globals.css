@@ -10,32 +10,11 @@
   --foreground: #18181b;
 }
 
-.dark {
-  --panel-bg: #18181b;
-  --table-bg: #232329;
-  --table-header-bg: #232329;
-  --panel-text: #ffffff;
-  --background: #0f0f0f;
-  --foreground: #ffffff;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-/* Fallback for system preference */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --panel-bg: #18181b;
-    --table-bg: #232329;
-    --table-header-bg: #232329;
-    --panel-text: #ffffff;
-    --background: #0f0f0f;
-    --foreground: #ffffff;
-  }
 }
 
 body {
