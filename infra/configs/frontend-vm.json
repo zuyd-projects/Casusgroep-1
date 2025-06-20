@@ -1,0 +1,4 @@
+{
+    "image": "ghcr.io/zuyd-projects/frontend:v20230501010101",
+    "container_name": "frontend"
+}
