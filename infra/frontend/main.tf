@@ -19,7 +19,7 @@ resource "azurerm_network_interface" "frontend" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.frontend.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = "10.0.1.2"
+    private_ip_address            = "10.0.1.10"
     public_ip_address_id          = var.public_ip_id
   }
 }
