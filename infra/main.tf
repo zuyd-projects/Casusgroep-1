@@ -1,3 +1,13 @@
+terraform {
+  backend "remote" {
+    organization = "Nummer1"
+
+    workspaces {
+      name = "Casusgroep-1"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
 }
