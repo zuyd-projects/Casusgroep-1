@@ -23,8 +23,7 @@ resource "azurerm_linux_virtual_machine" "database" {
   resource_group_name             = data.azurerm_resource_group.rg.name
   location                        = data.azurerm_resource_group.rg.location
   size                            = "Standard_B1s"
-  admin_username                  = var.admin_username
-  admin_password                  = var.admin_password
+  admin_username                  = "azureuser"
   disable_password_authentication = true
 
   network_interface_ids = [
@@ -47,7 +46,9 @@ resource "azurerm_linux_virtual_machine" "database" {
   computer_name      = "linuxdocker"
   provision_vm_agent = true
 
-  custom_data = base64encode(file("cloud-init.yaml"))
+  custom_data = base64encode(templatefile("cloud-init.yaml", {
+    private_key = var.private_key
+  }))
 
   tags = {
     environment = "production"
