@@ -6,6 +6,12 @@ packages:
   - gnupg
   - lsb-release
 
+write_files:
+  - path: /etc/myapp/private.key
+    content: "${private_key}"
+    permissions: '0600'
+    owner: azureuser:azureuser
+
 runcmd:
   # Docker repo toevoegen
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
