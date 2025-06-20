@@ -1,7 +1,7 @@
 resource "azurerm_network_security_group" "NSG_Backend" {
   name                = "NSGBackend"
-  location            = data.azurerm_resource_group.example.location
-  resource_group_name = data.azurerm_resource_group.example.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   security_rule {
     name                       = "deny-all-inbound"
