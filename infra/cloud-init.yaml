@@ -15,13 +15,3 @@ runcmd:
   - systemctl enable --now docker
   - usermod -aG docker azureuser
 
-  - |
-    cat <<EOF > /opt/private.key.b64
-    ${private_key}
-    EOF
-  - base64 -d /opt/private.key.b64 > /opt/private.key
-  - chmod 600 /opt/private.key
-  - chown azureuser:azureuser /opt/private.key
-  - rm /opt/private.key.b64
-  
-  
