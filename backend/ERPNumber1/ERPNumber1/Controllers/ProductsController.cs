@@ -10,6 +10,7 @@ using ERPNumber1.Models;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Product;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -57,19 +58,22 @@ namespace ERPNumber1.Controllers
         // PUT: api/Products/5
         [HttpPut("{id}")]
         [LogEvent("Product", "Update Product", logRequest: true)]
-        public async Task<IActionResult> PutProduct(int id, Product product)
+        public async Task<IActionResult> PutProduct(int id, UpdateProductDto productDto)
         {
-            if (id != product.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
             {
                 await _eventLogService.LogEventAsync($"Product_{id}", "Product Update Failed", 
                     "ProductsController", "Product", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "ID mismatch" }), 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Product not found" }), 
                     id.ToString());
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(product).State = EntityState.Modified;
+            product.orderId = productDto.OrderId;
+            product.type = productDto.Type;
 
             try
             {
@@ -110,9 +114,15 @@ namespace ERPNumber1.Controllers
         // POST: api/Products
         [HttpPost]
         [LogEvent("Product", "Create Product", logRequest: true)]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<ActionResult<Product>> PostProduct(CreateProductDto productDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var product = new Product
+            {
+                orderId = productDto.OrderId,
+                type = productDto.Type
+            };
             
             _context.Products.Add(product);
             await _context.SaveChangesAsync();

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Simulation;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -58,14 +59,16 @@ namespace ERPNumber1.Controllers
         // PUT: api/Simulations/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutSimulation(int id, Simulation simulation)
+        public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
         {
-            if (id != simulation.Id)
+            var simulation = await _context.Simulations.FindAsync(id);
+            if (simulation == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
-            _context.Entry(simulation).State = EntityState.Modified;
+            simulation.Name = simulationDto.Name;
+            simulation.Date = simulationDto.Date;
 
             try
             {
@@ -89,8 +92,14 @@ namespace ERPNumber1.Controllers
         // POST: api/Simulations
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Simulation>> PostSimulation(Simulation simulation)
+        public async Task<ActionResult<Simulation>> PostSimulation(CreateSimulationDto simulationDto)
         {
+            var simulation = new Simulation
+            {
+                Name = simulationDto.Name,
+                Date = simulationDto.Date
+            };
+            
             _context.Simulations.Add(simulation);
             await _context.SaveChangesAsync();
 

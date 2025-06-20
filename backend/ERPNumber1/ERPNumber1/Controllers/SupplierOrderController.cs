@@ -1,5 +1,6 @@
 ﻿using ERPNumber1.Data;
 using ERPNumber1.Dtos.User;
+using ERPNumber1.Dtos.SupplierOrder;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
@@ -55,19 +56,20 @@ namespace ERPNumber1.Controllers
         // PUT: api/SupplierOrder/5
         [HttpPut("{id}")]
         [LogEvent("SupplierOrder", "Update Supplier Order", logRequest: true)]
-        public async Task<IActionResult> PutSupplierOrder(int id, SupplierOrder supplierOrder)
+        public async Task<IActionResult> PutSupplierOrder(int id, UpdateSupplierOrderDto supplierOrderDto)
         {
-            if (id != supplierOrder.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var supplierOrder = await _context.SupplierOrders.FindAsync(id);
+            if (supplierOrder == null)
             {
-                await _eventLogService.LogEventAsync($"SupplierOrder_{id}", "Supplier Order Update Failed", 
-                    "SupplierOrderController", "SupplierOrder", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "ID mismatch" }), 
-                    id.ToString());
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(supplierOrder).State = EntityState.Modified;
+            supplierOrder.UserId = supplierOrderDto.UserId;
+            supplierOrder.Quantity = supplierOrderDto.Quantity;
+            supplierOrder.Status = supplierOrderDto.Status;
+            supplierOrder.round_number = supplierOrderDto.RoundNumber;
+            supplierOrder.OrderDate = supplierOrderDto.OrderDate;
 
             try
             {
@@ -108,9 +110,18 @@ namespace ERPNumber1.Controllers
         // POST: api/SupplierOrder
         [HttpPost]
         [LogEvent("SupplierOrder", "Create Supplier Order", logRequest: true)]
-        public async Task<ActionResult<SupplierOrder>> PostSupplierOrder(SupplierOrder supplierOrder)
+        public async Task<ActionResult<SupplierOrder>> PostSupplierOrder(CreateSupplierOrderDto supplierOrderDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var supplierOrder = new SupplierOrder
+            {
+                UserId = supplierOrderDto.UserId,
+                Quantity = supplierOrderDto.Quantity,
+                Status = supplierOrderDto.Status,
+                round_number = supplierOrderDto.RoundNumber,
+                OrderDate = supplierOrderDto.OrderDate
+            };
             
             _context.SupplierOrders.Add(supplierOrder);
             await _context.SaveChangesAsync();
