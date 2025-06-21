@@ -210,7 +210,7 @@ export default function Home() {
         
         <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            © 2025 Casusgroep 1 - ERPNumber1. Built with modern technologies for healthcare innovation.
+            © 2025 Casusgroep 1 - ERPNumber1. Built with modern technologies for production line innovation.
           </span>
         </footer>
       </div>
