@@ -1,0 +1,165 @@
+name: Backend API Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      working-directory: ./backend/ERPNumber1
+      run: dotnet restore
+    
+    - name: Build
+      working-directory: ./backend/ERPNumber1
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Run Unit Tests
+      working-directory: ./backend/ERPNumber1
+      run: |
+        dotnet test --no-build --configuration Release --verbosity normal \
+          --collect:"XPlat Code Coverage" --results-directory ./TestResults \
+          --logger "trx;LogFileName=test-results.trx"
+    
+    - name: Generate Test Report
+      if: always()
+      uses: dorny/test-reporter@v1
+      with:
+        name: '.NET Test Results'
+        path: './backend/ERPNumber1/TestResults/*.trx'
+        reporter: dotnet-trx
+        fail-on-error: true
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: ./backend/ERPNumber1/TestResults/
+        retention-days: 7
+    
+    - name: Upload Code Coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: code-coverage
+        path: ./backend/ERPNumber1/TestResults/*/coverage.cobertura.xml
+        retention-days: 7
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: yourStrong(!)Password
+          ACCEPT_EULA: Y
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      working-directory: ./backend/ERPNumber1
+      run: dotnet restore
+    
+    - name: Build
+      working-directory: ./backend/ERPNumber1
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Start API for Integration Tests
+      working-directory: ./backend/ERPNumber1/ERPNumber1
+      run: |
+        dotnet run --no-build --configuration Release &
+        echo $! > api.pid
+        sleep 30
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        ASPNETCORE_URLS: "http://localhost:5000"
+        ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=TestDb;User Id=sa;Password=yourStrong(!)Password;Encrypt=False;TrustServerCertificate=True;"
+    
+    - name: Wait for API to be ready
+      run: |
+        for i in {1..20}; do
+          if curl -f -s http://localhost:5000/api/products > /dev/null 2>&1; then
+            echo "✅ API is responding"
+            break
+          fi
+          if [ $i -eq 20 ]; then
+            echo "❌ API failed to start"
+            exit 1
+          fi
+          echo "⏳ Waiting for API... ($i/20)"
+          sleep 3
+        done
+    
+    - name: Basic API Health Checks
+      run: |
+        echo "🧪 Testing API endpoints..."
+        
+        # Test Products endpoint
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/products)
+        if [ "$response" = "200" ]; then
+          echo "✅ Products endpoint working (HTTP $response)"
+        else
+          echo "❌ Products endpoint failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test Orders endpoint  
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/order)
+        if [ "$response" = "200" ]; then
+          echo "✅ Orders endpoint working (HTTP $response)"
+        else
+          echo "❌ Orders endpoint failed (HTTP $response)"
+          exit 1
+        fi
+        
+        # Test Materials endpoint
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/materials)
+        if [ "$response" = "200" ]; then
+          echo "✅ Materials endpoint working (HTTP $response)"
+        else
+          echo "❌ Materials endpoint failed (HTTP $response)"
+          exit 1
+        fi
+        
+        echo "🎉 All API health checks passed!"
+    
+    - name: Stop API
+      if: always()
+      working-directory: ./backend/ERPNumber1/ERPNumber1
+      run: |
+        if [ -f api.pid ]; then
+          kill $(cat api.pid) || true
+          rm api.pid
+        fi
