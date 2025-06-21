@@ -5,7 +5,7 @@ set -euo pipefail
 KEY_PATH="/opt/private.key"
 CONFIG_DIR="/tmp/bootstrap"
 LOG_FILE="/var/log/bootstrap-agent.log"
-POLL_INTERVAL=6  # 1 minute
+POLL_INTERVAL=60  # 1 minute
 HOSTNAME=$(hostname)
 
 CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.json"
@@ -15,6 +15,9 @@ ENC_FILE="$CONFIG_DIR/${HOSTNAME}.enc"
 DEC_FILE="$CONFIG_DIR/${HOSTNAME}.enc.json"
 
 mkdir -p "$CONFIG_DIR"
+mkdir -p "$(dirname "$LOG_FILE")"
+# Ensure the log file exists
+touch "$LOG_FILE"
 
 log() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') [bootstrap] $*" | tee -a "$LOG_FILE"
