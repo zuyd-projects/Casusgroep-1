@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import Script from 'next/script';
 import { CheckCircle, AlertCircle, Play } from 'lucide-react';
 
 const ProductionLineDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [orders, setOrders] = useState([
     { 
       id: 'ORD-001',
@@ -43,10 +45,10 @@ const ProductionLineDashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'In Progress': return 'text-cyan-600 bg-cyan-100';
-      case 'In Queue': return 'text-purple-600 bg-purple-100';
-      case 'Completed': return 'text-pink-600 bg-pink-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'In Progress': return 'text-cyan-600 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/20';
+      case 'In Queue': return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/20';
+      case 'Completed': return 'text-pink-600 bg-pink-100 dark:text-pink-400 dark:bg-pink-900/20';
+      default: return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800';
     }
   };
 
@@ -92,16 +94,11 @@ const ProductionLineDashboard = () => {
   };
 
   const render3DModel = () => (
-    <div className="w-full h-80 rounded-lg border-2 border-purple-300 overflow-hidden relative flex items-center justify-center bg-white">
-      <Script
-        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"
-        type="module"
-        strategy="afterInteractive"
-      />
+    <div className="w-full h-80 rounded-lg border-2 border-purple-300 dark:border-purple-600 overflow-hidden relative flex items-center justify-center bg-white dark:bg-gray-800">
       <model-viewer
         ref={modelViewerRef}
         className="model-viewer"
-        style={{ width: "100%", height: "100%", background: "white" }}
+        style={{ width: "100%", height: "100%", background: "transparent" }}
         alt="Ontwerp A"
         src="/models/Ontwerp-A.glb"
         camera-controls
@@ -119,21 +116,21 @@ const ProductionLineDashboard = () => {
 
   const renderOrderDetails = (order) => (
     <div className="grid grid-cols-2 gap-4 mb-6">
-      <div className="bg-purple-50 p-3 rounded-lg">
-        <label className="text-sm font-medium text-purple-700">Customer</label>
-        <p className="text-black font-medium">{order.customer}</p>
+      <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+        <label className="text-sm font-medium text-purple-700 dark:text-purple-400">Customer</label>
+        <p className="text-gray-900 dark:text-white font-medium">{order.customer}</p>
       </div>
-      <div className="bg-cyan-50 p-3 rounded-lg">
-        <label className="text-sm font-medium text-cyan-700">Quantity</label>
-        <p className="text-black font-medium">{order.quantity}</p>
+      <div className="bg-cyan-50 dark:bg-cyan-900/20 p-3 rounded-lg">
+        <label className="text-sm font-medium text-cyan-700 dark:text-cyan-400">Quantity</label>
+        <p className="text-gray-900 dark:text-white font-medium">{order.quantity}</p>
       </div>
-      <div className="bg-pink-50 p-3 rounded-lg">
-        <label className="text-sm font-medium text-pink-700">Unit</label>
-        <p className="text-black font-medium">{order.unit}</p>
+      <div className="bg-pink-50 dark:bg-pink-900/20 p-3 rounded-lg">
+        <label className="text-sm font-medium text-pink-700 dark:text-pink-400">Unit</label>
+        <p className="text-gray-900 dark:text-white font-medium">{order.unit}</p>
       </div>
-      <div className="bg-blue-50 p-3 rounded-lg">
-        <label className="text-sm font-medium text-blue-700">Period Ordered:</label>
-        <span className="px-2 py-1 text-xs rounded-full period-pill">
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+        <label className="text-sm font-medium text-blue-700 dark:text-blue-400">Period Ordered:</label>
+        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 font-medium">
           {order.orderDate}
         </span>
       </div>
@@ -141,12 +138,18 @@ const ProductionLineDashboard = () => {
   );
 
   return (
-    <div className="h-screen bg-white">
+    <>
+      <Script
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"
+        type="module"
+        strategy="afterInteractive"
+      />
+      <div className="h-screen bg-gray-50 dark:bg-gray-900">
       <div className="p-6">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-black">Production Line A</h2>
-          <p className="text-gray-600">Total Orders of Product A</p>
-          <div className="left-aligned-badge-container">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Production Line A</h2>
+          <p className="text-gray-600 dark:text-gray-400">Total Orders of Product A</p>
+          <div className="flex justify-start mt-4 mb-2">
             <span className="inline-flex items-center px-4 py-2 rounded-lg bg-purple-600 text-white text-base font-semibold dark:bg-purple-700">
               Total: {orders.length}
             </span>
@@ -171,10 +174,10 @@ const ProductionLineDashboard = () => {
                     onClick={() => setSelectedOrder(order)}
                     className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
                       selectedOrder?.id === order.id
-                        ? 'border-purple-500 bg-purple-50' 
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-400' 
                         : restoredOrderId === order.id
-                          ? 'bg-yellow-50 border-yellow-300'
-                          : 'border-gray-200 hover:border-purple-300'
+                          ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-600'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-500'
                     }`}
                     onMouseEnter={() => {
                       if (restoredOrderId === order.id) setRestoredOrderId(null);
@@ -182,8 +185,8 @@ const ProductionLineDashboard = () => {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="font-medium text-black">{order.id}</h4>
-                        <p className="text-sm text-gray-600">{order.productName}</p>
+                        <h4 className="font-medium text-gray-900 dark:text-white">{order.id}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{order.productName}</p>
                       </div>
                       <div className="flex space-x-2">
                         <span className="inline-block px-3 py-1 rounded-full text-xs font-medium mr-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
@@ -194,11 +197,11 @@ const ProductionLineDashboard = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-500">
+                    <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                       <span>{order.quantity}</span>
                       <span>{order.unit}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
                       <span>{order.customer}</span>
                     </div>
                   </div>
@@ -227,7 +230,7 @@ const ProductionLineDashboard = () => {
                         Start Assembly
                       </button>
                       <button
-                        className="btn-deny-assembly"
+                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
@@ -247,7 +250,7 @@ const ProductionLineDashboard = () => {
                         Complete Order
                       </button>
                       <button
-                        className="btn-deny-assembly"
+                        className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
@@ -258,18 +261,18 @@ const ProductionLineDashboard = () => {
                 {selectedOrder.status === 'Completed' && (
                   <>
                     <div className="mb-6 text-center">
-                      <CheckCircle className="w-10 h-10 mx-auto text-pink-600 mb-2" />
-                      <p className="text-pink-700 font-semibold">Order Completed!</p>
+                      <CheckCircle className="w-10 h-10 mx-auto text-pink-600 dark:text-pink-400 mb-2" />
+                      <p className="text-pink-700 dark:text-pink-400 font-semibold">Order Completed!</p>
                     </div>
                   </>
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 <div className="text-center">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-lg font-medium text-black">Select an Order</p>
-                  <p className="text-sm text-gray-600">Choose an order from the queue to view 3D model and details</p>
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+                  <p className="text-lg font-medium text-gray-900 dark:text-white">Select an Order</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Choose an order from the queue to view 3D model and details</p>
                 </div>
               </div>
             )}
@@ -279,7 +282,7 @@ const ProductionLineDashboard = () => {
       {lastRemovedOrder && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
+            className="px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded-lg shadow-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
             onClick={handleRestoreLastOrder}
           >
             Restore Last Removed Order
@@ -287,6 +290,7 @@ const ProductionLineDashboard = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
