@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
+import PlannerWarnings from '@CASUSGROEP1/components/PlannerWarnings';
 import { orders, orderStatuses } from '@CASUSGROEP1/utils/mockData';
 
 export default function Orders() {
@@ -74,6 +75,11 @@ export default function Orders() {
             </div>
           </div>
         </div>
+      </Card>
+      
+      {/* Planner Warnings Section */}
+      <Card title="⚠️ Delivery Warnings for Planners" className="border-orange-200 dark:border-orange-800">
+        <PlannerWarnings />
       </Card>
       
       {/* Orders table */}

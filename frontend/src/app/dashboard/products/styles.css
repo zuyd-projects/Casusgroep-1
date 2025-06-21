@@ -1,0 +1,161 @@
+/* Badge for total orders */
+.total-product-orders-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: #9333ea;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* Card container for order lists and details */
+.order-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Section header for cards */
+.section-header-order {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #7c3aed;
+  margin-bottom: 0;
+}
+.order-header-text{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Live indicator and status row */
+.live-indicator-satus-text {
+  display: flex;
+  align-items: center;
+  margin: 0; 
+}
+.live-indicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: #1bd1a3;
+  border-radius: 9999px;
+  margin-right: 0.5rem;
+}
+
+/* Shared pill style */
+.status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+
+/* Main grid for dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  height: 100%;
+}
+
+/* Centered container for badge */
+.centered-badge-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  margin-left: -50%;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}
+
+/* production-line-header*/
+.page-padding {
+  padding: 1.5rem; 
+}
+
+.section-margin-bottom {
+  margin-bottom: 1.5rem; 
+}
+
+.block-margin-bottom {
+  margin-bottom: 1rem; 
+}
+
+.left-aligned-badge-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Period pill for timeframes */
+.period-pill {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  display: inline-block;
+}
+
+/* Period label pill */
+.period-label {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* Order info label */
+.order-info-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+/* Button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-deny-assembly {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex: 1;
+  background-color: #dc2626; /* red-600 */
+  color: #fff;
+  border-radius: 0.5rem;
+}
+
+.btn-deny-assembly:hover {
+  background-color: #b91c1c; /* red-700 */
+}
+
+

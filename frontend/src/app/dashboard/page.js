@@ -1,9 +1,35 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { orders, dashboardStats } from '@CASUSGROEP1/utils/mockData';
+import { api } from '@CASUSGROEP1/utils/api';
+import { AlertTriangle, TrendingUp, Activity, Clock } from 'lucide-react';
 
 export default function Dashboard() {
+  const [processMiningData, setProcessMiningData] = useState(null);
+  const [deliveryPredictions, setDeliveryPredictions] = useState(null);
+
+  useEffect(() => {
+    // Fetch process mining overview data
+    const fetchProcessMiningData = async () => {
+      try {
+        const [anomaliesRes, predictionsRes] = await Promise.all([
+          api.get('/api/ProcessMining/anomalies'),
+          api.get('/api/ProcessMining/delivery-predictions')
+        ]);
+        setProcessMiningData(anomaliesRes);
+        setDeliveryPredictions(predictionsRes);
+      } catch (error) {
+        console.error('Error fetching process mining data:', error);
+      }
+    };
+
+    fetchProcessMiningData();
+  }, []);
+
   // Get just the 5 most recent orders
   const recentOrders = orders.slice(0, 5);
   
@@ -40,6 +66,85 @@ export default function Dashboard() {
           <div className="text-sm text-green-600 dark:text-green-400 mt-1">+5 new this week</div>
         </Card>
       </div>
+
+      {/* Process Mining & Planner Overview */}
+      {(processMiningData || deliveryPredictions) && (
+        <Card title="🔍 Process Mining & Planner Overview" className="border-blue-200 dark:border-blue-800">
+          <div className="space-y-6">
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {processMiningData && (
+                <>
+                  <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div className="flex items-center justify-center space-x-1 mb-1">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <span className="text-lg font-bold text-red-600">{processMiningData.highSeverity || 0}</span>
+                    </div>
+                    <div className="text-xs text-red-500">Critical Issues</div>
+                  </div>
+                  <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="flex items-center justify-center space-x-1 mb-1">
+                      <Activity className="h-4 w-4 text-yellow-600" />
+                      <span className="text-lg font-bold text-yellow-600">{processMiningData.totalAnomalies || 0}</span>
+                    </div>
+                    <div className="text-xs text-yellow-500">Total Anomalies</div>
+                  </div>
+                </>
+              )}
+              {deliveryPredictions && (
+                <>
+                  <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div className="flex items-center justify-center space-x-1 mb-1">
+                      <Clock className="h-4 w-4 text-red-600" />
+                      <span className="text-lg font-bold text-red-600">{deliveryPredictions.delayedOrders || 0}</span>
+                    </div>
+                    <div className="text-xs text-red-500">Delayed Orders</div>
+                  </div>
+                  <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="flex items-center justify-center space-x-1 mb-1">
+                      <TrendingUp className="h-4 w-4 text-yellow-600" />
+                      <span className="text-lg font-bold text-yellow-600">{deliveryPredictions.atRiskOrders || 0}</span>
+                    </div>
+                    <div className="text-xs text-yellow-500">At Risk Orders</div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Recent Warnings */}
+            {deliveryPredictions && deliveryPredictions.warnings && deliveryPredictions.warnings.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  ⚠️ Latest Planner Alerts:
+                </div>
+                {deliveryPredictions.warnings.slice(0, 2).map((warning, index) => (
+                  <div key={index} className="text-xs p-3 bg-orange-50 dark:bg-orange-900/20 rounded border-l-4 border-orange-400">
+                    <div className="font-medium">Order {warning.caseId}</div>
+                    <div className="text-orange-600">Levertijd wordt later - {warning.orderAge.toFixed(1)} dagen</div>
+                    <div className="text-gray-600 dark:text-gray-400 mt-1">{warning.recommendedAction}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <Link 
+                href="/dashboard/process-mining"
+                className="flex-1 text-center py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+              >
+                📊 View Process Analysis
+              </Link>
+              <Link 
+                href="/dashboard/orders"
+                className="flex-1 text-center py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
+              >
+                📋 View Planner Alerts
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
       
       {/* Monthly sales chart */}
       <Card title="Monthly Sales">

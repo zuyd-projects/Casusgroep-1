@@ -1,0 +1,8 @@
+*.bin
+*.db
+*.vsidx
+*.db-wal
+*.db-shm
+*.vsidx
+.vs
+.vscode
