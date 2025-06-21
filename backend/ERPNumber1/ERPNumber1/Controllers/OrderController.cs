@@ -5,6 +5,7 @@ using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Order;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -55,10 +56,21 @@ namespace ERPNumber1.Controllers
         // POST: api/Order
         [HttpPost]
         [LogEvent("Order", "Create Order", logRequest: true)]
-        public async Task<ActionResult<Order>> PostOrder(Order order)
+        public async Task<ActionResult<Order>> PostOrder(CreateOrderDto orderDto)
         {
             var startTime = DateTime.UtcNow;
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var order = new Order
+            {
+                RoundId = orderDto.RoundId,
+                DeliveryId = orderDto.DeliveryId,
+                AppUserId = orderDto.AppUserId,
+                MotorType = orderDto.MotorType,
+                Quantity = orderDto.Quantity,
+                Signature = orderDto.Signature,
+                OrderDate = orderDto.OrderDate
+            };
             
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
@@ -78,17 +90,25 @@ namespace ERPNumber1.Controllers
         // PUT: api/Order/5
         [HttpPut("{id}")]
         [LogEvent("Order", "Update Order", logRequest: true)]
-        public async Task<IActionResult> PutOrder(int id, Order order)
+        public async Task<IActionResult> PutOrder(int id, UpdateOrderDto orderDto)
         {
-            if (id != order.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null)
             {
                 await _eventLogService.LogOrderEventAsync(id, "Order Update Failed", "OrderController", "Failed", 
-                    new { reason = "ID mismatch" });
-                return BadRequest();
+                    new { reason = "Order not found" });
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(order).State = EntityState.Modified;
+            order.RoundId = orderDto.RoundId;
+            order.DeliveryId = orderDto.DeliveryId;
+            order.AppUserId = orderDto.AppUserId;
+            order.MotorType = orderDto.MotorType;
+            order.Quantity = orderDto.Quantity;
+            order.Signature = orderDto.Signature;
+            order.OrderDate = orderDto.OrderDate;
 
             try
             {

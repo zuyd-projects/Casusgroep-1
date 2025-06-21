@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 
 namespace ERPNumber1.Models
 {
@@ -10,17 +11,21 @@ namespace ERPNumber1.Models
         public string? AppUserId { get; set; }
         public char MotorType { get; set; }
         public int Quantity { get; set; }
-        public string Signature { get; set; }
+        public string? Signature { get; set; }
         public DateTime OrderDate { get; set; }
+        [JsonIgnore]
         public List<Product> Products { get; set; } = new List<Product>();
-        public Delivery Deliveries { get; set; }
+        [JsonIgnore]
+        public Delivery? Deliveries { get; set; }
+        [JsonIgnore]
         public IEnumerable<AppUser> appUsers { get; set; } = new List<AppUser>();
-        public Round Round { get; set; }
+        [JsonIgnore]
+        public Round? Round { get; set; }
 
         public Order()
         {
         }
-        public Order(int id, int roundId, int deliveryId, string userId, char motorType, int quantity, string signature, DateTime orderDate, List<Product> products, Delivery deliveries)
+        public Order(int id, int roundId, int deliveryId, string userId, char motorType, int quantity, string? signature, DateTime orderDate, List<Product> products, Delivery? deliveries)
         {
             Id = id;
             RoundId = roundId;

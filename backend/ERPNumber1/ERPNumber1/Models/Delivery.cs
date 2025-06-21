@@ -1,4 +1,6 @@
-﻿namespace ERPNumber1.Models
+﻿using System.Text.Json.Serialization;
+
+namespace ERPNumber1.Models
 {
     public class Delivery
     {
@@ -7,12 +9,13 @@
         public bool IsDelivered { get; set; }
         public bool QualityCheckPassed { get; set; }
         public bool ApprovedByCustomer { get; set; }
-        public Order Order { get; set; }
+        [JsonIgnore]
+        public Order? Order { get; set; }
 
         public Delivery()
         {
         }
-        public Delivery(int id, int orderId, bool isDelivered, bool qualityCheckPassed, bool approvedByCustomer, Order order)
+        public Delivery(int id, int orderId, bool isDelivered, bool qualityCheckPassed, bool approvedByCustomer, Order? order)
         {
             Id = id;
             OrderId = orderId;

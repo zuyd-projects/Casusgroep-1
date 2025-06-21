@@ -1,21 +1,24 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using System.Text.Json.Serialization;
 
 namespace ERPNumber1.Models
 {
     public class Inventory
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public int Quantity { get; set; }
         public string? AppUserId { get; set; }
+        [JsonIgnore]
         public AppUser? AppUser { get; set; }
-        public List<Material> Materials { get; set; }
+        [JsonIgnore]
+        public List<Material>? Materials { get; set; }
        
 
         public Inventory()
         {
         }
-        public Inventory(int id, string name, int quantity, List<Material> materials)
+        public Inventory(int id, string? name, int quantity, List<Material>? materials)
         {
             Id = id;
             Name = name;
