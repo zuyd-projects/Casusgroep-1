@@ -96,7 +96,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 h-screen hidden lg:block bg-gradient-to-b from-purple-800 to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative">
+    <aside className="w-60 h-screen hidden lg:block bg-gradient-to-b from-purple-600 to-pink-600 dark:from-purple-800 dark:to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative">
       <div className="flex items-center mb-10 px-2">
         <span className="text-3xl font-extrabold tracking-wide drop-shadow-lg text-white">
           ERPNumber1
