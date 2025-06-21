@@ -47,7 +47,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
@@ -58,20 +58,20 @@ export default function RegisterPage() {
           <h2 className="text-3xl font-extrabold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
             Create your account
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Or{' '}
             <Link
               href="/login"
-              className="font-medium text-pink-600 hover:text-pink-500 transition-colors"
+              className="font-medium text-pink-600 hover:text-pink-500 dark:text-pink-400 dark:hover:text-pink-300 transition-colors"
             >
               sign in to your existing account
             </Link>
           </p>
         </div>
-        <div className="bg-white/70 backdrop-blur-sm py-8 px-6 shadow-2xl rounded-2xl border border-white/20">
+        <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm py-8 px-6 shadow-2xl rounded-2xl border border-white/20 dark:border-gray-700/20">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Full Name
               </label>
               <div className="relative">
@@ -80,7 +80,7 @@ export default function RegisterPage() {
                   name="name"
                   type="text"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent focus:z-10 sm:text-sm transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                  className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent focus:z-10 sm:text-sm transition-all duration-200 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
@@ -94,7 +94,7 @@ export default function RegisterPage() {
             </div>
             
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                   name="email"
                   type="email"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent focus:z-10 sm:text-sm transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                  className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent focus:z-10 sm:text-sm transition-all duration-200 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
                   placeholder="your.email@example.com"
                   value={formData.email}
                   onChange={handleChange}
@@ -117,7 +117,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -126,7 +126,7 @@ export default function RegisterPage() {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  className="appearance-none relative block w-full px-4 py-3 pl-12 pr-12 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent focus:z-10 sm:text-sm transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                  className="appearance-none relative block w-full px-4 py-3 pl-12 pr-12 border border-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent focus:z-10 sm:text-sm transition-all duration-200 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
                   placeholder="Choose a strong password"
                   value={formData.password}
                   onChange={handleChange}
@@ -156,14 +156,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="role" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Role
               </label>
               <div className="relative">
                 <select
                   id="role"
                   name="role"
-                  className="block w-full px-4 py-3 pl-12 pr-10 border border-gray-200 bg-white/50 backdrop-blur-sm rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent sm:text-sm transition-all duration-200 appearance-none cursor-pointer"
+                  className="block w-full px-4 py-3 pl-12 pr-10 border border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent sm:text-sm transition-all duration-200 appearance-none cursor-pointer text-gray-900 dark:text-white"
                   value={formData.role}
                   onChange={handleChange}
                 >

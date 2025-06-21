@@ -1,6 +1,4 @@
 "use client";
-import '../styles.css';
-import Script from "next/script";
 
 import React, { useState, useRef } from 'react';
 import { CheckCircle, AlertCircle, Play } from 'lucide-react';
@@ -149,19 +147,19 @@ const ProductionLineDashboard = () => {
           <h2 className="text-2xl font-bold text-black">Production Line B</h2>
           <p className="text-gray-600">Total Orders of Product B</p>
           <div className="left-aligned-badge-container">
-            <span className="total-product-orders-badge">
+            <span className="inline-flex items-center px-4 py-2 rounded-lg bg-purple-600 text-white text-base font-semibold dark:bg-purple-700">
               Total: {orders.length}
             </span>
           </div>
         </div>
-        <div className="dashboard-grid">
+        <div className="grid grid-cols-2 gap-6 h-full">
           {/* Orders Overview */}
-          <div className="order-card">
-            <div className="order-header-text">
-              <h3 className="section-header-order">Incoming Orders</h3>
-              <div className="live-indicator-satus-text">
-                <div className="live-indicator"></div>
-                <span className="text-sm text-gray-600">Live</span>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div className="flex justify-between items-center mt-4 mb-4">
+              <h3 className="text-lg font-bold text-purple-700 dark:text-purple-400 mb-0">Incoming Orders</h3>
+              <div className="flex items-center m-0">
+                <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Live</span>
               </div>
             </div>
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -189,10 +187,10 @@ const ProductionLineDashboard = () => {
                         <p className="text-sm text-gray-600">{order.productName}</p>
                       </div>
                       <div className="flex space-x-2">
-                        <span className="status-pill period-pill">
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-medium mr-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                           Period Ordered: {order.orderDate}
                         </span>
-                        <span className={`status-pill ${getStatusColor(order.status)}`}>
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mr-1 ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
                       </div>
@@ -209,12 +207,12 @@ const ProductionLineDashboard = () => {
             </div>
           </div>
           {/* 3D Product Placeholder and Order Details */}
-          <div className="order-card">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             {selectedOrder ? (
               <div>
                 <div className="mb-4">
-                  <h3 className="text-xl font-bold text-black">{selectedOrder.productName}</h3>
-                  <p className="text-gray-600">Order: {selectedOrder.id}</p>
+                  <h3 className="text-xl font-bold text-black dark:text-white">{selectedOrder.productName}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Order: {selectedOrder.id}</p>
                 </div>
                 {/* 3D Product Viewer */}
                 <div className="mb-6 relative">

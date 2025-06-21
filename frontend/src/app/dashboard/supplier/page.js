@@ -54,13 +54,14 @@ export default function SupplierPage() {
   return (
     <div className="flex justify-center mt-8">
       <div className="w-full max-w-7xl">
-        <div className="panel-gradient-border max-w-7xl mx-auto mt-8 py-16 px-10 rounded-xl shadow-lg">
-          <h1 className="text-4xl font-extrabold mb-10 tracking-tight text-center">
-            Overzicht per ronde
-          </h1>
-          <div className="overflow-x-auto rounded-xl shadow-lg table-panel">
-            <table className="min-w-full divide-y divide-black/20 text-center bg-transparent">
-              <thead>
+        <div className="border-4 border-transparent rounded-xl bg-gradient-to-r from-brandPurple to-brandPink p-[4px] max-w-7xl mx-auto mt-8 shadow-xl">
+          <div className="bg-white dark:bg-gray-800 rounded-lg py-16 px-10">
+            <h1 className="text-4xl font-extrabold mb-10 tracking-tight text-center text-gray-900 dark:text-white">
+              Overzicht per ronde
+            </h1>
+            <div className="overflow-x-auto rounded-xl shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-center bg-transparent">
+                <thead className="bg-gray-50 dark:bg-gray-700">{/*eslint-disable-line*/}
                 <tr>
                   <th rowSpan={2} className="px-2 py-2">ID</th>
                   <th rowSpan={2} className="px-2 py-2">Tijdstip</th>
@@ -111,6 +112,7 @@ export default function SupplierPage() {
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
       </div>
