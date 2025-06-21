@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@tailwind utilities;
 
 :root {
   --panel-bg: #fff;
@@ -38,11 +37,11 @@ body {
 .panel-gradient-border {
   border: 4px solid transparent;
   border-radius: 0.75rem;
-  background:
-    linear-gradient(var(--panel-bg), var(--panel-bg)) padding-box,
+  background: linear-gradient(var(--panel-bg), var(--panel-bg)) padding-box,
     linear-gradient(to right, #7b2ff7, #f107a3) border-box;
   color: var(--panel-text);
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -4px rgba(0, 0, 0, 0.1);
   padding: 2rem;
 }
 
@@ -50,7 +49,7 @@ body {
   background: var(--table-bg);
   color: var(--panel-text);
   border-radius: 0.75rem;
-  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08);
 }
 
 .table-panel thead {

@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import '../../../styles/globals.css';
+import "../../../styles/globals.css";
 
 const legoColors = ["Blauw", "Rood", "Grijs"];
 
 export default function SupplierPage() {
-
   const [orderRounds] = useState([
     {
       id: "ORD-001",
@@ -30,7 +29,7 @@ export default function SupplierPage() {
       round: 3,
       bestelling: { Blauw: 6, Rood: 6, Grijs: 4 },
       geleverdVinkje: true,
-      geleverdInPeriode: "5"
+      geleverdInPeriode: "5",
     },
     {
       id: "ORD-004",
@@ -48,7 +47,6 @@ export default function SupplierPage() {
       geleverdVinkje: true,
       geleverdInPeriode: "7",
     },
-
   ]);
 
   return (
@@ -62,23 +60,39 @@ export default function SupplierPage() {
             <table className="min-w-full divide-y divide-black/20 text-center bg-transparent">
               <thead>
                 <tr>
-                  <th rowSpan={2} className="px-2 py-2">ID</th>
-                  <th rowSpan={2} className="px-2 py-2">Tijdstip</th>
-                  <th rowSpan={2} className="px-2 py-2">Periode</th>
-                  <th colSpan={3} className="px-2 py-2">Bestelling</th>
-                  <th rowSpan={2} className="px-2 py-2">Geleverd?</th>
-                  <th rowSpan={2} className="px-2 py-2">Periode geleverd</th>
+                  <th rowSpan={2} className="px-2 py-2">
+                    ID
+                  </th>
+                  <th rowSpan={2} className="px-2 py-2">
+                    Tijdstip
+                  </th>
+                  <th rowSpan={2} className="px-2 py-2">
+                    Periode
+                  </th>
+                  <th colSpan={3} className="px-2 py-2">
+                    Bestelling
+                  </th>
+                  <th rowSpan={2} className="px-2 py-2">
+                    Geleverd?
+                  </th>
+                  <th rowSpan={2} className="px-2 py-2">
+                    Periode geleverd
+                  </th>
                 </tr>
                 <tr>
-                  {legoColors.map(color => (
-                    <th key={color} className="px-2 py-2">{color}</th>
+                  {legoColors.map((color) => (
+                    <th key={color} className="px-2 py-2">
+                      {color}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {orderRounds.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-4 text-gray-500">Nog geen bestellingen</td>
+                    <td colSpan={8} className="py-4 text-gray-500">
+                      Nog geen bestellingen
+                    </td>
                   </tr>
                 ) : (
                   [...orderRounds].reverse().map((r, idx) => (
@@ -93,14 +107,20 @@ export default function SupplierPage() {
                       <td className="px-2 py-2">{r.id}</td>
                       <td className="px-2 py-2">{r.timestamp || "-"}</td>
                       <td className="px-2 py-2">{r.round}</td>
-                      {legoColors.map(color => (
-                        <td key={color} className="px-2 py-2">{r.bestelling[color]}</td>
+                      {legoColors.map((color) => (
+                        <td key={color} className="px-2 py-2">
+                          {r.bestelling[color]}
+                        </td>
                       ))}
                       <td className="px-2 py-2">
                         {r.geleverdVinkje ? (
-                          <span className="inline-block text-green-400 font-bold text-lg">✔</span>
+                          <span className="inline-block text-green-400 font-bold text-lg">
+                            ✔
+                          </span>
                         ) : (
-                          <span className="inline-block text-red-400 font-bold text-lg">✘</span>
+                          <span className="inline-block text-red-400 font-bold text-lg">
+                            ✘
+                          </span>
                         )}
                       </td>
                       <td className="px-2 py-2">
