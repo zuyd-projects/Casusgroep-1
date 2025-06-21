@@ -3,6 +3,7 @@ using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
 using ERPNumber1.Services;
+using ERPNumber1.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -105,7 +106,7 @@ builder.Services.AddSwaggerGen(option =>
         }
     });
 });
-
+builder.Services.AddScoped<ISimulationRepository, SimulationRepository>();
 var app = builder.Build();
 
 // Ensure database is created and apply migrations
@@ -128,6 +129,7 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+   
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERPNumber1 API v1"));
 }
