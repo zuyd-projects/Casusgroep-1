@@ -1,6 +1,6 @@
-namespace ERPNumber1.Dtos.Order
+﻿namespace ERPNumber1.Dtos.Order
 {
-    public class UpdateOrderDto
+    public class OrderDto
     {
         public int RoundId { get; set; }
         public int? DeliveryId { get; set; }
@@ -8,7 +8,6 @@ namespace ERPNumber1.Dtos.Order
         public char MotorType { get; set; }
         public int Quantity { get; set; }
         public string? Signature { get; set; }
-        public char? ProductionLine { get; set; }
-        
+        public DateTime OrderDate { get; set; }
     }
 }

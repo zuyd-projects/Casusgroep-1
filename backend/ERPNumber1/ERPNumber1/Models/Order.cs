@@ -7,16 +7,16 @@ namespace ERPNumber1.Models
     {
         public int Id { get; set; }
         public int RoundId { get; set; }
-        public int? SupplierOrderId { get; set; }
+        
         public int? DeliveryId { get; set; }
         public string? AppUserId { get; set; }
         public char MotorType { get; set; }
         public int Quantity { get; set; }
         public string? Signature { get; set; }
         public char? ProductionLine { get; set; }
-        
-        public DateTime OrderDate { get; set; }
-        [JsonIgnore]
+
+        public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+        [JsonIgnore]            
         public List<Product> Products { get; set; } = new List<Product>();
         [JsonIgnore]
         public Delivery? Deliveries { get; set; }
@@ -26,7 +26,7 @@ namespace ERPNumber1.Models
         public Round? Round { get; set; }
 
         [JsonIgnore]
-        public SupplierOrder? SupplierOrder { get; set; }
+        public SupplierOrder SupplierOrder { get; set; } = null!;
 
     }
 }

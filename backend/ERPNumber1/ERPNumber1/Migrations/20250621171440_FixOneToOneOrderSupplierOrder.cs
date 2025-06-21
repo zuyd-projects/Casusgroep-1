@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ERPNumber1.Migrations
 {
     /// <inheritdoc />
-    public partial class AddEventLogTable : Migration
+    public partial class FixOneToOneOrderSupplierOrder : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -141,7 +141,8 @@ namespace ERPNumber1.Migrations
                     AppUserId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     MotorType = table.Column<string>(type: "nvarchar(1)", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
-                    Signature = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Signature = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ProductionLine = table.Column<string>(type: "nvarchar(1)", nullable: true),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -197,7 +198,8 @@ namespace ERPNumber1.Migrations
                     OrderId = table.Column<int>(type: "int", nullable: false),
                     IsDelivered = table.Column<bool>(type: "bit", nullable: false),
                     QualityCheckPassed = table.Column<bool>(type: "bit", nullable: false),
-                    ApprovedByCustomer = table.Column<bool>(type: "bit", nullable: false)
+                    ApprovedByCustomer = table.Column<bool>(type: "bit", nullable: false),
+                    DeliveryRound = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -321,7 +323,7 @@ namespace ERPNumber1.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
@@ -343,9 +345,11 @@ namespace ERPNumber1.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     round_number = table.Column<int>(type: "int", nullable: false),
+                    IsRMA = table.Column<bool>(type: "bit", nullable: false),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
@@ -357,6 +361,12 @@ namespace ERPNumber1.Migrations
                         column: x => x.AppUserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_SupplierOrders_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -366,7 +376,7 @@ namespace ERPNumber1.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     productId = table.Column<int>(type: "int", nullable: false),
-                    name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    name = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     cost = table.Column<float>(type: "real", nullable: false),
                     quantity = table.Column<int>(type: "int", nullable: false),
                     InventoryId = table.Column<int>(type: "int", nullable: true),
@@ -499,6 +509,12 @@ namespace ERPNumber1.Migrations
                 name: "IX_SupplierOrders_AppUserId",
                 table: "SupplierOrders",
                 column: "AppUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierOrders_OrderId",
+                table: "SupplierOrders",
+                column: "OrderId",
+                unique: true);
         }
 
         /// <inheritdoc />

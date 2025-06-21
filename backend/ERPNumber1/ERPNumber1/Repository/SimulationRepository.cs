@@ -33,10 +33,10 @@ namespace ERPNumber1.Repository
             return simulationModel;
         }
 
-        public async Task<bool?> Exists(int id)
-        {
-             return _context.Simulations.Any(e => e.Id == id);
-        }
+        //public async Task<bool?> Exists(int id)
+        //{
+        //     return _context.Simulations.Any(e => e.Id == id);
+        //}
 
         public async Task<List<Simulation>> GetAllAsync()
         {

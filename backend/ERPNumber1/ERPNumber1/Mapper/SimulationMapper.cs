@@ -28,7 +28,7 @@ namespace ERPNumber1.Mapper
             };
         }
 
-        public static Simulation ToCommentFromUpdate(this UpdateSimulationDto simulationDto)
+        public static Simulation ToSimulationFromUpdate(this UpdateSimulationDto simulationDto)
         {
             return new Simulation
             {

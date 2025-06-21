@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPNumber1.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250616140719_AddEventLogTable")]
-    partial class AddEventLogTable
+    [Migration("20250621171440_FixOneToOneOrderSupplierOrder")]
+    partial class FixOneToOneOrderSupplierOrder
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -109,6 +109,9 @@ namespace ERPNumber1.Migrations
                     b.Property<bool>("ApprovedByCustomer")
                         .HasColumnType("bit");
 
+                    b.Property<string>("DeliveryRound")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsDelivered")
                         .HasColumnType("bit");
 
@@ -193,7 +196,6 @@ namespace ERPNumber1.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Quantity")
@@ -226,7 +228,6 @@ namespace ERPNumber1.Migrations
                         .HasColumnType("real");
 
                     b.Property<string>("name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("productId")
@@ -267,6 +268,9 @@ namespace ERPNumber1.Migrations
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ProductionLine")
+                        .HasColumnType("nvarchar(1)");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -274,7 +278,6 @@ namespace ERPNumber1.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Signature")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -391,14 +394,19 @@ namespace ERPNumber1.Migrations
                     b.Property<string>("AppUserId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<bool>("IsRMA")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -410,6 +418,9 @@ namespace ERPNumber1.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
 
                     b.ToTable("SupplierOrders");
                 });
@@ -662,7 +673,15 @@ namespace ERPNumber1.Migrations
                         .WithMany()
                         .HasForeignKey("AppUserId");
 
+                    b.HasOne("ERPNumber1.Models.Order", "Order")
+                        .WithOne("SupplierOrder")
+                        .HasForeignKey("ERPNumber1.Models.SupplierOrder", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("AppUser");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -728,10 +747,12 @@ namespace ERPNumber1.Migrations
 
             modelBuilder.Entity("ERPNumber1.Models.Order", b =>
                 {
-                    b.Navigation("Deliveries")
-                        .IsRequired();
+                    b.Navigation("Deliveries");
 
                     b.Navigation("Products");
+
+                    b.Navigation("SupplierOrder")
+                        .IsRequired();
 
                     b.Navigation("appUsers");
                 });

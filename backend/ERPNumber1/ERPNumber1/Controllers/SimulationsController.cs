@@ -60,7 +60,7 @@ namespace ERPNumber1.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
         {
-            var updatedSimulation = await _simulationRepo.UpdateAysnc(id, simulationDto.ToCommentFromUpdate());
+            var updatedSimulation = await _simulationRepo.UpdateAysnc(id, simulationDto.ToSimulationFromUpdate());
 
             if (updatedSimulation == null)
             {
