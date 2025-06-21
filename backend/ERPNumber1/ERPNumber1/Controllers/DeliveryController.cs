@@ -11,8 +11,9 @@ namespace ERPNumber1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DeliveryController : ControllerBase
+    public class DeliveryController : ControllerBase, IRequireRole
     {
+        public Role[] AllowedRoles => [Role.Admin ];
         private readonly AppDbContext _context;
         private readonly IEventLogService _eventLogService;
 
@@ -23,6 +24,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/Delivery
+        [RequireRole(Role.Admin)]
         [HttpGet]
         [LogEvent("Delivery", "Get All Deliveries")]
         public async Task<ActionResult<IEnumerable<Delivery>>> GetDeliveries()
