@@ -1,0 +1,59 @@
+name: Frontend Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build_and_update:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build-image
+        run: |
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/frontend:$(date +'%Y%m%d%H%M%S')
+          docker build -t $IMAGE_TAG ./frontend
+          docker push $IMAGE_TAG
+          echo "::set-output name=image::$IMAGE_TAG"
+
+      - name: Update JSON config file
+        run: |
+          CONFIG_FILE=infra/configs/frontend-vm.json
+          IMAGE_TAG=${{ steps.build-image.outputs.image }}
+
+          # Create backup in case something goes wrong
+          cp $CONFIG_FILE $CONFIG_FILE.bak
+
+          # Update "image" key with new tag using jq
+          jq --arg img "$IMAGE_TAG" '.image = $img' $CONFIG_FILE > $CONFIG_FILE.tmp && mv $CONFIG_FILE.tmp $CONFIG_FILE
+
+          # Commit & push changes if any
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add $CONFIG_FILE
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update frontend image to $IMAGE_TAG"
+            git push
+          else
+            echo "No config changes detected."
+          fi

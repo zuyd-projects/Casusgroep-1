@@ -30,9 +30,10 @@ module "frontend" {
   vnet_name            = module.network.vnet_name
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
-  private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    ghcr_pat    = var.ghcr_pat
+    ghcr_user   = var.ghcr_user
   }))
 
   depends_on = [
@@ -49,9 +50,10 @@ module "backend" {
   vnet_name            = module.network.vnet_name
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
-  private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    ghcr_pat    = var.ghcr_pat
+    ghcr_user   = var.ghcr_user
   }))
 
   depends_on = [
@@ -68,9 +70,10 @@ module "database" {
   vnet_name            = module.network.vnet_name
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
-  private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    ghcr_pat    = var.ghcr_pat
+    ghcr_user   = var.ghcr_user
   }))
 
   depends_on = [
