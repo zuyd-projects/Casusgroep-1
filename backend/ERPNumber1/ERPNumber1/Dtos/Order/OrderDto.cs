@@ -2,6 +2,7 @@
 {
     public class OrderDto
     {
+        public int Id { get; set; }
         public int RoundId { get; set; }
         public int? DeliveryId { get; set; }
         public string? AppUserId { get; set; }

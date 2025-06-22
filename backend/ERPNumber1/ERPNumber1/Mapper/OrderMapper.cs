@@ -10,6 +10,7 @@ namespace ERPNumber1.Mapper
         {
             return new OrderDto
             {
+                Id = orderModel.Id,
                 RoundId = orderModel.RoundId,
                 DeliveryId = orderModel.DeliveryId,
                 AppUserId = orderModel.AppUserId,

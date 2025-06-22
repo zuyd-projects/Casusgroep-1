@@ -85,6 +85,13 @@ export default function Orders() {
       
       const createdOrder = await api.post('/api/Order', orderData);
       
+      console.log('✅ Created order response:', createdOrder);
+      
+      // Defensive check for ID
+      if (!createdOrder || !createdOrder.id) {
+        throw new Error('Invalid response from server: missing order ID');
+      }
+      
       // Add to local state
       const formattedOrder = {
         id: createdOrder.id.toString(),
