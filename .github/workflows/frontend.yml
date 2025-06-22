@@ -51,11 +51,7 @@ jobs:
 
           cp $CONFIG_FILE $CONFIG_FILE.bak
 
-          jq --arg frontend "$FRONTEND_IMAGE" --arg proxy "$PROXY_IMAGE" '
-            (.containers[] | select(.name == "frontend") | .image) = $frontend
-            | (.containers[] | select(.name == "proxy") | .image) = $proxy
-            | .lastUpdated = (now | strftime("%Y-%m-%dT%H:%M:%SZ"))
-          ' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+          jq --arg frontend "$FRONTEND_IMAGE" --arg proxy "$PROXY_IMAGE" '(.containers[] | select(.name == "frontend") | .image) = $frontend| (.containers[] | select(.name == "proxy") | .image) = $proxy | .lastUpdated = (now | strftime("%Y-%m-%dT%H:%M:%SZ"))' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
