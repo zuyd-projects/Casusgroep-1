@@ -1,0 +1,195 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main, test]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [main, test]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    name: Run Unit & Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      
+      - name: Restore dependencies
+        working-directory: ./backend/ERPNumber1
+        run: dotnet restore
+      
+      - name: Build
+        working-directory: ./backend/ERPNumber1
+        run: dotnet build --no-restore --configuration Release
+      
+      - name: Run Unit Tests
+        working-directory: ./backend/ERPNumber1
+        run: |
+          dotnet test --no-build --configuration Release --verbosity normal \
+            --collect:"XPlat Code Coverage" --results-directory ./TestResults \
+            --logger "trx;LogFileName=test-results.trx"
+
+      - name: Generate Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: '.NET Test Results'
+          path: './backend/ERPNumber1/TestResults/*.trx'
+          reporter: dotnet-trx
+          fail-on-error: true
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ./backend/ERPNumber1/TestResults/
+          retention-days: 7
+
+      - name: Upload Code Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-coverage
+          path: ./backend/ERPNumber1/TestResults/*/coverage.cobertura.xml
+          retention-days: 7
+
+  integration-test:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: yourStrong(!)Password
+          ACCEPT_EULA: 1
+          MSSQL_DB: SimulationDb
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        working-directory: ./backend/ERPNumber1
+        run: dotnet restore
+
+      - name: Build
+        working-directory: ./backend/ERPNumber1
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Start API for Integration Tests
+        working-directory: ./backend/ERPNumber1/ERPNumber1
+        run: |
+          dotnet run --no-build --configuration Release &
+          echo $! > api.pid
+          sleep 30
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: "http://localhost:5000"
+          ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=SimulationDb;User Id=sa;Password=yourStrong(!)Password;Encrypt=False;TrustServerCertificate=True;"
+
+      - name: Wait for API to be ready
+        run: |
+          for i in {1..20}; do
+            if curl -f -s http://localhost:5000/api/products > /dev/null 2>&1; then
+              echo "✅ API is responding"
+              break
+            fi
+            if [ $i -eq 20 ]; then
+              echo "❌ API failed to start"
+              exit 1
+            fi
+            echo "⏳ Waiting for API... ($i/20)"
+            sleep 3
+          done
+
+      - name: Basic API Health Checks
+        run: |
+          for endpoint in products order materials; do
+            echo "Testing $endpoint endpoint..."
+            response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/$endpoint)
+            if [ "$response" = "200" ]; then
+              echo "✅ $endpoint endpoint working (HTTP $response)"
+            else
+              echo "❌ $endpoint endpoint failed (HTTP $response)"
+              exit 1
+            fi
+          done
+
+      - name: Stop API
+        if: always()
+        working-directory: ./backend/ERPNumber1/ERPNumber1
+        run: |
+          if [ -f api.pid ]; then
+            kill $(cat api.pid) || true
+            rm api.pid
+          fi
+
+  build-and-deploy:
+    name: Build and Deploy Docker Image
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build-image
+        run: |
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/backend:$(date +'%Y%m%d%H%M%S')
+          docker build -t $IMAGE_TAG ./backend
+          docker push $IMAGE_TAG
+          echo "::set-output name=image::$IMAGE_TAG"
+
+      - name: Update JSON config file
+        run: |
+          CONFIG_FILE=infra/configs/backend-vm.json
+          IMAGE_TAG=${{ steps.build-image.outputs.image }}
+
+          cp $CONFIG_FILE $CONFIG_FILE.bak
+          jq --arg img "$IMAGE_TAG" '.image = $img' $CONFIG_FILE > $CONFIG_FILE.tmp && mv $CONFIG_FILE.tmp $CONFIG_FILE
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add $CONFIG_FILE
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update backend image to $IMAGE_TAG"
+            git push
+          else
+            echo "No config changes detected."
