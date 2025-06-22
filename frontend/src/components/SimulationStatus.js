@@ -64,11 +64,6 @@ export default function SimulationStatus() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Auto-connect to SignalR when component mounts
-  useEffect(() => {
-    connectToSignalR();
-  }, [connectToSignalR]);
-
   // Check simulation status on mount if we have a running simulation
   useEffect(() => {
     if (currentSimulation && !currentRound) {

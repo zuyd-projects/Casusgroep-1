@@ -14,6 +14,22 @@ export function SimulationProvider({ children }) {
   const [roundTimeLeft, setRoundTimeLeft] = useState(0);
   const [roundDuration, setRoundDuration] = useState(30);
 
+  // Auto-connect to SignalR when provider mounts
+  useEffect(() => {
+    console.log('🔌 Auto-connecting to SignalR on provider mount...');
+    const autoConnect = async () => {
+      try {
+        const connected = await simulationService.connect();
+        setIsConnected(connected);
+        console.log('✅ Auto-connection result:', connected);
+      } catch (error) {
+        console.error('❌ Auto-connection failed:', error);
+        setIsConnected(false);
+      }
+    };
+    autoConnect();
+  }, []);
+
   // Timer for countdown
   useEffect(() => {
     let timer;
@@ -85,8 +101,7 @@ export function SimulationProvider({ children }) {
     try {
       console.log(`🎮 Starting simulation ${simulationId}...`);
       await api.post(`/api/Simulations/${simulationId}/run`);
-      console.log(`✅ API call successful, joining SignalR group...`);
-      await simulationService.joinSimulation(simulationId);
+      console.log(`✅ API call successful for simulation ${simulationId}`);
       
       // Set initial state immediately to show UI feedback
       setCurrentSimulation(simulationId);
@@ -112,7 +127,6 @@ export function SimulationProvider({ children }) {
       setRoundTimeLeft(0);
       
       await api.post(`/api/Simulations/${simulationId}/stop`);
-      await simulationService.leaveSimulation(simulationId);
       
       console.log(`✅ Successfully stopped simulation ${simulationId}`);
       return true;

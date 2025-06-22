@@ -62,9 +62,9 @@ namespace ERPNumber1.Services
             
             _runningSimulations[simulationId] = timer;
 
-            // Notify clients that simulation started
-            Console.WriteLine($"Notifying clients that simulation {simulationId} started");
-            await _hubContext.Clients.Group($"simulation_{simulationId}")
+            // Notify ALL clients that simulation started (company-wide notification)
+            Console.WriteLine($"Notifying ALL clients that simulation {simulationId} started");
+            await _hubContext.Clients.All
                 .SendAsync("SimulationStarted", new { simulationId, roundDuration = GetRoundDurationSeconds() });
 
             return true;
@@ -78,8 +78,8 @@ namespace ERPNumber1.Services
                 _runningSimulations.Remove(simulationId);
                 _currentRounds.Remove(simulationId);
 
-                // Notify clients that simulation stopped
-                await _hubContext.Clients.Group($"simulation_{simulationId}")
+                // Notify ALL clients that simulation stopped (company-wide notification)
+                await _hubContext.Clients.All
                     .SendAsync("SimulationStopped", new { simulationId });
 
                 return true;
@@ -144,9 +144,9 @@ namespace ERPNumber1.Services
 
                 _currentRounds[simulationId] = nextRoundNumber;
 
-                // Notify clients about the new round
-                Console.WriteLine($"Notifying clients about new round {nextRoundNumber} for simulation {simulationId}");
-                await _hubContext.Clients.Group($"simulation_{simulationId}")
+                // Notify ALL clients about the new round (company-wide notification)
+                Console.WriteLine($"Notifying ALL clients about new round {nextRoundNumber} for simulation {simulationId}");
+                await _hubContext.Clients.All
                     .SendAsync("NewRound", new 
                     { 
                         simulationId, 
