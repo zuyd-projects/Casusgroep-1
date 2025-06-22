@@ -44,8 +44,6 @@ jobs:
           echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update JSON config file with new image tags
-        env:
-          GIT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           CONFIG_FILE=infra/configs/frontend-vm.json
           FRONTEND_IMAGE=${{ steps.build-frontend.outputs.image }}
@@ -61,7 +59,7 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "Update frontend and proxy images"
-            git push https://x-access-token:$GIT_TOKEN@github.com/${{ github.repository }} HEAD:main
+            git push origin HEAD:config
           else
             echo "No config changes detected."
           fi
