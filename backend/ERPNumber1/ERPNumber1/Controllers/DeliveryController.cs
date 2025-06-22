@@ -1,11 +1,13 @@
+using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Delivery;
+using ERPNumber1.Dtos.Round;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Models;
-using ERPNumber1.Data;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
-using ERPNumber1.Dtos.Delivery;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -14,13 +16,15 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class DeliveryController : ControllerBase
     {
-        private readonly AppDbContext _context;
+      
         private readonly IEventLogService _eventLogService;
+        private readonly IDeliveryRepository _deliveryRepo;
 
-        public DeliveryController(AppDbContext context, IEventLogService eventLogService)
+        public DeliveryController( IEventLogService eventLogService, IDeliveryRepository deliveryRepo)
         {
-            _context = context;
+            
             _eventLogService = eventLogService;
+            _deliveryRepo = deliveryRepo;   
         }
 
         // GET: api/Delivery
@@ -28,7 +32,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Delivery", "Get All Deliveries")]
         public async Task<ActionResult<IEnumerable<Delivery>>> GetDeliveries()
         {
-            return await _context.Deliveries.ToListAsync();
+            var deliveries = await _deliveryRepo.GetAllAsync();
+            var deliveriesDtos = deliveries.Select(s => s.ToDeliveryDto());
+            return Ok(deliveriesDtos);
         }
 
         // GET: api/Delivery/5
@@ -36,7 +42,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Delivery", "Get Delivery by ID")]
         public async Task<ActionResult<Delivery>> GetDelivery(int id)
         {
-            var delivery = await _context.Deliveries.FindAsync(id);
+            var delivery = await _deliveryRepo.GetByIdAsync(id);
 
             if (delivery == null)
             {
@@ -47,7 +53,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            return delivery;
+            return Ok(delivery.ToDeliveryDto());
         }
 
         // POST: api/Delivery
@@ -56,17 +62,10 @@ namespace ERPNumber1.Controllers
         public async Task<ActionResult<Delivery>> PostDelivery(CreateDeliveryDto deliveryDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            var delivery = new Delivery
-            {
-                OrderId = deliveryDto.OrderId,
-                IsDelivered = deliveryDto.IsDelivered,
-                QualityCheckPassed = deliveryDto.QualityCheckPassed,
-                ApprovedByCustomer = deliveryDto.ApprovedByCustomer
-            };
-            
-            _context.Deliveries.Add(delivery);
-            await _context.SaveChangesAsync();
+
+            var delivery = deliveryDto.ToDeliveryFromCreate();
+            await _deliveryRepo.CreateAsync(delivery);
+           
 
             await _eventLogService.LogEventAsync($"Delivery_{delivery.Id}", "Delivery Created", 
                 "DeliveryController", "Delivery", "Completed", 
@@ -77,7 +76,7 @@ namespace ERPNumber1.Controllers
                     createdBy = userId
                 }), delivery.Id.ToString(), userId: userId);
 
-            return CreatedAtAction(nameof(GetDelivery), new { id = delivery.Id }, delivery);
+            return CreatedAtAction(nameof(GetDelivery), new { id = delivery.Id }, delivery.ToDeliveryDto());
         }
 
         // PUT: api/Delivery/5
@@ -87,7 +86,7 @@ namespace ERPNumber1.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            var delivery = await _context.Deliveries.FindAsync(id);
+            var delivery = await _deliveryRepo.GetByIdAsync(id);
             if (delivery == null)
             {
                 await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed", 
@@ -97,15 +96,11 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            delivery.OrderId = deliveryDto.OrderId;
-            delivery.IsDelivered = deliveryDto.IsDelivered;
-            delivery.QualityCheckPassed = deliveryDto.QualityCheckPassed;
-            delivery.ApprovedByCustomer = deliveryDto.ApprovedByCustomer;
 
             try
             {
-                await _context.SaveChangesAsync();
-                
+                await _deliveryRepo.UpdateAsync(id, deliveryDto.ToDeliveryFromUpdate());
+
                 await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Updated", 
                     "DeliveryController", "Delivery", "Completed", 
                     System.Text.Json.JsonSerializer.Serialize(new { 
@@ -118,7 +113,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_context.Deliveries.Any(e => e.Id == id))
+                if (! await _deliveryRepo.DeliveryExistsAsync(id))
                 {
                     await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed", 
                         "DeliveryController", "Delivery", "Failed", 
@@ -143,14 +138,11 @@ namespace ERPNumber1.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDelivery(int id)
         {
-            var delivery = await _context.Deliveries.FindAsync(id);
+            var delivery = await _deliveryRepo.DeleteAsync(id);
             if (delivery == null)
             {
                 return NotFound();
             }
-
-            _context.Deliveries.Remove(delivery);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }

@@ -109,6 +109,9 @@ builder.Services.AddSwaggerGen(option =>
 
 builder.Services.AddScoped<ISimulationRepository, SimulationRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IRoundRepository, RoundRepository>();
+builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
 var app = builder.Build();
 
 // Ensure database is created and apply migrations
