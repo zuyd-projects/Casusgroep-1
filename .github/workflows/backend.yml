@@ -12,7 +12,7 @@ on:
 
 jobs:
   test:
-    name: Run Unit & Integration Tests
+    name: Run Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,34 +37,34 @@ jobs:
           dotnet test --no-build --configuration Release --verbosity normal \
             --collect:"XPlat Code Coverage" --results-directory ./TestResults \
             --logger "trx;LogFileName=test-results.trx"
-      - name: List all .trx files
-        if: always()
-        run: find . -name "*.trx"
+      # - name: List all .trx files
+      #   if: always()
+      #   run: find . -name "*.trx"
 
-      - name: Generate Test Report
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: '.NET Test Results'
-          path: './backend/ERPNumber1/TestResults/*.trx'
-          reporter: dotnet-trx
-          fail-on-error: true
+      # - name: Generate Test Report
+      #   if: always()
+      #   uses: dorny/test-reporter@v1
+      #   with:
+      #     name: '.NET Test Results'
+      #     path: './backend/ERPNumber1/TestResults/*.trx'
+      #     reporter: dotnet-trx
+      #     fail-on-error: true
 
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: ./backend/ERPNumber1/TestResults/
-          retention-days: 7
+      # - name: Upload Test Results
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: test-results
+      #     path: ./backend/ERPNumber1/TestResults/
+      #     retention-days: 7
 
-      - name: Upload Code Coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: code-coverage
-          path: ./backend/ERPNumber1/TestResults/*/coverage.cobertura.xml
-          retention-days: 7
+      # - name: Upload Code Coverage
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: code-coverage
+      #     path: ./backend/ERPNumber1/TestResults/*/coverage.cobertura.xml
+      #     retention-days: 7
 
   integration-test:
     name: Run Integration Tests
