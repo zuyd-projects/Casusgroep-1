@@ -10,18 +10,26 @@ if (!(Test-Path $PublicKeyFile)) {
 Get-ChildItem -Filter "*.enc.json" | ForEach-Object {
     $inputFile = $_.FullName
     $outputFile = "$($inputFile -replace '\.enc\.json$', '.enc')"
+    $aesKeyFile = "$($inputFile -replace '\.enc\.json$', '.aes.key')"
+    $aesKeyEncFile = "$($inputFile -replace '\.enc\.json$', '.key.enc')"
 
-    Write-Host "Encrypting $inputFile -> $outputFile"
+    Write-Host "Encrypting $inputFile"
 
-    # Temp file for binary-safe input
-    $tmp = New-TemporaryFile
-    Get-Content $inputFile -Raw | Out-File -Encoding utf8 -NoNewline $tmp
+    # 1. Generate random 32-byte AES key
+    openssl rand -out $aesKeyFile 32
 
-    # Run OpenSSL encryption
-    $encCommand = "openssl rsautl -encrypt -inkey `"$PublicKeyFile`" -pubin -in `"$tmp`" -out `"$outputFile`""
-    Invoke-Expression $encCommand
+    # 2. Encrypt JSON config file with AES key (AES-256-CBC)
+    # Use a random salt and a password from the AES key file in binary mode
+    openssl enc -aes-256-cbc -salt -in $inputFile -out $outputFile -pass file:$aesKeyFile
 
-    Remove-Item $tmp
+    # 3. Encrypt AES key with RSA public key
+    openssl pkeyutl -encrypt -pubin -inkey $PublicKeyFile -in $aesKeyFile -out $aesKeyEncFile
+
+    # 4. Remove unencrypted AES key file
+    Remove-Item $aesKeyFile
+
+    Write-Host "  -> Encrypted config saved to $outputFile"
+    Write-Host "  -> Encrypted AES key saved to $aesKeyEncFile"
 }
 
-Write-Host "✅ Encryption complete for all matching .enc.json files."
+Write-Host "✅ Hybrid RSA+AES encryption complete for all matching .enc.json files."
