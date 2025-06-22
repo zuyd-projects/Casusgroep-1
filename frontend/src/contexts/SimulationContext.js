@@ -37,7 +37,10 @@ export function SimulationProvider({ children }) {
       timer = setInterval(() => {
         setRoundTimeLeft(prev => {
           const newTime = Math.max(0, prev - 1);
-          console.log('⏰ Timer tick:', newTime, 'seconds left');
+          // Only log at important intervals to reduce noise
+          if (newTime % 10 === 0 || newTime <= 5) {
+            console.log('⏰ Timer:', newTime, 'seconds left');
+          }
           return newTime;
         });
       }, 1000);
@@ -52,7 +55,7 @@ export function SimulationProvider({ children }) {
   // Set up event listeners
   useEffect(() => {
     const unsubscribeStarted = simulationService.onSimulationStarted((data) => {
-      console.log('📢 Context: Simulation started event', data);
+      console.log('🎮 Simulation started:', data.simulationId);
       setCurrentSimulation(data.simulationId);
       setIsRunning(true);
       setRoundDuration(data.roundDuration || 30);
@@ -60,7 +63,7 @@ export function SimulationProvider({ children }) {
     });
 
     const unsubscribeStopped = simulationService.onSimulationStopped((data) => {
-      console.log('📢 Context: Simulation stopped event', data);
+      console.log('🎮 Simulation stopped:', data.simulationId);
       // Clear all simulation state
       setCurrentSimulation(null);
       setCurrentRound(null);
@@ -69,19 +72,20 @@ export function SimulationProvider({ children }) {
     });
 
     const unsubscribeNewRound = simulationService.onNewRound((data) => {
-      console.log('📢 Context: New round event', data);
+      console.log('🎯 Round', data.roundNumber, 'started');
       setCurrentRound({
         id: data.roundId,
         number: data.roundNumber,
         simulationId: data.simulationId
       });
       const newDuration = data.duration || roundDuration;
-      console.log('⏰ Setting round timer to:', newDuration, 'seconds');
       setRoundTimeLeft(newDuration);
     });
 
     const unsubscribeConnection = simulationService.onConnectionStateChanged((data) => {
-      console.log('📡 Connection state changed:', data);
+      if (data.state === 'connected' && data.reconnected) {
+        console.log('📡 Reconnected to SignalR');
+      }
       setIsConnected(data.state === 'connected');
       if (data.state === 'connected' && data.reconnected && currentSimulation) {
         // Rejoin simulation group after reconnection
@@ -99,16 +103,14 @@ export function SimulationProvider({ children }) {
 
   const runSimulation = useCallback(async (simulationId) => {
     try {
-      console.log(`🎮 Starting simulation ${simulationId}...`);
+      console.log(`🎮 Starting simulation ${simulationId}`);
       await api.post(`/api/Simulations/${simulationId}/run`);
-      console.log(`✅ API call successful for simulation ${simulationId}`);
       
       // Set initial state immediately to show UI feedback
       setCurrentSimulation(simulationId);
       setIsRunning(true);
       setRoundTimeLeft(roundDuration);
       
-      console.log(`✅ Successfully started simulation ${simulationId}`);
       return true;
     } catch (error) {
       console.error('❌ Failed to run simulation:', error);
@@ -118,7 +120,7 @@ export function SimulationProvider({ children }) {
 
   const stopSimulation = useCallback(async (simulationId) => {
     try {
-      console.log(`🛑 Stopping simulation ${simulationId}...`);
+      console.log(`🛑 Stopping simulation ${simulationId}`);
       
       // Clear local state immediately for instant UI feedback
       setCurrentSimulation(null);
@@ -127,8 +129,6 @@ export function SimulationProvider({ children }) {
       setRoundTimeLeft(0);
       
       await api.post(`/api/Simulations/${simulationId}/stop`);
-      
-      console.log(`✅ Successfully stopped simulation ${simulationId}`);
       return true;
     } catch (error) {
       console.error('❌ Failed to stop simulation:', error);
@@ -140,14 +140,11 @@ export function SimulationProvider({ children }) {
 
   const getSimulationStatus = useCallback(async (simulationId) => {
     try {
-      console.log('🔍 Getting simulation status for:', simulationId);
       const status = await api.get(`/api/Simulations/${simulationId}/status`);
-      console.log('📊 Simulation status response:', status);
       
       // Update local state with server state
       setIsRunning(status.isRunning);
       if (status.currentRound) {
-        console.log('🎯 Setting current round from status:', status.currentRound);
         setCurrentRound({
           id: status.currentRound.Id,
           number: status.currentRound.RoundNumber,
@@ -158,14 +155,13 @@ export function SimulationProvider({ children }) {
       
       // If simulation is running, start the timer
       if (status.isRunning) {
-        console.log('⏰ Simulation is running, setting timer');
         setCurrentSimulation(simulationId);
         setRoundTimeLeft(status.roundDuration || 30);
       }
       
       return status;
     } catch (error) {
-      console.error('Failed to get simulation status:', error);
+      console.error('❌ Failed to get simulation status:', error);
       throw error;
     }
   }, []);

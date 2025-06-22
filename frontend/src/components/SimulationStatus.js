@@ -67,23 +67,21 @@ export default function SimulationStatus() {
   // Check simulation status on mount if we have a running simulation
   useEffect(() => {
     if (currentSimulation && !currentRound) {
-      console.log('🔍 Checking simulation status on mount for simulation:', currentSimulation);
+      console.log('🔍 Checking simulation status for:', currentSimulation);
       getSimulationStatus(currentSimulation).catch(console.error);
     }
   }, [currentSimulation, currentRound, getSimulationStatus]);
 
-  // Debug logging
+  // Debug logging - only log significant state changes
   useEffect(() => {
-    console.log('🎮 SimulationStatus state:', {
-      currentSimulation,
-      currentRound,
-      isRunning,
-      isConnected,
-      roundTimeLeft,
-      localTimeLeft,
-      roundDuration
-    });
-  }, [currentSimulation, currentRound, isRunning, isConnected, roundTimeLeft, localTimeLeft, roundDuration]);
+    if (isRunning && currentSimulation) {
+      console.log('🎮 Simulation active:', {
+        simulation: currentSimulation,
+        round: currentRound?.number,
+        connected: isConnected
+      });
+    }
+  }, [currentSimulation, currentRound?.number, isRunning, isConnected]);
 
   if (!isRunning || !currentSimulation) {
     return (

@@ -14,7 +14,16 @@ export default function Dashboard() {
   const [deliveryPredictions, setDeliveryPredictions] = useState(null);
   const [recentSimulations, setRecentSimulations] = useState([]);
 
-  const { runSimulation, currentSimulation, isRunning } = useSimulation();
+  const { runSimulation, currentSimulation, currentRound, isRunning } = useSimulation();
+
+  const handleRunSimulation = async (simulationId) => {
+    try {
+      await runSimulation(simulationId);
+    } catch (error) {
+      console.error('Failed to run simulation from dashboard:', error);
+      // You could add a toast notification here
+    }
+  };
 
   useEffect(() => {
     // Fetch process mining overview data
@@ -113,11 +122,11 @@ export default function Dashboard() {
                       {currentSimulation === simulation.id && isRunning ? (
                         <span className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md">
                           <Play className="h-3 w-3 mr-1" />
-                          Running {currentRound ? `- Round ${currentRound.number}` : ''}
+                          Running {currentRound?.number ? `- Round ${currentRound.number}` : ''}
                         </span>
                       ) : (
                         <button 
-                          onClick={() => runSimulation(simulation.id)}
+                          onClick={() => handleRunSimulation(simulation.id)}
                           disabled={isRunning && currentSimulation !== simulation.id}
                           className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >

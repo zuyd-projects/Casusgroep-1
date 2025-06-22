@@ -32,7 +32,7 @@ class SimulationService {
           transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling
         })
         .withAutomaticReconnect([0, 2000, 10000, 30000]) // More aggressive reconnection
-        .configureLogging(signalR.LogLevel.Information) // Add logging for debugging
+        .configureLogging(signalR.LogLevel.Warning) // Reduced logging - only warnings and errors
         .build();
 
       // Set up event handlers
@@ -53,25 +53,27 @@ class SimulationService {
       });
 
       this.connection.onreconnecting(() => {
-        console.log('SignalR reconnecting...');
+        console.log('📡 SignalR reconnecting...');
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'reconnecting' }));
       });
 
       this.connection.onreconnected(() => {
-        console.log('SignalR reconnected');
+        console.log('📡 SignalR reconnected');
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'connected', reconnected: true }));
       });
 
       this.connection.onclose((error) => {
-        console.log('SignalR connection closed', error?.message || 'No error');
+        if (error) {
+          console.warn('📡 SignalR disconnected:', error.message);
+        }
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'disconnected', error: error?.message }));
       });
 
       await this.connection.start();
-      console.log('SignalR connected successfully via transport:', this.connection.transport);
+      console.log('📡 SignalR connected via', this.connection.transport);
       
       this.listeners.onConnectionStateChanged.forEach(callback => 
         callback({ state: 'connected', reconnected: false }));
