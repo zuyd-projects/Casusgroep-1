@@ -7,7 +7,7 @@ import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import PlannerWarnings from '@CASUSGROEP1/components/PlannerWarnings';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { api } from '@CASUSGROEP1/utils/api';
-import { orders as mockOrders, orderStatuses } from '@CASUSGROEP1/utils/mockData';
+import { orderStatuses } from '@CASUSGROEP1/utils/mockData';
 import { Plus, AlertCircle, PlayCircle, Hash, Calendar } from 'lucide-react';
 
 export default function Orders() {
@@ -39,18 +39,18 @@ export default function Orders() {
           id: order.id.toString(),
           customer: `User ${order.appUserId}`,
           date: new Date(order.orderDate).toLocaleDateString(),
-          amount: order.quantity * 50, // Mock price calculation
-          status: 'processing', // Mock status
+          amount: order.quantity * 100, // Calculate price (100 per unit)
+          status: 'processing', // Default status since API doesn't have status field
           motorType: order.motorType,
           quantity: order.quantity,
           signature: order.signature,
           roundId: order.roundId,
           originalOrder: order
         }));
-        setOrders([...formattedOrders, ...mockOrders]); // Mix real and mock data for now
+        setOrders(formattedOrders);
       } catch (error) {
         console.error('Failed to fetch orders:', error);
-        setOrders(mockOrders); // Fallback to mock data
+        setOrders([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -90,7 +90,7 @@ export default function Orders() {
         id: createdOrder.id.toString(),
         customer: `User ${createdOrder.appUserId}`,
         date: new Date(createdOrder.orderDate).toLocaleDateString(),
-        amount: createdOrder.quantity * 50,
+        amount: createdOrder.quantity * 100,
         status: 'processing',
         motorType: createdOrder.motorType,
         quantity: createdOrder.quantity,
