@@ -3,6 +3,7 @@ using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
 using ERPNumber1.Services;
+using ERPNumber1.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -117,6 +118,15 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
+builder.Services.AddScoped<ISimulationRepository, SimulationRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IRoundRepository, RoundRepository>();
+builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
+builder.Services.AddScoped<ISupplierOrderRepository, SupplierOrderRepository>();
 var app = builder.Build();
 
 // Ensure database is created and apply migrations
@@ -138,7 +148,7 @@ using (var scope = app.Services.CreateScope())
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
-{
+{  
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERPNumber1 API v1"));
 }

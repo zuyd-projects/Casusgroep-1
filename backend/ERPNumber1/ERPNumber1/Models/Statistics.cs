@@ -16,16 +16,6 @@ namespace ERPNumber1.Models
 
         public Statistics() { }
 
-        public Statistics(int id,int simulationId, int totalOrders, float deliveryRate, float revenue, float cost, float netProfit)
-        {
-            Id = id;
-            SimulationId = simulationId;
-            TotalOrders = totalOrders;
-            DeliveryRate = deliveryRate;
-            Revenue = revenue;
-            Cost = cost;
-            NetProfit = netProfit;
-     
-        }
+        
     }
 }

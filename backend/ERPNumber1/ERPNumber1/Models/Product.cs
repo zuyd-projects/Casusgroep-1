@@ -12,16 +12,6 @@ namespace ERPNumber1.Models
         [JsonIgnore]
         public Order? Order { get; set; }   
 
-        public Product()
-        {
-        }
-
-        public Product(int id, int orderId, char type, List<Material> materials)
-        {
-            Id = id;
-            this.orderId = orderId;
-            this.type = type;
-            this.materials = materials;
-        }
+     
     }
 }

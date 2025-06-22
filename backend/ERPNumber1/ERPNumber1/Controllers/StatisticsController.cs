@@ -1,13 +1,15 @@
-﻿using ERPNumber1.Data;
+﻿using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Round;
+using ERPNumber1.Dtos.Statistics;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
 using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
-using ERPNumber1.Dtos.Statistics;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -16,13 +18,15 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class StatisticsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+       
         private readonly IEventLogService _eventLogService;
+        private readonly IStatisticsRepository _statisticsRepository;
 
-        public StatisticsController(AppDbContext context, IEventLogService eventLogService)
+        public StatisticsController( IEventLogService eventLogService, IStatisticsRepository statisticsRepo)
         {
-            _context = context;
+            
             _eventLogService = eventLogService;
+            _statisticsRepository = statisticsRepo;
         }
 
         // GET: api/Statistics
@@ -30,7 +34,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Statistics", "Get All Statistics")]
         public async Task<ActionResult<IEnumerable<Statistics>>> GetStatistics()
         {
-            return await _context.Statistics.ToListAsync();
+            return await _statisticsRepository.GetAllAsync();
         }
 
         // GET: api/Statistics/5
@@ -38,7 +42,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Statistics", "Get Statistics by ID")]
         public async Task<ActionResult<Statistics>> GetStatistics(int id)
         {
-            var statistics = await _context.Statistics.FindAsync(id);
+            var statistics = await _statisticsRepository.GetByIdAsync(id);
 
             if (statistics == null)
             {
@@ -49,7 +53,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            return statistics;
+            return Ok(statistics.ToStatisticsDto());
         }
 
         // PUT: api/Statistics/5
@@ -57,26 +61,19 @@ namespace ERPNumber1.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutStatistics(int id, UpdateStatisticsDto statisticsDto)
         {
-            var statistics = await _context.Statistics.FindAsync(id);
+            var statistics = await _statisticsRepository.GetByIdAsync(id);
             if (statistics == null)
             {
                 return NotFound();
             }
 
-            statistics.SimulationId = statisticsDto.SimulationId;
-            statistics.TotalOrders = statisticsDto.TotalOrders;
-            statistics.DeliveryRate = statisticsDto.DeliveryRate;
-            statistics.Revenue = statisticsDto.Revenue;
-            statistics.Cost = statisticsDto.Cost;
-            statistics.NetProfit = statisticsDto.NetProfit;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await _statisticsRepository.UpdateAsync(id, statisticsDto.ToStatisticsFromUpdate());
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!StatisticsExists(id))
+                if (! await _statisticsRepository.StatisticsExistsAsync(id))
                 {
                     return NotFound();
                 }
@@ -94,41 +91,25 @@ namespace ERPNumber1.Controllers
         [HttpPost]
         public async Task<ActionResult<Statistics>> PostStatistics(CreateStatisticsDto statisticsDto)
         {
-            var statistics = new Statistics
-            {
-                SimulationId = statisticsDto.SimulationId,
-                TotalOrders = statisticsDto.TotalOrders,
-                DeliveryRate = statisticsDto.DeliveryRate,
-                Revenue = statisticsDto.Revenue,
-                Cost = statisticsDto.Cost,
-                NetProfit = statisticsDto.NetProfit
-            };
-            
-            _context.Statistics.Add(statistics);
-            await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetStatistics", new { id = statistics.Id }, statistics);
+            var statistics = statisticsDto.ToStatisticsFromCreate();
+            await _statisticsRepository.CreateAsync(statistics);
+            return CreatedAtAction("GetStatistics", new { id = statistics.Id }, statistics.ToStatisticsDto());
         }
 
         // DELETE: api/Statistics/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStatistics(int id)
         {
-            var statistics = await _context.Statistics.FindAsync(id);
+            var statistics = await _statisticsRepository.GetByIdAsync(id);
             if (statistics == null)
             {
                 return NotFound();
             }
 
-            _context.Statistics.Remove(statistics);
-            await _context.SaveChangesAsync();
+            await _statisticsRepository.DeleteAsync(id);
 
             return NoContent();
-        }
-
-        private bool StatisticsExists(int id)
-        {
-            return _context.Statistics.Any(e => e.Id == id);
         }
     }
 }

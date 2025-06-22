@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Material;
+using ERPNumber1.Dtos.Product;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
-using ERPNumber1.Models;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
-using ERPNumber1.Dtos.Material;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ERPNumber1.Controllers
 {
@@ -19,13 +21,15 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class MaterialsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        
         private readonly IEventLogService _eventLogService;
+        private readonly IMaterialRepository _materialRepo;
 
-        public MaterialsController(AppDbContext context, IEventLogService eventLogService)
+        public MaterialsController(IEventLogService eventLogService, IMaterialRepository materialRepo)
         {
-            _context = context;
+            
             _eventLogService = eventLogService;
+            _materialRepo = materialRepo;   
         }
 
         // GET: api/Materials
@@ -33,7 +37,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Material", "Get All Materials")]
         public async Task<ActionResult<IEnumerable<Material>>> GetMaterials()
         {
-            return await _context.Materials.ToListAsync();
+            return await _materialRepo.GetAllAsync();
         }
 
         // GET: api/Materials/5
@@ -41,7 +45,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Material", "Get Material by ID")]
         public async Task<ActionResult<Material>> GetMaterial(int id)
         {
-            var material = await _context.Materials.FindAsync(id);
+            var material = await _materialRepo.GetByIdAsync(id);
 
             if (material == null)
             {
@@ -62,7 +66,7 @@ namespace ERPNumber1.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            var material = await _context.Materials.FindAsync(id);
+            var material = await _materialRepo.UpdateAsync(id, materialDto.ToMaterialFromUpdate());
             if (material == null)
             {
                 await _eventLogService.LogEventAsync($"Material_{id}", "Material Update Failed", 
@@ -72,14 +76,11 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            material.productId = materialDto.ProductId;
-            material.name = materialDto.Name;
-            material.cost = materialDto.Cost;
-            material.quantity = materialDto.Quantity;
+            
 
             try
             {
-                await _context.SaveChangesAsync();
+               
                 
                 await _eventLogService.LogEventAsync($"Material_{id}", "Material Updated", 
                     "MaterialsController", "Material", "Completed", 
@@ -92,7 +93,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!MaterialExists(id))
+                if (! await _materialRepo.MaterialExistsAsync(id))
                 {
                     await _eventLogService.LogEventAsync($"Material_{id}", "Material Update Failed", 
                         "MaterialsController", "Material", "Failed", 
@@ -119,17 +120,9 @@ namespace ERPNumber1.Controllers
         public async Task<ActionResult<Material>> PostMaterial(CreateMaterialDto materialDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            var material = new Material
-            {
-                productId = materialDto.ProductId,
-                name = materialDto.Name,
-                cost = materialDto.Cost,
-                quantity = materialDto.Quantity
-            };
-            
-            _context.Materials.Add(material);
-            await _context.SaveChangesAsync();
+
+            var material = materialDto.ToMaterialFromCreate();
+            await _materialRepo.CreateAsync(material);
 
             await _eventLogService.LogEventAsync($"Material_{material.Id}", "Material Created", 
                 "MaterialsController", "Material", "Completed", 
@@ -140,7 +133,7 @@ namespace ERPNumber1.Controllers
                     productId = material.productId
                 }), material.Id.ToString(), userId: userId);
 
-            return CreatedAtAction("GetMaterial", new { id = material.Id }, material);
+            return CreatedAtAction("GetMaterial", new { id = material.Id }, material.ToMaterialDto());
         }
 
         // DELETE: api/Materials/5
@@ -148,8 +141,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Material", "Delete Material")]
         public async Task<IActionResult> DeleteMaterial(int id)
         {
+            var material = await _materialRepo.DeleteAsync(id);
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var material = await _context.Materials.FindAsync(id);
+            
             
             if (material == null)
             {
@@ -159,9 +153,6 @@ namespace ERPNumber1.Controllers
                     id.ToString());
                 return NotFound();
             }
-
-            _context.Materials.Remove(material);
-            await _context.SaveChangesAsync();
 
             await _eventLogService.LogEventAsync($"Material_{id}", "Material Deleted", 
                 "MaterialsController", "Material", "Completed", 
@@ -175,9 +166,5 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        private bool MaterialExists(int id)
-        {
-            return _context.Materials.Any(e => e.Id == id);
-        }
     }
 }
