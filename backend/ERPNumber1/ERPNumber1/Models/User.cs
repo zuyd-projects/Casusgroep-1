@@ -2,6 +2,7 @@
 using System.Globalization;
 using BCrypt.Net;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 
 namespace ERPNumber1.Models
@@ -9,18 +10,20 @@ namespace ERPNumber1.Models
     public class User
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Role { get; set; }
-        public string Email { get; set; }
-        public string HashedPassword { get; set; }
+        public string? Name { get; set; }
+        public string? Role { get; set; }
+        public string? Email { get; set; }
+        public string? HashedPassword { get; set; }
+        [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+        [JsonIgnore]
         public Inventory? Inventory { get; set; }
 
         public User()
         {
         }
 
-        public User(int id, string name, string role, string email,  Inventory inventory)
+        public User(int id, string? name, string? role, string? email,  Inventory? inventory)
         {
             Id = id;
             Name = name;

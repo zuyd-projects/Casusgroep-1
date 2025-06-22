@@ -5,14 +5,16 @@ using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Delivery;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DeliveryController : ControllerBase
+    public class DeliveryController : ControllerBase, IRequireRole
     {
+        public Role[] AllowedRoles => [Role.Admin ];
         private readonly AppDbContext _context;
         private readonly IEventLogService _eventLogService;
 
@@ -23,6 +25,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/Delivery
+        [RequireRole(Role.Admin)]
         [HttpGet]
         [LogEvent("Delivery", "Get All Deliveries")]
         public async Task<ActionResult<IEnumerable<Delivery>>> GetDeliveries()
@@ -52,9 +55,17 @@ namespace ERPNumber1.Controllers
         // POST: api/Delivery
         [HttpPost]
         [LogEvent("Delivery", "Create Delivery", logRequest: true)]
-        public async Task<ActionResult<Delivery>> PostDelivery(Delivery delivery)
+        public async Task<ActionResult<Delivery>> PostDelivery(CreateDeliveryDto deliveryDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var delivery = new Delivery
+            {
+                OrderId = deliveryDto.OrderId,
+                IsDelivered = deliveryDto.IsDelivered,
+                QualityCheckPassed = deliveryDto.QualityCheckPassed,
+                ApprovedByCustomer = deliveryDto.ApprovedByCustomer
+            };
             
             _context.Deliveries.Add(delivery);
             await _context.SaveChangesAsync();
@@ -74,19 +85,24 @@ namespace ERPNumber1.Controllers
         // PUT: api/Delivery/5
         [HttpPut("{id}")]
         [LogEvent("Delivery", "Update Delivery", logRequest: true)]
-        public async Task<IActionResult> PutDelivery(int id, Delivery delivery)
+        public async Task<IActionResult> PutDelivery(int id, UpdateDeliveryDto deliveryDto)
         {
-            if (id != delivery.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var delivery = await _context.Deliveries.FindAsync(id);
+            if (delivery == null)
             {
                 await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed", 
                     "DeliveryController", "Delivery", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "ID mismatch" }), 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found" }), 
                     id.ToString());
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(delivery).State = EntityState.Modified;
+            delivery.OrderId = deliveryDto.OrderId;
+            delivery.IsDelivered = deliveryDto.IsDelivered;
+            delivery.QualityCheckPassed = deliveryDto.QualityCheckPassed;
+            delivery.ApprovedByCustomer = deliveryDto.ApprovedByCustomer;
 
             try
             {

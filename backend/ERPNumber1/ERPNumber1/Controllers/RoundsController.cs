@@ -10,6 +10,7 @@ using ERPNumber1.Models;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Round;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -57,14 +58,16 @@ namespace ERPNumber1.Controllers
         // PUT: api/Rounds/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutRound(int id, Round round)
+        public async Task<IActionResult> PutRound(int id, UpdateRoundDto roundDto)
         {
-            if (id != round.Id)
+            var round = await _context.Rounds.FindAsync(id);
+            if (round == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
-            _context.Entry(round).State = EntityState.Modified;
+            round.SimulationId = roundDto.SimulationId;
+            round.RoundNumber = roundDto.RoundNumber;
 
             try
             {
@@ -88,8 +91,14 @@ namespace ERPNumber1.Controllers
         // POST: api/Rounds
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Round>> PostRound(Round round)
+        public async Task<ActionResult<Round>> PostRound(CreateRoundDto roundDto)
         {
+            var round = new Round
+            {
+                SimulationId = roundDto.SimulationId,
+                RoundNumber = roundDto.RoundNumber
+            };
+            
             _context.Rounds.Add(round);
             await _context.SaveChangesAsync();
 

@@ -78,6 +78,14 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEventLogService, EventLogService>();
 
+// add RoleRequirementFilter globally
+builder.Services.AddScoped<RoleRequirementFilter>();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<RoleRequirementFilter>(); 
+});
+
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -146,3 +154,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Make Program class accessible for testing
+public partial class Program { }

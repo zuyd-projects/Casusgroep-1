@@ -72,7 +72,7 @@ export default function ProcessMining() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -81,7 +81,7 @@ export default function ProcessMining() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Process Mining Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Process Mining Dashboard</h1>
           <p className="text-zinc-500 dark:text-zinc-400">
             Analyze process performance, detect anomalies, and track delivery predictions
           </p>
@@ -89,7 +89,7 @@ export default function ProcessMining() {
         <select
           value={selectedTimeRange}
           onChange={(e) => setSelectedTimeRange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-800"
+          className="px-3 py-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-800 dark:text-white bg-white text-gray-900"
         >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
@@ -310,11 +310,11 @@ export default function ProcessMining() {
 
             {/* Activity Nodes */}
             <div>
-              <h4 className="text-lg font-semibold mb-3">Process Activities</h4>
+              <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Process Activities</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {flowData.nodes.map((node, index) => (
-                  <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div className="font-medium">{node.label}</div>
+                  <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+                    <div className="font-medium text-gray-900 dark:text-white">{node.label}</div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       Occurrences: {node.count}
                     </div>
@@ -326,17 +326,17 @@ export default function ProcessMining() {
             {/* Most Common Transitions */}
             {flowData.edges && flowData.edges.length > 0 && (
               <div>
-                <h4 className="text-lg font-semibold mb-3">Most Common Process Transitions</h4>
+                <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Most Common Process Transitions</h4>
                 <div className="space-y-2">
                   {flowData.edges
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 10)
                     .map((edge, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
                         <div>
-                          <span className="font-medium">{edge.source}</span>
-                          <span className="mx-2 text-gray-500">→</span>
-                          <span className="font-medium">{edge.target}</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{edge.source}</span>
+                          <span className="mx-2 text-gray-500 dark:text-gray-400">→</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{edge.target}</span>
                         </div>
                         <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm">
                           {edge.count}

@@ -5,6 +5,7 @@ using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Inventory;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -55,9 +56,16 @@ namespace ERPNumber1.Controllers
         // POST: api/Inventory
         [HttpPost]
         [LogEvent("Inventory", "Create Inventory", logRequest: true)]
-        public async Task<ActionResult<Inventory>> PostInventory(Inventory inventory)
+        public async Task<ActionResult<Inventory>> PostInventory(CreateInventoryDto inventoryDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var inventory = new Inventory
+            {
+                Name = inventoryDto.Name,
+                Quantity = inventoryDto.Quantity,
+                AppUserId = inventoryDto.AppUserId
+            };
             
             _context.Inventories.Add(inventory);
             await _context.SaveChangesAsync();
@@ -75,18 +83,18 @@ namespace ERPNumber1.Controllers
         // PUT: api/Inventory/5
         [HttpPut("{id}")]
         [LogEvent("Inventory", "Update Inventory", logRequest: true)]
-        public async Task<IActionResult> PutInventory(int id, Inventory inventory)
+        public async Task<IActionResult> PutInventory(int id, UpdateInventoryDto inventoryDto)
         {
-            if (id != inventory.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var inventory = await _context.Inventories.FindAsync(id);
+            if (inventory == null)
             {
-                await _eventLogService.LogInventoryEventAsync(id, "Inventory Update Failed", 
-                    "InventoryController", "Failed", 
-                    new { reason = "ID mismatch" });
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(inventory).State = EntityState.Modified;
+            inventory.Name = inventoryDto.Name;
+            inventory.Quantity = inventoryDto.Quantity;
+            inventory.AppUserId = inventoryDto.AppUserId;
 
             try
             {

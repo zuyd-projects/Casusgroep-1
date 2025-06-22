@@ -151,10 +151,12 @@ jobs:
 #             rm api.pid
 #           fi
 
+
   build-and-deploy:
     name: Build and Deploy Docker Image
     runs-on: ubuntu-latest
     needs: [test]
+    # needs: [integration-test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     permissions:

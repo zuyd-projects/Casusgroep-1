@@ -10,6 +10,7 @@ using ERPNumber1.Models;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Material;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -57,19 +58,24 @@ namespace ERPNumber1.Controllers
         // PUT: api/Materials/5
         [HttpPut("{id}")]
         [LogEvent("Material", "Update Material", logRequest: true)]
-        public async Task<IActionResult> PutMaterial(int id, Material material)
+        public async Task<IActionResult> PutMaterial(int id, UpdateMaterialDto materialDto)
         {
-            if (id != material.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var material = await _context.Materials.FindAsync(id);
+            if (material == null)
             {
                 await _eventLogService.LogEventAsync($"Material_{id}", "Material Update Failed", 
                     "MaterialsController", "Material", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "ID mismatch" }), 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Material not found" }), 
                     id.ToString());
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(material).State = EntityState.Modified;
+            material.productId = materialDto.ProductId;
+            material.name = materialDto.Name;
+            material.cost = materialDto.Cost;
+            material.quantity = materialDto.Quantity;
 
             try
             {
@@ -110,9 +116,17 @@ namespace ERPNumber1.Controllers
         // POST: api/Materials
         [HttpPost]
         [LogEvent("Material", "Create Material", logRequest: true)]
-        public async Task<ActionResult<Material>> PostMaterial(Material material)
+        public async Task<ActionResult<Material>> PostMaterial(CreateMaterialDto materialDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var material = new Material
+            {
+                productId = materialDto.ProductId,
+                name = materialDto.Name,
+                cost = materialDto.Cost,
+                quantity = materialDto.Quantity
+            };
             
             _context.Materials.Add(material);
             await _context.SaveChangesAsync();
