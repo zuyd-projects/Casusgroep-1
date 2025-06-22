@@ -1,8 +1,8 @@
-
 using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
 using ERPNumber1.Services;
+using ERPNumber1.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +27,8 @@ builder.Services.AddCors(options =>
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .SetPreflightMaxAge(TimeSpan.FromSeconds(2520)); // For SignalR WebSocket support
     });
 });
 
@@ -77,6 +78,15 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEventLogService, EventLogService>();
+builder.Services.AddSingleton<ISimulationService, SimulationService>();
+
+// Add SignalR for real-time communication
+builder.Services.AddSignalR(options =>
+{
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+    options.EnableDetailedErrors = true; // Only for development
+});
 
 // add RoleRequirementFilter globally
 builder.Services.AddScoped<RoleRequirementFilter>();
@@ -152,6 +162,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SimulationHub>("/simulationHub");
 
 app.Run();
 

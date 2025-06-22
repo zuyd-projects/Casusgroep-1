@@ -22,11 +22,13 @@ namespace ERPNumber1.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IEventLogService _eventLogService;
+        private readonly ISimulationService _simulationService;
 
-        public SimulationsController(AppDbContext context, IEventLogService eventLogService)
+        public SimulationsController(AppDbContext context, IEventLogService eventLogService, ISimulationService simulationService)
         {
             _context = context;
             _eventLogService = eventLogService;
+            _simulationService = simulationService;
         }
 
         // GET: api/Simulations
@@ -127,6 +129,73 @@ namespace ERPNumber1.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/Simulations/5/run
+        [Authorize(Roles ="User")]
+        // POST: api/Simulations/5/run
+        [Authorize(Roles ="User")]
+        [HttpPost("{id}/run")]
+        [LogEvent("Simulation", "Run Simulation")]
+        public async Task<IActionResult> RunSimulation(int id)
+        {
+            var simulation = await _context.Simulations.FindAsync(id);
+            if (simulation == null)
+            {
+                return NotFound();
+            }
+
+            var success = await _simulationService.StartSimulationAsync(id);
+            if (!success)
+            {
+                return BadRequest("Failed to start simulation");
+            }
+
+            return Ok(new { message = "Simulation started successfully", simulationId = id });
+        }
+
+        // POST: api/Simulations/5/stop
+        [Authorize(Roles ="User")]
+        [HttpPost("{id}/stop")]
+        [LogEvent("Simulation", "Stop Simulation")]
+        public async Task<IActionResult> StopSimulation(int id)
+        {
+            var simulation = await _context.Simulations.FindAsync(id);
+            if (simulation == null)
+            {
+                return NotFound();
+            }
+
+            var success = await _simulationService.StopSimulationAsync(id);
+            if (!success)
+            {
+                return BadRequest("Simulation is not running");
+            }
+
+            return Ok(new { message = "Simulation stopped successfully", simulationId = id });
+        }
+
+        // GET: api/Simulations/5/status
+        [Authorize(Roles ="User")]
+        [HttpGet("{id}/status")]
+        [LogEvent("Simulation", "Get Simulation Status")]
+        public async Task<IActionResult> GetSimulationStatus(int id)
+        {
+            var simulation = await _context.Simulations.FindAsync(id);
+            if (simulation == null)
+            {
+                return NotFound();
+            }
+
+            var isRunning = await _simulationService.IsSimulationRunningAsync(id);
+            var currentRound = await _simulationService.GetCurrentRoundAsync(id);
+
+            return Ok(new { 
+                simulationId = id,
+                isRunning,
+                currentRound = currentRound != null ? new { currentRound.Id, currentRound.RoundNumber } : null,
+                roundDuration = _simulationService.GetRoundDurationSeconds()
+            });
         }
 
         private bool SimulationExists(int id)
