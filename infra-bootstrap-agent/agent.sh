@@ -79,6 +79,11 @@ run_container() {
   done
 
   for vol in $(echo "$container_def" | jq -r '.volumes[]?'); do
+    # Create volume if it doesn't exist
+    if [[ "$vol" == *":"* ]]; then
+      vol_name=$(echo "$vol" | cut -d':' -f1)
+      docker volume create "$vol_name" 2>/dev/null || true
+    fi
     cmd+=(-v "$vol")
   done
 
