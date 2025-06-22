@@ -37,7 +37,7 @@ resource "azurerm_linux_virtual_machine" "database" {
   ]
 
   os_disk {
-    name                 = "prod-database-osdisk"
+    name                 = "prod-database-disk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
