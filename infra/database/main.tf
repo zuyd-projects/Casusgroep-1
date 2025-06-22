@@ -20,7 +20,6 @@ resource "azurerm_network_interface" "database" {
     subnet_id                     = azurerm_subnet.database.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.3.10"
-    public_ip_address_id          = var.public_ip_id
   }
 }
 
