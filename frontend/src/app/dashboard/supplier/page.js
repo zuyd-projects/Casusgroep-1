@@ -1,78 +1,73 @@
 "use client";
 
 import { useState } from "react";
-import "../../../styles/globals.css";
 
-const initialOrders = [
-  {
-    id: "ORD-001",
-    timestamp: "2024-06-20 10:15",
-    klantnaam: "",
-    motortype: "A",
-    aantal: 1,
-    volledig: "Ja",
-    geaccepteerd: false, // false = waiting, true = accepted
-  },
-  {
-    id: "ORD-002",
-    timestamp: "2024-06-21 09:30",
-    klantnaam: "",
-    motortype: "B",
-    aantal: 1,
-    volledig: "Ja",
-    geaccepteerd: false,
-  },
-  {
-    id: "ORD-003",
-    timestamp: "2024-06-22 14:05",
-    klantnaam: "",
-    motortype: "C",
-    aantal: 1,
-    volledig: "Ja",
-    geaccepteerd: false,
-  },
-  {
-    id: "ORD-004",
-    timestamp: "2024-06-23 11:45",
-    klantnaam: "",
-    motortype: "A",
-    aantal: 1,
-    volledig: "Ja",
-    geaccepteerd: false,
-  },
-  {
-    id: "ORD-005",
-    timestamp: "2024-06-24 08:20",
-    klantnaam: "",
-    motortype: "B",
-    aantal: 1,
-    volledig: "Ja",
-    geaccepteerd: false,
-  },
-];
+const legoColors = ["Blauw", "Rood", "Grijs"];
 
-const motortypes = ["A", "B", "C"];
-const jaNee = ["Ja", "Nee"];
+export default function SupplierPage() {
+  const [orderRounds, setOrderRounds] = useState([
+    {
+      id: "ORD-001",
+      timestamp: "2024-06-20 10:15",
+      round: 1,
+      bestelling: { Blauw: 2, Rood: 2, Grijs: 4 },
+      geleverdVinkje: true,
+      geleverdInPeriode: "3",
+      note: "",
+    },
+    {
+      id: "ORD-002",
+      timestamp: "2024-06-21 09:30",
+      round: 2,
+      bestelling: { Blauw: 3, Rood: 3, Grijs: 2 },
+      geleverdVinkje: true,
+      geleverdInPeriode: 4,
+      note: "",
+    },
+    {
+      id: "ORD-003",
+      timestamp: "2024-06-22 14:05",
+      round: 3,
+      bestelling: { Blauw: 6, Rood: 6, Grijs: 4 },
+      geleverdVinkje: true,
+      geleverdInPeriode: "5",
+      note: "",
+    },
+    {
+      id: "ORD-004",
+      timestamp: "2024-06-23 11:45",
+      round: 4,
+      bestelling: { Blauw: 4, Rood: 4, Grijs: 8 },
+      geleverdVinkje: false,
+      geleverdInPeriode: 6,
+      note: "",
+    },
+    {
+      id: "ORD-005",
+      timestamp: "2024-06-24 08:20",
+      round: 5,
+      bestelling: { Blauw: 2, Rood: 2, Grijs: 4 },
+      geleverdVinkje: true,
+      geleverdInPeriode: "7",
+      note: "",
+    },
+  ]);
 
-export default function AccountManagerDashboard() {
-  const [orders, setOrders] = useState(initialOrders);
-
-  const handleChange = (id, field, value) => {
-    setOrders((prev) =>
+  // Toggle geleverdVinkje
+  const handleToggleGeleverd = (id) => {
+    setOrderRounds((prev) =>
       prev.map((order) =>
-        order.id === id ? { ...order, [field]: value } : order
+        order.id === id
+          ? { ...order, geleverdVinkje: !order.geleverdVinkje }
+          : order
       )
     );
   };
 
-  // Toggle geaccepteerd (waiting <-> accepted)
-  const handleToggleGeaccepteerd = (id) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === id
-          ? { ...order, geaccepteerd: !order.geaccepteerd }
-          : order
-      )
+  // Update note
+  const handleNoteChange = (id, value) => {
+    setOrderRounds((prev) =>
+      prev.map((order) => (order.id === id ? { ...order, note: value } : order))
     );
   };
 
@@ -83,44 +78,84 @@ export default function AccountManagerDashboard() {
           <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-purple-500 py-10 px-8 relative">
             <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
             <h1 className="text-4xl font-bold text-white relative z-10">
-              Overzicht Accountmanager
+              Overzicht Leverancier
             </h1>
             <p className="text-pink-100 mt-3 text-lg relative z-10">
-              Beheer en verwerk klantorders
+              Beheer en monitor alle leveringen van lego blokjes
             </p>
           </div>
+
           <div className="overflow-x-auto p-2">
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="border-b-2 border-zinc-200 dark:border-zinc-800">
-                  <th className="px-6 py-5 text-left text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                    Ordernummer
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-left text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
+                    ID
                   </th>
-                  <th className="px-6 py-5 text-left text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-left text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
                     Tijdstip
                   </th>
-                  <th className="px-6 py-5 text-left text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                    Klantnaam
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
+                    Periode
                   </th>
-                  <th className="px-6 py-5 text-center text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                    Motortype
+                  <th
+                    colSpan={3}
+                    className="px-6 py-5 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider bg-zinc-50 dark:bg-zinc-900/50"
+                  >
+                    Bestelling
                   </th>
-                  <th className="px-6 py-5 text-center text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                    Aantal
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
+                    Geleverd?
                   </th>
-                  <th className="px-6 py-5 text-center text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                    Geaccepteerd?
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
+                    Periode geleverd
                   </th>
-                  <th className="px-6 py-5 text-center text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-                    Product Compleet?
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-left text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
+                    Notitie
                   </th>
                 </tr>
+                <tr>
+                  {legoColors.map((color) => (
+                    <th
+                      key={color}
+                      className={`px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider ${
+                        color === "Blauw"
+                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                          : color === "Rood"
+                          ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                          : color === "Grijs"
+                          ? "bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300"
+                          : ""
+                      }`}
+                    >
+                      {color}
+                    </th>
+                  ))}
+                </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {orders.length === 0 ? (
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {orderRounds.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="py-12 text-center text-zinc-500 dark:text-zinc-400"
                     >
                       <div className="flex flex-col items-center justify-center">
@@ -138,71 +173,55 @@ export default function AccountManagerDashboard() {
                             d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                           />
                         </svg>
-                        <p className="mt-3 text-lg">Nog geen orders</p>
+                        <p className="mt-3 text-lg">Nog geen bestellingen</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  orders.map((order, idx) => (
+                  [...orderRounds].reverse().map((r, idx) => (
                     <tr
-                      key={order.id}
-                      className={idx % 2 === 0 ? "bg-zinc-800" : "bg-zinc-900"}
+                      key={r.id}
+                      className="hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors duration-150"
                     >
                       <td className="px-6 py-5 whitespace-nowrap text-base font-bold text-white">
-                        {order.id}
+                        {r.id}
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-base text-zinc-300">
-                        {order.timestamp || "-"}
-                      </td>
-                      <td className="px-6 py-5">
-                        <input
-                          type="text"
-                          value={order.klantnaam}
-                          onChange={(e) =>
-                            handleChange(order.id, "klantnaam", e.target.value)
-                          }
-                          className="border border-zinc-700 rounded px-2 py-1 text-sm w-32 bg-zinc-900 text-zinc-200"
-                          placeholder="Klantnaam"
-                        />
+                      <td className="px-6 py-5 whitespace-nowrap text-base text-zinc-600 dark:text-zinc-400">
+                        {r.timestamp || "-"}
                       </td>
                       <td className="px-6 py-5 text-center">
-                        <select
-                          value={order.motortype}
-                          onChange={(e) =>
-                            handleChange(order.id, "motortype", e.target.value)
-                          }
-                          className="border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-900 text-zinc-200"
-                        >
-                          {motortypes.map((type) => (
-                            <option key={type} value={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
+                        <span className="inline-flex items-center justify-center h-10 w-10 rounded-full font-bold text-lg text-white">
+                          {r.round}
+                        </span>
                       </td>
-                      <td className="px-6 py-5 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          value={order.aantal}
-                          onChange={(e) =>
-                            handleChange(order.id, "aantal", e.target.value)
-                          }
-                          className="border border-zinc-700 rounded px-2 py-1 text-sm w-16 bg-zinc-900 text-zinc-200"
-                        />
-                      </td>
-                      {/* Geaccepteerd: waiting/ready icon, toggle on click */}
+                      {legoColors.map((color) => (
+                        <td key={color} className="px-6 py-5 text-center">
+                          <span
+                            className={`inline-flex items-center justify-center h-10 w-10 rounded-full font-semibold text-base ${
+                              color === "Blauw"
+                                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                                : color === "Rood"
+                                ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                                : color === "Grijs"
+                                ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                : ""
+                            }`}
+                          >
+                            {r.bestelling[color]}
+                          </span>
+                        </td>
+                      ))}
                       <td className="px-6 py-5 text-center">
                         <button
-                          onClick={() => handleToggleGeaccepteerd(order.id)}
+                          onClick={() => handleToggleGeleverd(r.id)}
                           className="focus:outline-none transition-transform hover:scale-110 duration-150"
                           title={
-                            order.geaccepteerd
-                              ? "Order geaccepteerd"
-                              : "Wacht op acceptatie"
+                            r.geleverdVinkje
+                              ? "Levering ontvangen"
+                              : "Nog niet geleverd"
                           }
                         >
-                          {order.geaccepteerd ? (
+                          {r.geleverdVinkje ? (
                             <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 shadow-md">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -237,20 +256,49 @@ export default function AccountManagerDashboard() {
                           )}
                         </button>
                       </td>
-                      <td className="px-6 py-5 text-center">
-                        <select
-                          value={order.volledig}
-                          onChange={(e) =>
-                            handleChange(order.id, "volledig", e.target.value)
-                          }
-                          className="border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-900 text-zinc-200"
+                      <td className="px-6 py-5 text-center text-base">
+                        <span className="inline-flex items-center px-4 py-2 rounded-full text-base font-medium bg-gradient-to-r from-purple-500/70 to-pink-500/70 dark:from-purple-600/60 dark:to-pink-600/60 text-white shadow-sm backdrop-blur-sm">
+                          Periode{" "}
+                          {r.geleverdInPeriode ? r.geleverdInPeriode : "-"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-base">
+                        <button
+                          className="inline-flex items-center px-4 py-2.5 border border-zinc-300 dark:border-zinc-700 shadow-sm text-base leading-5 font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-150"
+                          onClick={() => {
+                            const newNote = window.prompt(
+                              "Voeg notitie toe",
+                              r.note || ""
+                            );
+                            if (newNote !== null) {
+                              handleNoteChange(r.id, newNote);
+                            }
+                          }}
                         >
-                          {jaNee.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 mr-1.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
+                          </svg>
+                          {r.note ? "Bewerken" : "Notitie"}
+                        </button>
+                        {r.note && (
+                          <div
+                            className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 max-w-xs truncate"
+                            title={r.note}
+                          >
+                            {r.note}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))
