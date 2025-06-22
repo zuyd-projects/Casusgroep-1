@@ -42,7 +42,7 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   ]
 
   os_disk {
-    name                 = "prod-frontend-osdisk"
+    name                 = "prod-frontend-disk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }

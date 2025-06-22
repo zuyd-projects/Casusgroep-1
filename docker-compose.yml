@@ -4,9 +4,8 @@ services:
   proxy:
     container_name: nginx_proxy
     build:
-      context: ./frontend
+      context: ./proxy
       dockerfile: Dockerfile
-      target: nginx-proxy
     ports:
       - '80:80'
     environment:

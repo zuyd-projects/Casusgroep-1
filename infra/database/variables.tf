@@ -24,8 +24,8 @@ variable "cloud_init" {
   sensitive   = true
 }
 
-variable "admin_ssh_public_key" {
-  description = "The SSH public key to access the VM"
+variable "admin_password" {
+  description = "The SSH password to access the VM"
   type        = string
   sensitive   = true
 }

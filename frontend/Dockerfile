@@ -39,18 +39,3 @@ ENV PORT=3000
 
 ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
-
-
-
-FROM nginx:alpine AS nginx-proxy
-
-RUN apk add --no-cache gettext
-
-COPY docker/nginx.conf.template /etc/nginx/nginx.conf.template
-COPY docker/nginx-entrypoint.sh /docker-entrypoint.sh
-
-RUN chmod +x /docker-entrypoint.sh
-
-EXPOSE 80
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
