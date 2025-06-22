@@ -27,32 +27,42 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        id: build-image
+      - name: Build and push frontend Docker image
+        id: build-frontend
         run: |
           IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/frontend:$(date +'%Y%m%d%H%M%S')
-          docker build -t $IMAGE_TAG ./frontend
+          docker build -t $IMAGE_TAG --target=frontend ./frontend
           docker push $IMAGE_TAG
-          echo "::set-output name=image::$IMAGE_TAG"
+          echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Update JSON config file
+      - name: Build and push proxy Docker image
+        id: build-proxy
+        run: |
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/proxy:$(date +'%Y%m%d%H%M%S')
+          docker build -t $IMAGE_TAG --target=nginx-proxy ./frontend
+          docker push $IMAGE_TAG
+          echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Update JSON config file with new image tags
         run: |
           CONFIG_FILE=infra/configs/frontend-vm.json
-          IMAGE_TAG=${{ steps.build-image.outputs.image }}
+          FRONTEND_IMAGE=${{ steps.build-frontend.outputs.image }}
+          PROXY_IMAGE=${{ steps.build-proxy.outputs.image }}
 
-          # Create backup in case something goes wrong
           cp $CONFIG_FILE $CONFIG_FILE.bak
 
-          # Update "image" key with new tag using jq
-          jq --arg img "$IMAGE_TAG" '.image = $img' $CONFIG_FILE > $CONFIG_FILE.tmp && mv $CONFIG_FILE.tmp $CONFIG_FILE
+          jq --arg frontend "$FRONTEND_IMAGE" --arg proxy "$PROXY_IMAGE" '
+            (.containers[] | select(.name == "frontend") | .image) = $frontend
+            | (.containers[] | select(.name == "proxy") | .image) = $proxy
+            | .lastUpdated = now | tostring | sub("([0-9]+)"; (. | tonumber | strftime("%Y-%m-%dT%H:%M:%SZ")))
+          ' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
-          # Commit & push changes if any
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add $CONFIG_FILE
 
           if ! git diff --cached --quiet; then
-            git commit -m "Update frontend image to $IMAGE_TAG"
+            git commit -m "Update frontend and proxy images"
             git push
           else
             echo "No config changes detected."
