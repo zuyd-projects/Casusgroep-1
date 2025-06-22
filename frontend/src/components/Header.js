@@ -4,10 +4,34 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { tokenService } from "../utils/auth";
 import LogoutButton from "./LogoutButton";
+import { useSimulation } from "@CASUSGROEP1/contexts/SimulationContext";
+import { Play, Square, Hash, Timer, Wifi, WifiOff } from "lucide-react";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  
+  // Get simulation context
+  const {
+    currentSimulation,
+    currentRound,
+    isRunning,
+    isConnected,
+    roundTimeLeft,
+    stopSimulation,
+    connectToSignalR
+  } = useSimulation();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🎮 Header - Simulation state:', {
+      currentSimulation,
+      currentRound,
+      isRunning,
+      isConnected,
+      roundTimeLeft
+    });
+  }, [currentSimulation, currentRound, isRunning, isConnected, roundTimeLeft]);
 
   useEffect(() => {
     // Get user data from localStorage
@@ -19,6 +43,11 @@ export default function Header() {
     }
   }, []);
 
+  // Auto-connect to SignalR when component mounts
+  useEffect(() => {
+    connectToSignalR();
+  }, [connectToSignalR]);
+
   const getUserInitials = (name) => {
     if (!name) return "U";
     const nameParts = name.split(" ");
@@ -26,6 +55,22 @@ export default function Header() {
       return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
     }
     return name[0].toUpperCase();
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleStopSimulation = async () => {
+    if (currentSimulation) {
+      try {
+        await stopSimulation(currentSimulation);
+      } catch (error) {
+        console.error('Failed to stop simulation from header:', error);
+      }
+    }
   };
 
   return (
@@ -58,9 +103,79 @@ export default function Header() {
           >
             ERPNumber1
           </Link>
+          
+          {/* Mobile simulation status indicator (compact) */}
+          {isRunning && currentSimulation && (
+            <div className="ml-auto mr-2 lg:hidden flex items-center space-x-1 bg-white/10 px-2 py-1 rounded">
+              <Hash className="h-3 w-3 text-purple-200" />
+              <span className="text-xs font-semibold text-white">
+                {currentRound ? currentRound.number : '...'}
+              </span>
+              <Timer className="h-3 w-3 text-orange-200" />
+              <span className="text-xs font-mono text-white">
+                {formatTime(roundTimeLeft)}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Right: User info and actions */}
+        {/* Center: Simulation Status - Only show when running */}
+        {isRunning && currentSimulation && (
+          <div className="hidden lg:flex items-center space-x-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
+            {/* Connection Status */}
+            <div className="flex items-center">
+              {isConnected ? (
+                <Wifi className="h-4 w-4 text-green-300" title="Connected" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-300" title="Disconnected" />
+              )}
+            </div>
+
+            {/* Simulation Info */}
+            <div className="flex items-center space-x-1 bg-blue-500/30 px-2 py-1 rounded">
+              <Play className="h-3 w-3 text-blue-200" />
+              <span className="text-xs font-semibold text-white">
+                Sim #{currentSimulation}
+              </span>
+            </div>
+
+            {/* Current Round */}
+            <div className="flex items-center space-x-1 bg-purple-500/30 px-2 py-1 rounded">
+              <Hash className="h-3 w-3 text-purple-200" />
+              <span className="text-xs font-semibold text-white">
+                {currentRound ? `Round ${currentRound.number}` : 'Starting...'}
+              </span>
+            </div>
+
+            {/* Countdown Timer */}
+            <div className="flex items-center space-x-1 bg-orange-500/30 px-2 py-1 rounded">
+              <Timer className="h-3 w-3 text-orange-200" />
+              <span className="text-xs font-mono font-semibold text-white">
+                {formatTime(roundTimeLeft)}
+              </span>
+            </div>
+
+            {/* Live Indicator */}
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-200 font-medium">
+                LIVE
+              </span>
+            </div>
+
+            {/* Stop Button */}
+            <button
+              onClick={handleStopSimulation}
+              className="flex items-center space-x-1 px-2 py-1 text-xs bg-red-500/30 text-red-200 rounded hover:bg-red-500/50 transition-colors border border-red-400/30"
+              title="Stop Simulation"
+            >
+              <Square className="h-3 w-3" />
+              <span className="font-medium">STOP</span>
+            </button>
+          </div>
+        )}
+
+        {/* Right: User info */}
         <div className="flex items-center gap-4 ml-auto">
           {user ? (
             <>
@@ -108,6 +223,51 @@ export default function Header() {
                   Welcome, <span className="font-medium text-white">{user.name}</span> 
                   <span className="block text-xs text-purple-200 capitalize">({user.role})</span>
                 </div>
+                
+                {/* Mobile Simulation Status */}
+                {isRunning && currentSimulation && (
+                  <div className="bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
+                          {isConnected ? (
+                            <Wifi className="h-4 w-4 text-green-300" />
+                          ) : (
+                            <WifiOff className="h-4 w-4 text-red-300" />
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Play className="h-3 w-3 text-blue-200" />
+                          <span className="text-xs font-semibold text-white">
+                            Simulation #{currentSimulation}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleStopSimulation}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-red-500/30 text-red-200 rounded hover:bg-red-500/50 transition-colors"
+                        title="Stop Simulation"
+                      >
+                        <Square className="h-3 w-3" />
+                        <span>STOP</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-1">
+                        <Hash className="h-3 w-3 text-purple-200" />
+                        <span className="text-white">
+                          {currentRound ? `Round ${currentRound.number}` : 'Starting...'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Timer className="h-3 w-3 text-orange-200" />
+                        <span className="font-mono text-white">
+                          {formatTime(roundTimeLeft)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {["dashboard", "orders", "customers", "products", "settings"].map(
                   (route) => (
                     <Link
