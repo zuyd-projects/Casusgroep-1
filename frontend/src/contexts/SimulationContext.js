@@ -197,7 +197,13 @@ export function SimulationProvider({ children }) {
       const minutes = Math.floor(roundTimeLeft / 60);
       const seconds = roundTimeLeft % 60;
       return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    }
+    },
+    
+    // Helper for order creation
+    getCurrentRoundId: () => currentRound?.id || null,
+    
+    // Helper for round number
+    getCurrentRoundNumber: () => currentRound?.number || 0
   };
 
   return (
@@ -223,7 +229,9 @@ export function useSimulation() {
       stopSimulation: async () => false,
       getSimulationStatus: async () => ({}),
       connectToSignalR: async () => false,
-      formatTimeLeft: () => '0:00'
+      formatTimeLeft: () => '0:00',
+      getCurrentRoundId: () => null,
+      getCurrentRoundNumber: () => 0
     };
   }
   return context;

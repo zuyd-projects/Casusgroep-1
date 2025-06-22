@@ -301,3 +301,77 @@ Covers:
 - Frontend React integration
 - Configuration options
 - Troubleshooting guide
+
+## 🎮 Simulation-Integrated Order Creation
+
+The ERP system now supports **round-based order creation** where orders are automatically linked to the current active simulation round.
+
+### Frontend Integration
+
+The order creation form is integrated with the simulation context:
+
+```javascript
+// Frontend: Using simulation context for order creation
+const { currentRound, currentSimulation, isRunning } = useSimulation();
+
+const createOrder = async (orderData) => {
+  if (!currentRound) {
+    throw new Error('No active round for order creation');
+  }
+
+  const orderPayload = {
+    roundId: currentRound.id,           // Link to current round
+    deliveryId: null,                   // Optional delivery
+    appUserId: orderData.appUserId,     // User creating the order
+    motorType: orderData.motorType,     // Motor type (A, B, C)
+    quantity: orderData.quantity,       // Order quantity
+    signature: orderData.signature,     // Order signature
+    orderDate: new Date().toISOString() // Current timestamp
+  };
+
+  return await api.post('/api/Order', orderPayload);
+};
+```
+
+### Order-Round Relationship
+
+- **Round Validation**: Orders can only be created during active simulation rounds
+- **Automatic Linking**: Frontend automatically links orders to `currentRound.id`
+- **Real-Time Context**: Uses live simulation state for order placement
+- **Business Logic**: Orders are timestamped within specific round timeframes
+
+### Enhanced Order Display
+
+The orders interface now shows:
+- **Round Badge**: Which round the order belongs to
+- **Motor Type**: Clear display of motor type (A, B, C)
+- **Simulation Status**: Visual indicator of active simulation state
+- **Quantity Information**: Order quantities prominently displayed
+
+### API Workflow with Simulations
+
+```bash
+# 1. Start a simulation (creates rounds every 30 seconds)
+POST /api/Simulations/1/run
+
+# 2. Create orders linked to current round
+POST /api/Order
+{
+  "roundId": 5,                    # From simulation context
+  "motorType": "A",
+  "quantity": 25,
+  "appUserId": "user123",
+  "orderDate": "2025-06-22T10:00:00"
+}
+
+# 3. Orders are automatically linked to simulation rounds
+GET /api/Order
+# Returns orders with round information
+```
+
+### Business Benefits
+
+- **Process Timing**: Orders are tied to specific simulation timeframes
+- **Training Accuracy**: Realistic order placement during simulation rounds  
+- **Data Integrity**: Clear traceability between orders and simulation phases
+- **Team Coordination**: All users create orders for the same active round
