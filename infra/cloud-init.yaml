@@ -14,12 +14,12 @@ runcmd:
   - apt-get install -y docker-ce docker-ce-cli containerd.io
   - systemctl enable --now docker
   - usermod -aG docker azureuser
-  - curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-  - chmod +x /usr/local/bin/docker-compose
-  - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
   - |
-    cat <<EOF > /home/azureuser/private.key
+    cat <<EOF > /opt/private.key.b64
     ${private_key}
     EOF
-  - chmod 600 /home/azureuser/private.key
-  - chown azureuser:azureuser /home/azureuser/private.key
+  - base64 -d /opt/private.key.b64 > /opt/private.key
+  - chmod 600 /opt/private.key
+  - chown azureuser:azureuser /opt/private.key
+  - rm /opt/private.key.b64
+  - curl -fsSL https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh | bash

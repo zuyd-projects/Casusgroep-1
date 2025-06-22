@@ -18,7 +18,8 @@ resource "azurerm_network_interface" "frontend" {
   ip_configuration {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.frontend.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.1.10"
     public_ip_address_id          = var.public_ip_id
   }
 }
@@ -41,7 +42,7 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   ]
 
   os_disk {
-    name                 = "prod-frontend-osdisk"
+    name                 = "prod-frontend-disk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -56,12 +57,9 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   computer_name      = "frontend-vm"
   provision_vm_agent = true
 
-  custom_data = base64encode(templatefile("cloud-init.yaml", {
-    private_key = var.private_key
-  }))
+  custom_data = var.cloud_init
 
   tags = {
-    environment    = "production"
-    force_recreate = "2025-06-20.1"
+    environment = "production"
   }
 }

@@ -9,3 +9,9 @@ variable "admin_ssh_public_key" {
   type        = string
   sensitive   = true
 }
+
+variable "admin_password" {
+  description = "The SSH password to access the VM"
+  type        = string
+  sensitive   = true
+}

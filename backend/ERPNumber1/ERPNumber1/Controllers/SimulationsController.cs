@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -39,6 +39,7 @@ namespace ERPNumber1.Controllers
             return Ok(simulationDtos);
         }
 
+        [Authorize(Roles = "User")]
         [HttpGet("{id}")]
         [LogEvent("Simulation", "Get Simulation by ID")]
         public async Task<ActionResult<SimulationDto>> GetSimulation(int id)
@@ -57,6 +58,7 @@ namespace ERPNumber1.Controllers
             return Ok(simulation.ToSimulationDto());
         }
 
+        [Authorize(Roles = "User")]
         [HttpPut("{id}")]
         [LogEvent("Simulation", "Update Simulation")]
         public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
@@ -71,6 +73,7 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "User")]
         [HttpPost]
         [LogEvent("Simulation", "Create Simulation")]
         public async Task<ActionResult<SimulationDto>> PostSimulation(CreateSimulationDto simulationDto)
@@ -81,6 +84,7 @@ namespace ERPNumber1.Controllers
             return CreatedAtAction(nameof(GetSimulation), new { id = simulationModel.Id }, simulationModel.ToSimulationDto());
         }
 
+        [Authorize(Roles = "User")]
         [HttpDelete("{id}")]
         [LogEvent("Simulation", "Delete Simulation")]
         public async Task<IActionResult> DeleteSimulation(int id)

@@ -1,0 +1,9 @@
+{
+  "containers": [
+    {
+      "name": "database",
+      "image": "mcr.microsoft.com/azure-sql-edge:latest"
+    }
+  ],
+  "lastUpdated": "2025-06-22T12:00:00Z"
+}

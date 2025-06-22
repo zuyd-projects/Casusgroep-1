@@ -1,0 +1,31 @@
+worker_processes 1;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  resolver 127.0.0.11 valid=30s;  # Docker embedded DNS server
+
+  server {
+    listen 80;
+
+    location /api/ {
+      set $backend_host "${BACKEND_HOST}:${BACKEND_PORT}";
+      proxy_pass http://$backend_host;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+      set $nextjs_host "${NEXTJS_HOST}:${NEXTJS_PORT}";
+      proxy_pass http://$nextjs_host;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+}

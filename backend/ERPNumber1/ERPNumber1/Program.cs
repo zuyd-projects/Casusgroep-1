@@ -22,7 +22,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:3000", 
+                "http://localhost:3000",
                 "http://localhost:3001",
                 "http://localhost:3002"
               )
@@ -33,8 +33,11 @@ builder.Services.AddCors(options =>
 });
 
 // Add database context
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 
 
@@ -75,6 +78,14 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEventLogService, EventLogService>();
+
+// add RoleRequirementFilter globally
+builder.Services.AddScoped<RoleRequirementFilter>();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<RoleRequirementFilter>(); 
+});
 
 
 // Add Swagger/OpenAPI
@@ -153,3 +164,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Make Program class accessible for testing
+public partial class Program { }

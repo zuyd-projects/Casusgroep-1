@@ -14,20 +14,21 @@ namespace ERPNumber1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DeliveryController : ControllerBase
+    public class DeliveryController : ControllerBase, IRequireRole
     {
-      
+        public Role[] AllowedRoles => [Role.Admin];
+
         private readonly IEventLogService _eventLogService;
         private readonly IDeliveryRepository _deliveryRepo;
 
-        public DeliveryController( IEventLogService eventLogService, IDeliveryRepository deliveryRepo)
+        public DeliveryController(IEventLogService eventLogService, IDeliveryRepository deliveryRepo)
         {
-            
             _eventLogService = eventLogService;
-            _deliveryRepo = deliveryRepo;   
+            _deliveryRepo = deliveryRepo;
         }
 
         // GET: api/Delivery
+        [RequireRole(Role.Admin)]
         [HttpGet]
         [LogEvent("Delivery", "Get All Deliveries")]
         public async Task<ActionResult<IEnumerable<Delivery>>> GetDeliveries()
@@ -46,9 +47,9 @@ namespace ERPNumber1.Controllers
 
             if (delivery == null)
             {
-                await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Retrieval Failed", 
-                    "DeliveryController", "Delivery", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found" }), 
+                await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Retrieval Failed",
+                    "DeliveryController", "Delivery", "Failed",
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found" }),
                     id.ToString());
                 return NotFound();
             }
@@ -65,11 +66,11 @@ namespace ERPNumber1.Controllers
 
             var delivery = deliveryDto.ToDeliveryFromCreate();
             await _deliveryRepo.CreateAsync(delivery);
-           
 
-            await _eventLogService.LogEventAsync($"Delivery_{delivery.Id}", "Delivery Created", 
-                "DeliveryController", "Delivery", "Completed", 
-                System.Text.Json.JsonSerializer.Serialize(new { 
+            await _eventLogService.LogEventAsync($"Delivery_{delivery.Id}", "Delivery Created",
+                "DeliveryController", "Delivery", "Completed",
+                System.Text.Json.JsonSerializer.Serialize(new
+                {
                     orderId = delivery.OrderId,
                     isDelivered = delivery.IsDelivered,
                     qualityCheckPassed = delivery.QualityCheckPassed,
@@ -85,25 +86,25 @@ namespace ERPNumber1.Controllers
         public async Task<IActionResult> PutDelivery(int id, UpdateDeliveryDto deliveryDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
+
             var delivery = await _deliveryRepo.GetByIdAsync(id);
             if (delivery == null)
             {
-                await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed", 
-                    "DeliveryController", "Delivery", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found" }), 
+                await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed",
+                    "DeliveryController", "Delivery", "Failed",
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found" }),
                     id.ToString());
                 return NotFound();
             }
-
 
             try
             {
                 await _deliveryRepo.UpdateAsync(id, deliveryDto.ToDeliveryFromUpdate());
 
-                await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Updated", 
-                    "DeliveryController", "Delivery", "Completed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { 
+                await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Updated",
+                    "DeliveryController", "Delivery", "Completed",
+                    System.Text.Json.JsonSerializer.Serialize(new
+                    {
                         orderId = delivery.OrderId,
                         isDelivered = delivery.IsDelivered,
                         qualityCheckPassed = delivery.QualityCheckPassed,
@@ -113,19 +114,19 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (! await _deliveryRepo.DeliveryExistsAsync(id))
+                if (!await _deliveryRepo.DeliveryExistsAsync(id))
                 {
-                    await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed", 
-                        "DeliveryController", "Delivery", "Failed", 
-                        System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found during update" }), 
+                    await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed",
+                        "DeliveryController", "Delivery", "Failed",
+                        System.Text.Json.JsonSerializer.Serialize(new { reason = "Delivery not found during update" }),
                         id.ToString());
                     return NotFound();
                 }
                 else
                 {
-                    await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed", 
-                        "DeliveryController", "Delivery", "Failed", 
-                        System.Text.Json.JsonSerializer.Serialize(new { reason = "Concurrency conflict" }), 
+                    await _eventLogService.LogEventAsync($"Delivery_{id}", "Delivery Update Failed",
+                        "DeliveryController", "Delivery", "Failed",
+                        System.Text.Json.JsonSerializer.Serialize(new { reason = "Concurrency conflict" }),
                         id.ToString());
                     throw;
                 }

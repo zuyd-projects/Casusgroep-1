@@ -2,7 +2,6 @@
 import Sidebar from "@CASUSGROEP1/components/Sidebar";
 import Header from "@CASUSGROEP1/components/Header";
 import ProtectedRoute from "@CASUSGROEP1/components/ProtectedRoute";
-import '../../styles/globals.css';
 
 export default function DashboardLayout({ children }) {
   return (
