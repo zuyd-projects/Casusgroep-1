@@ -7,24 +7,21 @@ LOG_FILE="/var/log/bootstrap-agent.log"
 POLL_INTERVAL=60  # 1 minute
 HOSTNAME=$(hostname)
 
-CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.json"
+CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/refs/heads/config/infra/configs/${HOSTNAME}.json"
 ENC_CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.enc"
+ENC_KEY_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.key.enc"
+
 JSON_FILE="$CONFIG_DIR/${HOSTNAME}.json"
 ENC_FILE="$CONFIG_DIR/${HOSTNAME}.enc"
-DEC_FILE="$CONFIG_DIR/${HOSTNAME}.enc.json"
+ENC_KEY_FILE="$CONFIG_DIR/${HOSTNAME}.key.enc"
+AES_KEY_FILE="$CONFIG_DIR/${HOSTNAME}.aes.key"
+DEC_FILE="$CONFIG_DIR/${HOSTNAME}.dec.json"
 
 mkdir -p "$CONFIG_DIR"
 mkdir -p "$(dirname "$LOG_FILE")"
-# Ensure the log file exists
 touch "$LOG_FILE"
 
-# Ensure the Docker network is created
 NETWORK_NAME="bootstrap-network"
-
-if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-  docker network create "$NETWORK_NAME"
-  log "Created network $NETWORK_NAME"
-fi
 
 log() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') [bootstrap] $*" | tee -a "$LOG_FILE"
@@ -36,13 +33,20 @@ download_json() {
 }
 
 download_encrypted() {
-  log "Downloading encrypted config for $HOSTNAME..."
+  log "Downloading AES-encrypted config for $HOSTNAME..."
   curl -fsSL "$ENC_CONFIG_URL" -o "$ENC_FILE"
+  log "Downloading RSA-encrypted AES key for $HOSTNAME..."
+  curl -fsSL "$ENC_KEY_URL" -o "$ENC_KEY_FILE"
 }
 
 decrypt_config() {
-  log "Decrypting config..."
-  openssl rsautl -decrypt -inkey "$KEY_PATH" -in "$ENC_FILE" -out "$DEC_FILE"
+  log "Decrypting AES key with RSA private key..."
+  openssl pkeyutl -decrypt -inkey "$KEY_PATH" -in "$ENC_KEY_FILE" -out "$AES_KEY_FILE"
+
+  log "Decrypting config file with AES key..."
+  openssl enc -d -aes-256-cbc -in "$ENC_FILE" -out "$DEC_FILE" -pass file:"$AES_KEY_FILE"
+
+  rm -f "$AES_KEY_FILE"
 }
 
 run_container() {
@@ -94,12 +98,16 @@ run_container() {
 }
 
 main_loop() {
+  if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+    docker network create "$NETWORK_NAME"
+    log "Created network $NETWORK_NAME"
+  fi
+
   while true; do
     download_json
     download_encrypted
     decrypt_config
 
-    # Build a map from container name to image from unencrypted config
     declare -A images_map=()
     while IFS= read -r container; do
       name=$(echo "$container" | jq -r '.name')
@@ -107,23 +115,18 @@ main_loop() {
       images_map["$name"]="$image"
     done < <(jq -c '.containers[]' "$JSON_FILE")
 
-    # Iterate over container names in decrypted (encrypted) config
     jq -r 'keys[]' "$DEC_FILE" | while read -r name; do
-      # Get the encrypted container config for this container name (without image)
       container_config=$(jq -c --arg name "$name" '.[$name]' "$DEC_FILE")
 
-      # Get image from unencrypted config map
       image="${images_map[$name]}"
       if [[ -z "$image" ]]; then
         log "Warning: No image found in unencrypted config for container '$name', skipping"
         continue
       fi
 
-      # Merge image into container config JSON
-      container_def=$(jq -n --argjson cfg "$container_config" --arg img "$image" \
+      container_def=$(jq -n --argjson cfg "$container_config" --arg img "$image" --arg name "$name" \
         '$cfg + {name: $name, image: $img}')
 
-      # Run container with combined config
       run_container "$container_def"
     done
 
