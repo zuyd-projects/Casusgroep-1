@@ -9,7 +9,7 @@ SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 # Step 1: Install dependencies
 echo "[INFO] Installing required packages..."
-sudo apt-get update && sudo apt-get install -y bash curl openssl docker.io jq
+sudo apt-get update && sudo apt-get install -y bash curl openssl jq
 
 # Step 2: Download the bootstrap-agent script
 echo "[INFO] Downloading bootstrap agent script..."
