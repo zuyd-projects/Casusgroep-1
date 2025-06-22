@@ -39,6 +39,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/Simulations/5
+        [Authorize(Roles ="User")]
         [HttpGet("{id}")]
         [LogEvent("Simulation", "Get Simulation by ID")]
         public async Task<ActionResult<Simulation>> GetSimulation(int id)
@@ -58,7 +59,9 @@ namespace ERPNumber1.Controllers
 
         // PUT: api/Simulations/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [Authorize(Roles ="User")]
         [HttpPut("{id}")]
+        [LogEvent("Simulation", "Update Simulation")]
         public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
         {
             var simulation = await _context.Simulations.FindAsync(id);
@@ -91,7 +94,9 @@ namespace ERPNumber1.Controllers
 
         // POST: api/Simulations
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [Authorize(Roles ="User")]
         [HttpPost]
+        [LogEvent("Simulation", "Create Simulation")]
         public async Task<ActionResult<Simulation>> PostSimulation(CreateSimulationDto simulationDto)
         {
             var simulation = new Simulation
@@ -107,7 +112,9 @@ namespace ERPNumber1.Controllers
         }
 
         // DELETE: api/Simulations/5
+        [Authorize(Roles ="User")]
         [HttpDelete("{id}")]
+        [LogEvent("Simulation", "Delete Simulation")]
         public async Task<IActionResult> DeleteSimulation(int id)
         {
             var simulation = await _context.Simulations.FindAsync(id);

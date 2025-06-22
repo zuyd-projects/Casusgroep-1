@@ -10,6 +10,7 @@ const navItems = [
   { label: "Customers", href: "/dashboard/customers" },
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Account Manager", href: "/dashboard/accountManager" },
+  { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Process Mining", href: "/dashboard/process-mining" },
   {
     label: "Products",

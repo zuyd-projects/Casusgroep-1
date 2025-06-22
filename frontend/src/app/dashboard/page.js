@@ -6,11 +6,12 @@ import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { orders, dashboardStats } from '@CASUSGROEP1/utils/mockData';
 import { api } from '@CASUSGROEP1/utils/api';
-import { AlertTriangle, TrendingUp, Activity, Clock } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Activity, Clock, Play, Plus } from 'lucide-react';
 
 export default function Dashboard() {
   const [processMiningData, setProcessMiningData] = useState(null);
   const [deliveryPredictions, setDeliveryPredictions] = useState(null);
+  const [recentSimulations, setRecentSimulations] = useState([]);
 
   useEffect(() => {
     // Fetch process mining overview data
@@ -27,7 +28,19 @@ export default function Dashboard() {
       }
     };
 
+    // Fetch recent simulations
+    const fetchRecentSimulations = async () => {
+      try {
+        const simulations = await api.get('/api/Simulations');
+        // Get the 3 most recent simulations
+        setRecentSimulations(simulations.slice(-3).reverse());
+      } catch (error) {
+        console.error('Error fetching simulations:', error);
+      }
+    };
+
     fetchProcessMiningData();
+    fetchRecentSimulations();
   }, []);
 
   // Get just the 5 most recent orders
@@ -66,6 +79,61 @@ export default function Dashboard() {
           <div className="text-sm text-green-600 dark:text-green-400 mt-1">+5 new this week</div>
         </Card>
       </div>
+
+      {/* Simulations Overview */}
+      <Card title="🎯 Recent Simulations" className="border-purple-200 dark:border-purple-800">
+        <div className="space-y-4">
+          {recentSimulations.length === 0 ? (
+            <div className="text-center py-6">
+              <Play className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+              <p className="text-zinc-500 dark:text-zinc-400 mb-3">No simulations created yet</p>
+              <Link 
+                href="/dashboard/simulations"
+                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Simulation
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {recentSimulations.map((simulation) => (
+                  <div key={simulation.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-zinc-900 dark:text-zinc-100">{simulation.name}</div>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                        Created {new Date(simulation.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
+                        <Play className="h-3 w-3 mr-1" />
+                        Run
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between pt-2">
+                <Link 
+                  href="/dashboard/simulations"
+                  className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                >
+                  View all simulations &rarr;
+                </Link>
+                <Link 
+                  href="/dashboard/simulations"
+                  className="inline-flex items-center px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  New Simulation
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
 
       {/* Process Mining & Planner Overview */}
       {(processMiningData || deliveryPredictions) && (
