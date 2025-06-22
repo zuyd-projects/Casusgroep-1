@@ -58,6 +58,7 @@ namespace ERPNumber1.Controllers
         }
 
         [HttpPut("{id}")]
+        [LogEvent("Simulation", "Update Simulation")]
         public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
         {
             var updatedSimulation = await _simulationRepo.UpdateAysnc(id, simulationDto.ToSimulationFromUpdate());
@@ -71,6 +72,7 @@ namespace ERPNumber1.Controllers
         }
 
         [HttpPost]
+        [LogEvent("Simulation", "Create Simulation")]
         public async Task<ActionResult<SimulationDto>> PostSimulation(CreateSimulationDto simulationDto)
         {
             var simulationModel = simulationDto.ToSimulationFromCreate();
@@ -80,6 +82,7 @@ namespace ERPNumber1.Controllers
         }
 
         [HttpDelete("{id}")]
+        [LogEvent("Simulation", "Delete Simulation")]
         public async Task<IActionResult> DeleteSimulation(int id)
         {
             var deletedSimulation = await _simulationRepo.DeleteAsync(id);

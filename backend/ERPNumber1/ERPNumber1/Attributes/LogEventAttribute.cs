@@ -41,7 +41,18 @@ namespace ERPNumber1.Attributes
                 var endTime = DateTime.UtcNow;
                 var userId = executedContext.HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var resource = $"{executedContext.Controller.GetType().Name}.{executedContext.ActionDescriptor.DisplayName}";
-                var sessionId = executedContext.HttpContext.Session?.Id;
+                
+                // Safely get session ID if sessions are configured
+                string? sessionId = null;
+                try
+                {
+                    sessionId = executedContext.HttpContext.Session?.Id;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Sessions not configured, use null
+                    sessionId = null;
+                }
 
                 // Try to extract case ID from route parameters or request body
                 var caseId = ExtractCaseId(executedContext);
@@ -101,7 +112,17 @@ namespace ERPNumber1.Attributes
             }
 
             // Fallback to session ID or generate one
-            return context.HttpContext.Session?.Id ?? $"{_eventType}_{Guid.NewGuid():N}";
+            string? sessionId = null;
+            try
+            {
+                sessionId = context.HttpContext.Session?.Id;
+            }
+            catch (InvalidOperationException)
+            {
+                // Sessions not configured, sessionId remains null
+            }
+            
+            return sessionId ?? $"{_eventType}_{Guid.NewGuid():N}";
         }
 
         private string? PrepareAdditionalData(ActionExecutedContext context)
