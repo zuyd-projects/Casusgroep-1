@@ -21,21 +21,21 @@ Casusgroep-1 is a full-stack application designed for business process automatio
 
 ### Development Guides
 
-- **[Backend Documentation](./backend/)** - API development, database setup, and testing
+- **[Backend Documentation](./backend/README.md)** - API development, database setup, and testing
   - [Setup Guide](./backend/setup/getting-started.md) - Installation and configuration
   - [API Usage Guide](./backend/api-usage/README.md) - Entity relationships and DTOs
   - [Process Mining](./backend/process-mining/README.md) - Event logging and analytics
   - [Testing Guide](./backend/test/README.md) - Unit and integration testing
 
-- **[Frontend Documentation](./frontend/)** - React components, styling, and user interface
+- **[Frontend Documentation](./frontend/README.md)** - React components, styling, and user interface
 - #TODO
 
-- **[Infrastructure Documentation](./infra/)** - Deployment, cloud resources, and DevOps
+- **[Infrastructure Documentation](./infra/README.md)** - Deployment, cloud resources, and DevOps
 - #TODO
 
 ### Contributing
 
-- **[Contributing Guidelines](./contributing/)** - Code standards, commit guidelines, and review process
+- **[Contributing Guidelines](./contributing/README.md)** - Code standards, commit guidelines, and review process
   - [Commit Standards](./contributing/commits.md) - Conventional commit guidelines
   - [Branching Strategy](./contributing/branching.md) - Workflow and pull requests
   - [Code Comments](./contributing/comments.md) - Comment conventions
