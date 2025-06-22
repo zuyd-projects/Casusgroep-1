@@ -17,26 +17,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      
+
       - name: Restore dependencies
         working-directory: ./backend/ERPNumber1
         run: dotnet restore
-      
+
       - name: Build
         working-directory: ./backend/ERPNumber1
         run: dotnet build --no-restore --configuration Release
-      
+
       - name: Run Unit Tests
         working-directory: ./backend/ERPNumber1
         run: |
           dotnet test --no-build --configuration Release --verbosity normal \
             --collect:"XPlat Code Coverage" --results-directory ./TestResults \
             --logger "trx;LogFileName=test-results.trx"
+      - name: List all .trx files
+        if: always()
+        run: find . -name "*.trx"
 
       - name: Generate Test Report
         if: always()
@@ -107,8 +110,8 @@ jobs:
           sleep 30
         env:
           ASPNETCORE_ENVIRONMENT: Development
-          ASPNETCORE_URLS: "http://localhost:5000"
-          ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=SimulationDb;User Id=sa;Password=yourStrong(!)Password;Encrypt=False;TrustServerCertificate=True;"
+          ASPNETCORE_URLS: 'http://localhost:5000'
+          ConnectionStrings__DefaultConnection: 'Server=localhost,1433;Database=SimulationDb;User Id=sa;Password=yourStrong(!)Password;Encrypt=False;TrustServerCertificate=True;'
 
       - name: Wait for API to be ready
         run: |
