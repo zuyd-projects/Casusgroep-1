@@ -28,12 +28,10 @@ Casusgroep-1 is a full-stack application designed for business process automatio
   - [Testing Guide](./backend/test/README.md) - Unit and integration testing
 
 - **[Frontend Documentation](./frontend/)** - React components, styling, and user interface
-  - [Component Library](./frontend/components/) - Reusable UI components
-  - [Styling Guide](./frontend/styles/) - Design system and CSS standards
+- #TODO
 
 - **[Infrastructure Documentation](./infra/)** - Deployment, cloud resources, and DevOps
-  - [Terraform Setup](./infra/terraform/) - Infrastructure as code
-  - [Docker Configuration](./infra/docker/) - Container deployment
+- #TODO
 
 ### Contributing
 
@@ -65,7 +63,7 @@ Casusgroep-1 is a full-stack application designed for business process automatio
 
 ### Frontend
 
-- **Framework**: Next.js 14
+- **Framework**: Next.js 15
 - **Styling**: Tailwind CSS
 - **State Management**: React Context
 - **Authentication**: JWT-based auth system
