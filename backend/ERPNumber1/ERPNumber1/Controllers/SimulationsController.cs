@@ -1,18 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
-using ERPNumber1.Models;
 using Microsoft.AspNetCore.Authorization;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
 using ERPNumber1.Attributes;
+using ERPNumber1.Mapper;
 using ERPNumber1.Dtos.Simulation;
-using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
 {
@@ -20,126 +16,96 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class SimulationsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly ISimulationRepository _simulationRepo;
         private readonly IEventLogService _eventLogService;
         private readonly ISimulationService _simulationService;
 
-        public SimulationsController(AppDbContext context, IEventLogService eventLogService, ISimulationService simulationService)
+        public SimulationsController(
+            IEventLogService eventLogService,
+            ISimulationRepository simulationRepo,
+            ISimulationService simulationService)
         {
-            _context = context;
             _eventLogService = eventLogService;
+            _simulationRepo = simulationRepo;
             _simulationService = simulationService;
         }
 
-        // GET: api/Simulations
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpGet]
         [LogEvent("Simulation", "Get All Simulations")]
-        public async Task<ActionResult<IEnumerable<Simulation>>> GetSimulations()
+        public async Task<ActionResult<IEnumerable<SimulationDto>>> GetSimulations()
         {
-            return await _context.Simulations.ToListAsync();
+            var simulations = await _simulationRepo.GetAllAsync();
+            var simulationDtos = simulations.Select(s => s.ToSimulationDto());
+            return Ok(simulationDtos);
         }
 
-        // GET: api/Simulations/5
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpGet("{id}")]
         [LogEvent("Simulation", "Get Simulation by ID")]
-        public async Task<ActionResult<Simulation>> GetSimulation(int id)
+        public async Task<ActionResult<SimulationDto>> GetSimulation(int id)
         {
-            var simulation = await _context.Simulations.FindAsync(id);
+            var simulation = await _simulationRepo.GetByIdAsync(id);
 
             if (simulation == null)
             {
-                await _eventLogService.LogSimulationEventAsync(id, "Simulation Retrieval Failed", 
-                    "SimulationsController", "Failed", 
+                await _eventLogService.LogSimulationEventAsync(id, "Simulation Retrieval Failed",
+                    "SimulationsController", "Failed",
                     new { reason = "Simulation not found" });
+
                 return NotFound();
             }
 
-            return simulation;
+            return Ok(simulation.ToSimulationDto());
         }
 
-        // PUT: api/Simulations/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpPut("{id}")]
         [LogEvent("Simulation", "Update Simulation")]
         public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
         {
-            var simulation = await _context.Simulations.FindAsync(id);
-            if (simulation == null)
+            var updatedSimulation = await _simulationRepo.UpdateAysnc(id, simulationDto.ToSimulationFromUpdate());
+
+            if (updatedSimulation == null)
             {
                 return NotFound();
-            }
-
-            simulation.Name = simulationDto.Name;
-            simulation.Date = simulationDto.Date;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!SimulationExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
             }
 
             return NoContent();
         }
 
-        // POST: api/Simulations
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpPost]
         [LogEvent("Simulation", "Create Simulation")]
-        public async Task<ActionResult<Simulation>> PostSimulation(CreateSimulationDto simulationDto)
+        public async Task<ActionResult<SimulationDto>> PostSimulation(CreateSimulationDto simulationDto)
         {
-            var simulation = new Simulation
-            {
-                Name = simulationDto.Name,
-                Date = simulationDto.Date
-            };
-            
-            _context.Simulations.Add(simulation);
-            await _context.SaveChangesAsync();
+            var simulationModel = simulationDto.ToSimulationFromCreate();
+            await _simulationRepo.CreateAsync(simulationModel);
 
-            return CreatedAtAction("GetSimulation", new { id = simulation.Id }, simulation);
+            return CreatedAtAction(nameof(GetSimulation), new { id = simulationModel.Id }, simulationModel.ToSimulationDto());
         }
 
-        // DELETE: api/Simulations/5
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpDelete("{id}")]
         [LogEvent("Simulation", "Delete Simulation")]
         public async Task<IActionResult> DeleteSimulation(int id)
         {
-            var simulation = await _context.Simulations.FindAsync(id);
-            if (simulation == null)
+            var deletedSimulation = await _simulationRepo.DeleteAsync(id);
+
+            if (deletedSimulation == null)
             {
                 return NotFound();
             }
 
-            _context.Simulations.Remove(simulation);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
-        // POST: api/Simulations/5/run
-        [Authorize(Roles ="User")]
-        // POST: api/Simulations/5/run
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpPost("{id}/run")]
         [LogEvent("Simulation", "Run Simulation")]
         public async Task<IActionResult> RunSimulation(int id)
         {
-            var simulation = await _context.Simulations.FindAsync(id);
+            var simulation = await _simulationRepo.GetByIdAsync(id);
             if (simulation == null)
             {
                 return NotFound();
@@ -154,13 +120,12 @@ namespace ERPNumber1.Controllers
             return Ok(new { message = "Simulation started successfully", simulationId = id });
         }
 
-        // POST: api/Simulations/5/stop
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpPost("{id}/stop")]
         [LogEvent("Simulation", "Stop Simulation")]
         public async Task<IActionResult> StopSimulation(int id)
         {
-            var simulation = await _context.Simulations.FindAsync(id);
+            var simulation = await _simulationRepo.GetByIdAsync(id);
             if (simulation == null)
             {
                 return NotFound();
@@ -175,13 +140,12 @@ namespace ERPNumber1.Controllers
             return Ok(new { message = "Simulation stopped successfully", simulationId = id });
         }
 
-        // GET: api/Simulations/5/status
-        [Authorize(Roles ="User")]
+        [Authorize(Roles = "User")]
         [HttpGet("{id}/status")]
         [LogEvent("Simulation", "Get Simulation Status")]
         public async Task<IActionResult> GetSimulationStatus(int id)
         {
-            var simulation = await _context.Simulations.FindAsync(id);
+            var simulation = await _simulationRepo.GetByIdAsync(id);
             if (simulation == null)
             {
                 return NotFound();
@@ -190,17 +154,15 @@ namespace ERPNumber1.Controllers
             var isRunning = await _simulationService.IsSimulationRunningAsync(id);
             var currentRound = await _simulationService.GetCurrentRoundAsync(id);
 
-            return Ok(new { 
+            return Ok(new
+            {
                 simulationId = id,
                 isRunning,
-                currentRound = currentRound != null ? new { currentRound.Id, currentRound.RoundNumber } : null,
+                currentRound = currentRound != null
+                    ? new { currentRound.Id, currentRound.RoundNumber }
+                    : null,
                 roundDuration = _simulationService.GetRoundDurationSeconds()
             });
-        }
-
-        private bool SimulationExists(int id)
-        {
-            return _context.Simulations.Any(e => e.Id == id);
         }
     }
 }

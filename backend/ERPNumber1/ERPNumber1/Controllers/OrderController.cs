@@ -1,11 +1,13 @@
+using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Order;
+using ERPNumber1.Dtos.Simulation;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Models;
-using ERPNumber1.Data;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
-using ERPNumber1.Dtos.Order;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -14,13 +16,17 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        
         private readonly IEventLogService _eventLogService;
+        private readonly IOrderRepository _orderRepo;
+        //private readonly AppDbContext _context;    
 
-        public OrderController(AppDbContext context, IEventLogService eventLogService)
+        public OrderController(IEventLogService eventLogService,IOrderRepository orderRepo/*, AppDbContext context*/ )
         {
-            _context = context;
+            
             _eventLogService = eventLogService;
+            _orderRepo = orderRepo;
+            //_context = context;
         }
 
         // GET: api/Order
@@ -28,9 +34,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Order", "Get All Orders")]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
         {
-            return await _context.Orders
-                .Include(o => o.Products)
-                .ToListAsync();
+            var orders = await _orderRepo.GetAllAsync();
+            var orderDtos = orders.Select(s => s.ToOrderDto());
+            return Ok(orderDtos);
         }
 
         // GET: api/Order/5
@@ -38,9 +44,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Order", "Get Order by ID")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
-            var order = await _context.Orders
-                .Include(o => o.Products)
-                .FirstOrDefaultAsync(o => o.Id == id);
+            var order = await _orderRepo.GetByIdAsync(id);
 
             if (order == null)
             {
@@ -50,7 +54,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            return order;
+            return Ok(order.ToOrderDto());
         }
 
         // POST: api/Order
@@ -58,33 +62,23 @@ namespace ERPNumber1.Controllers
         [LogEvent("Order", "Create Order", logRequest: true)]
         public async Task<ActionResult<Order>> PostOrder(CreateOrderDto orderDto)
         {
-            var startTime = DateTime.UtcNow;
+            
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            var order = new Order
-            {
-                RoundId = orderDto.RoundId,
-                DeliveryId = orderDto.DeliveryId,
-                AppUserId = orderDto.AppUserId,
-                MotorType = orderDto.MotorType,
-                Quantity = orderDto.Quantity,
-                Signature = orderDto.Signature,
-                OrderDate = orderDto.OrderDate
-            };
-            
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
+
+            var orderModel = orderDto.ToOrderFromCreate();
+            await _orderRepo.CreateAsync(orderModel);
+
 
             // Log the successful order creation
-            await _eventLogService.LogOrderEventAsync(order.Id, "Order Created", "OrderController", "Completed", 
+            await _eventLogService.LogOrderEventAsync(orderModel.Id, "Order Created", "OrderController", "Completed", 
                 new { 
-                    motorType = order.MotorType,
-                    quantity = order.Quantity,
-                    orderDate = order.OrderDate,
-                    signature = order.Signature
+                    motorType = orderModel.MotorType,
+                    quantity = orderModel.Quantity,
+                    orderDate = orderModel.OrderDate,
+                    signature = orderModel.Signature
                 }, userId);
 
-            return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+            return CreatedAtAction(nameof(GetOrder), new { id = orderModel.Id }, orderModel.ToOrderDto());
         }
 
         // PUT: api/Order/5
@@ -93,8 +87,8 @@ namespace ERPNumber1.Controllers
         public async Task<IActionResult> PutOrder(int id, UpdateOrderDto orderDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            var order = await _context.Orders.FindAsync(id);
+
+            var order = await _orderRepo.UpdateAysnc(id, orderDto.ToOrderFromUpdate());
             if (order == null)
             {
                 await _eventLogService.LogOrderEventAsync(id, "Order Update Failed", "OrderController", "Failed", 
@@ -102,17 +96,11 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            order.RoundId = orderDto.RoundId;
-            order.DeliveryId = orderDto.DeliveryId;
-            order.AppUserId = orderDto.AppUserId;
-            order.MotorType = orderDto.MotorType;
-            order.Quantity = orderDto.Quantity;
-            order.Signature = orderDto.Signature;
-            order.OrderDate = orderDto.OrderDate;
+            
 
             try
             {
-                await _context.SaveChangesAsync();
+                //await _context.SaveChangesAsync();
                 
                 // Log successful update
                 await _eventLogService.LogOrderEventAsync(id, "Order Updated", "OrderController", "Completed", 
@@ -123,7 +111,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_context.Orders.Any(e => e.Id == id))
+                if (! await _orderRepo.OrderExistsAsync(id))
                 {
                     await _eventLogService.LogOrderEventAsync(id, "Order Update Failed", "OrderController", "Failed", 
                         new { reason = "Order not found" }, userId);
@@ -145,7 +133,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Order", "Delete Order")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _orderRepo.DeleteAsync(id);
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
             if (order == null)
@@ -155,8 +143,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync();
+            
 
             // Log successful deletion
             await _eventLogService.LogOrderEventAsync(id, "Order Deleted", "OrderController", "Completed", 

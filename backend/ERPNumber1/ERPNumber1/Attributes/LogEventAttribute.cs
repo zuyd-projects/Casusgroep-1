@@ -30,7 +30,6 @@ namespace ERPNumber1.Attributes
             _startTime = DateTime.UtcNow;
             _actionArguments = context.ActionArguments;
 
-            // Proceed to the next action in the pipeline
             var executedContext = await next();
 
             try
@@ -41,26 +40,20 @@ namespace ERPNumber1.Attributes
                 var endTime = DateTime.UtcNow;
                 var userId = executedContext.HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var resource = $"{executedContext.Controller.GetType().Name}.{executedContext.ActionDescriptor.DisplayName}";
-                
-                // Safely get session ID - check if sessions are configured
-                string? sessionId = null;
-                try 
+
+                // Safely get session ID with fallback options
+                string? sessionId;
+                try
                 {
                     sessionId = executedContext.HttpContext.Session?.Id;
                 }
                 catch (InvalidOperationException)
                 {
-                    // Sessions not configured, use connection ID or generate fallback
                     sessionId = executedContext.HttpContext.Connection?.Id ?? Guid.NewGuid().ToString("N");
                 }
 
-                // Try to extract case ID from route parameters or request body
                 var caseId = ExtractCaseId(executedContext);
-
-                // Determine status based on response
                 var status = executedContext.Exception == null ? "Completed" : "Failed";
-
-                // Prepare additional data
                 var additionalData = PrepareAdditionalData(executedContext);
 
                 await eventLogService.LogTimedEventAsync(
@@ -72,13 +65,12 @@ namespace ERPNumber1.Attributes
                     endTime,
                     status,
                     additionalData,
-                    null, // entityId - could be extracted from response
+                    null,
                     userId
                 );
             }
             catch (Exception ex)
             {
-                // Log the error but don't break the main flow
                 var logger = context.HttpContext.RequestServices.GetService<ILogger<LogEventAttribute>>();
                 logger?.LogError(ex, "Failed to log event for action {Action}", _activity);
             }
@@ -86,19 +78,16 @@ namespace ERPNumber1.Attributes
 
         private string ExtractCaseId(ActionExecutedContext context)
         {
-            // Try to get ID from route parameters
             if (context.RouteData.Values.TryGetValue("id", out var routeId))
             {
                 return $"{_eventType}_{routeId}";
             }
 
-            // Try to get simulation ID or other identifier
             if (context.RouteData.Values.TryGetValue("simulationId", out var simId))
             {
                 return $"Simulation_{simId}";
             }
 
-            // Try to extract from action parameters
             var actionParams = context.ActionDescriptor.Parameters;
             if (_actionArguments != null)
             {
@@ -111,48 +100,40 @@ namespace ERPNumber1.Attributes
                 }
             }
 
-            // Fallback to session ID or generate one
-            string fallbackId;
-            try 
+            try
             {
-                fallbackId = context.HttpContext.Session?.Id ?? $"{_eventType}_{Guid.NewGuid():N}";
+                return context.HttpContext.Session?.Id ?? $"{_eventType}_{Guid.NewGuid():N}";
             }
             catch (InvalidOperationException)
             {
-                // Sessions not configured, use connection ID or generate fallback
-                fallbackId = context.HttpContext.Connection?.Id ?? $"{_eventType}_{Guid.NewGuid():N}";
+                return context.HttpContext.Connection?.Id ?? $"{_eventType}_{Guid.NewGuid():N}";
             }
-            
-            return fallbackId;
         }
 
         private string? PrepareAdditionalData(ActionExecutedContext context)
         {
             try
             {
-                var data = new Dictionary<string, object>();
+                var data = new Dictionary<string, object>
+                {
+                    ["method"] = context.HttpContext.Request.Method,
+                    ["path"] = context.HttpContext.Request.Path
+                };
 
-                // Add HTTP method and path
-                data["method"] = context.HttpContext.Request.Method;
-                data["path"] = context.HttpContext.Request.Path;
-
-                // Add request data if enabled
                 if (_logRequest && _actionArguments != null && _actionArguments.Any())
                 {
                     data["request"] = _actionArguments;
                 }
 
-                // Add response data if enabled and successful
                 if (_logResponse && context.Exception == null && context.Result != null)
                 {
                     data["response"] = new { type = context.Result.GetType().Name };
                 }
 
-                // Add error information if failed
                 if (context.Exception != null)
                 {
-                    data["error"] = new 
-                    { 
+                    data["error"] = new
+                    {
                         message = context.Exception.Message,
                         type = context.Exception.GetType().Name
                     };
