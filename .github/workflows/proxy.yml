@@ -1,4 +1,4 @@
-name: Frontend Ci/CD
+name: Proxy CI/CD
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'frontend/**'
+      - 'proxy/**'
 
 jobs:
   build_and_update:
@@ -27,29 +27,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push frontend Docker image
-        id: build-frontend
+      - name: Build and push proxy Docker image
+        id: build-proxy
         run: |
-          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/frontend:$(date +'%Y%m%d%H%M%S')
-          docker build -t $IMAGE_TAG --target=frontend ./frontend
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/proxy:$(date +'%Y%m%d%H%M%S')
+          docker build -t $IMAGE_TAG ./proxy
           docker push $IMAGE_TAG
           echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update JSON config file with new image tags
         run: |
           CONFIG_FILE=infra/configs/frontend-vm.json
-          FRONTEND_IMAGE=${{ steps.build-frontend.outputs.image }}
+          PROXY_IMAGE=${{ steps.build-proxy.outputs.image }}
 
           cp $CONFIG_FILE $CONFIG_FILE.bak
 
-          jq --arg frontend "$FRONTEND_IMAGE" '(.containers[] | select(.name == "frontend") | .image) = $frontend | .lastUpdated = (now | strftime("%Y-%m-%dT%H:%M:%SZ"))' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+          jq --arg proxy "$PROXY_IMAGE" '(.containers[] | select(.name == "proxy") | .image) = $proxy | .lastUpdated = (now | strftime("%Y-%m-%dT%H:%M:%SZ"))' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add $CONFIG_FILE
 
           if ! git diff --cached --quiet; then
-            git commit -m "Update frontend image"
+            git commit -m "Update proxy image"
             git push origin HEAD:config
           else
             echo "No config changes detected."
