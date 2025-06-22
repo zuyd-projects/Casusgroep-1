@@ -25,7 +25,7 @@ ERPNumber1 is a comprehensive ERP (Enterprise Resource Planning) system built wi
 - **Inventory** - Stock management and material tracking
 - **Products** - Product catalog and specifications
 - **Materials** - Raw materials and components management
-- **Suppliers** - Supplier order management
+- **Supplier Orders** - Supplier order management
 - **Deliveries** - Shipping and delivery tracking
 - **Simulations** - Production simulation and planning
 - **Rounds** - Production round execution
@@ -51,6 +51,7 @@ ERPNumber1 is a comprehensive ERP (Enterprise Resource Planning) system built wi
 - **Authentication**: JWT Bearer tokens with ASP.NET Identity
 - **Containerization**: Docker & Docker Compose
 - **Documentation**: Swagger/OpenAPI
+- **Testing**: xUnit with integration tests
 
 ## 🚀 Getting Started
 
@@ -66,7 +67,7 @@ ERPNumber1 is a comprehensive ERP (Enterprise Resource Planning) system built wi
 
    ```bash
    git clone <repository-url>
-   cd backend
+   cd Casusgroep-1
    docker-compose up --build
    ```
 
@@ -75,6 +76,7 @@ ERPNumber1 is a comprehensive ERP (Enterprise Resource Planning) system built wi
    - API: <http://localhost:8080>
    - Swagger UI: <http://localhost:8080/swagger>
    - Database: localhost:1433
+   - Frontend (via proxy): <http://localhost:80>
 
 For detailed setup instructions, see the [Getting Started Guide](setup/getting-started.md).
 
@@ -83,28 +85,6 @@ For detailed setup instructions, see the [Getting Started Guide](setup/getting-s
 ### Authentication
 
 The system uses JWT bearer token authentication. All endpoints (except authentication) require a valid JWT token in the Authorization header.
-
-### Available Endpoints
-
-#### Core Business Operations
-
-- `/api/orders` - Order management
-- `/api/inventory` - Inventory operations
-- `/api/products` - Product catalog
-- `/api/materials` - Materials management
-- `/api/supplierorder` - Supplier interactions
-- `/api/delivery` - Delivery tracking
-
-#### Production & Planning
-
-- `/api/simulations` - Production simulations
-- `/api/rounds` - Production rounds
-- `/api/statistics` - Analytics and reporting
-
-#### System & Monitoring
-
-- `/api/users` - User management
-- `/api/processmining` - Process analytics and event logs
 
 ### Swagger Documentation
 
@@ -122,37 +102,9 @@ The system includes comprehensive process mining capabilities for business proce
 - **Automatic Event Logging** - All business operations are automatically tracked
 - **Process Discovery** - Identify actual business processes from event data
 - **Performance Analytics** - Monitor process performance and bottlenecks
-- **XES Export** - Export data for external process mining tools (ProM, Celonis, Disco)
 - **Real-time Monitoring** - Live process statistics and analytics
 
 Learn more in the [Process Mining Documentation](process-mining/README.md).
-
-## 🏢 Business Domain
-
-ERPNumber1 manages the complete lifecycle of a manufacturing business:
-
-### Order-to-Cash Process
-
-1. Customer order creation and management
-2. Inventory allocation and checking
-3. Production planning via simulations
-4. Manufacturing execution through rounds
-5. Delivery scheduling and tracking
-6. Order completion and analytics
-
-### Procure-to-Pay Process
-
-1. Material requirements planning
-2. Supplier order creation
-3. Delivery receipt and inventory updates
-4. Payment processing and supplier management
-
-### Production Planning
-
-- Simulation-based production planning
-- Resource optimization
-- Round-based execution
-- Performance monitoring and statistics
 
 ## 🔧 Development Guide
 
@@ -162,9 +114,20 @@ ERPNumber1 manages the complete lifecycle of a manufacturing business:
 - **Seeding**: Automated data seeding for development
 - **Health Checks**: Built-in database connectivity monitoring
 
+### Testing
+
+The project includes comprehensive testing infrastructure:
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: Full API and database integration testing
+- **Custom Test Factory**: `CustomWebApplicationFactory` for isolated test environments
+- **Test Database**: Separate test configuration with `appsettings.Testing.json`
+
+Run tests with: `dotnet test` or use the provided `run-tests.sh` script.
+
 ### Code Organization
 
-```text
+```plaintext
 ERPNumber1/
 ├── Controllers/     # API endpoints
 ├── Models/         # Data models and entities
@@ -191,10 +154,11 @@ ERPNumber1/
 The system includes production-ready Docker configuration:
 
 - **Multi-stage builds** for optimized container size
-- **Health checks** for service monitoring
+- **Health checks** for database monitoring
 - **Volume persistence** for data retention
 - **Environment configuration** for flexible deployment
-- **SQL Server container** for complete development environment
+- **Azure SQL Edge container** for complete development environment
+- **Nginx reverse proxy** for load balancing and routing
 
 ## 📊 Monitoring & Observability
 
@@ -210,25 +174,41 @@ The system includes production-ready Docker configuration:
 - Real-time process monitoring
 - Historical trend analysis
 - Bottleneck identification
-- Compliance checking
 - Performance optimization insights
+xwxwww
+## 🛠️ Development & Contributing
 
-## 🤝 Contributing
+### Contributing Guidelines
 
-### Development Workflow
+Before contributing to the backend, please review the project-wide contributing guidelines:
+
+- **[Contributing Overview](../contributing/README.md)** - Main contributing guide and project standards
+- **[Commit Guidelines](../contributing/commits.md)** - Conventional commit standards and examples
+- **[Branching & Pull Requests](../contributing/branching.md)** - Branch naming and review process
+- **[Code Comments](../contributing/comments.md)** - Comment standards and conventions
+
+### Backend-Specific Development Workflow
 
 1. Follow the setup guide to get the development environment running
-2. Create feature branches for new development
+2. Create feature branches following our [branching conventions](../contributing/branching.md)
 3. Implement features with proper event logging
-4. Add/update documentation as needed
-5. Test with Docker environment before committing
+4. Add/update tests for new functionality
+5. Follow our [commit message standards](../contributing/commits.md)
+6. Update documentation as needed
+7. Test with Docker environment before committing
 
-### Documentation Standards
+### Backend Code Standards
 
-- Keep documentation current with code changes
-- Include examples for complex features
-- Document API changes in Swagger annotations
-- Update process mining integration for new business processes
+In addition to the project-wide [code comment standards](../contributing/comments.md), follow these backend-specific guidelines:
+
+- **API Design**: Follow RESTful conventions and consistent naming
+- **Error Handling**: Use proper exception handling and return appropriate HTTP status codes
+- **Logging**: Include structured logging for debugging and monitoring
+- **XML Documentation**: Add comprehensive XML documentation for public APIs
+- **Process Mining**: Implement event logging for new business processes using the `LogEvent` attribute
+- **Testing**: Write both unit and integration tests for new features
+- **Entity Framework**: Follow EF Core best practices for data access
+- **Authentication**: Ensure proper JWT token validation for protected endpoints
 
 ## 📝 Additional Resources
 
@@ -241,10 +221,11 @@ The system includes production-ready Docker configuration:
 
 ### Common Issues
 
-- **Port conflicts**: Ensure ports 8080 and 1433 are available
+- **Port conflicts**: Ensure ports 80, 8080, and 1433 are available
 - **Docker issues**: Restart Docker Desktop and run `docker-compose down && docker-compose up --build`
-- **Database connection**: Check connection string in `appsettings.json`
+- **Database connection**: Check connection string in `appsettings.json` or environment variables
 - **Authentication**: Verify JWT configuration and token validity
+- **CORS errors**: Ensure frontend URL is configured in CORS policy
 
 ### Getting Help
 
