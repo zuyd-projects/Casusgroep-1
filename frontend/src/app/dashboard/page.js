@@ -6,12 +6,24 @@ import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { orders, dashboardStats } from '@CASUSGROEP1/utils/mockData';
 import { api } from '@CASUSGROEP1/utils/api';
+import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { AlertTriangle, TrendingUp, Activity, Clock, Play, Plus } from 'lucide-react';
 
 export default function Dashboard() {
   const [processMiningData, setProcessMiningData] = useState(null);
   const [deliveryPredictions, setDeliveryPredictions] = useState(null);
   const [recentSimulations, setRecentSimulations] = useState([]);
+
+  const { runSimulation, currentSimulation, currentRound, isRunning } = useSimulation();
+
+  const handleRunSimulation = async (simulationId) => {
+    try {
+      await runSimulation(simulationId);
+    } catch (error) {
+      console.error('Failed to run simulation from dashboard:', error);
+      // You could add a toast notification here
+    }
+  };
 
   useEffect(() => {
     // Fetch process mining overview data
@@ -107,10 +119,21 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
-                        <Play className="h-3 w-3 mr-1" />
-                        Run
-                      </button>
+                      {currentSimulation === simulation.id && isRunning ? (
+                        <span className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md">
+                          <Play className="h-3 w-3 mr-1" />
+                          Running {currentRound?.number ? `- Round ${currentRound.number}` : ''}
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => handleRunSimulation(simulation.id)}
+                          disabled={isRunning && currentSimulation !== simulation.id}
+                          className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Run
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

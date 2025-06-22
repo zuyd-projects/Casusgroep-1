@@ -2,11 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
-using ERPNumber1.Models;
 using Microsoft.AspNetCore.Authorization;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Extensions;
@@ -22,11 +18,16 @@ namespace ERPNumber1.Controllers
     {
         private readonly ISimulationRepository _simulationRepo;
         private readonly IEventLogService _eventLogService;
+        private readonly ISimulationService _simulationService;
 
-        public SimulationsController(IEventLogService eventLogService, ISimulationRepository simulationRepo)
+        public SimulationsController(
+            IEventLogService eventLogService,
+            ISimulationRepository simulationRepo,
+            ISimulationService simulationService)
         {
             _eventLogService = eventLogService;
             _simulationRepo = simulationRepo;
+            _simulationService = simulationService;
         }
 
         [Authorize(Roles = "User")]
@@ -97,6 +98,71 @@ namespace ERPNumber1.Controllers
             }
 
             return NoContent();
+        }
+
+        [Authorize(Roles = "User")]
+        [HttpPost("{id}/run")]
+        [LogEvent("Simulation", "Run Simulation")]
+        public async Task<IActionResult> RunSimulation(int id)
+        {
+            var simulation = await _simulationRepo.GetByIdAsync(id);
+            if (simulation == null)
+            {
+                return NotFound();
+            }
+
+            var success = await _simulationService.StartSimulationAsync(id);
+            if (!success)
+            {
+                return BadRequest("Failed to start simulation");
+            }
+
+            return Ok(new { message = "Simulation started successfully", simulationId = id });
+        }
+
+        [Authorize(Roles = "User")]
+        [HttpPost("{id}/stop")]
+        [LogEvent("Simulation", "Stop Simulation")]
+        public async Task<IActionResult> StopSimulation(int id)
+        {
+            var simulation = await _simulationRepo.GetByIdAsync(id);
+            if (simulation == null)
+            {
+                return NotFound();
+            }
+
+            var success = await _simulationService.StopSimulationAsync(id);
+            if (!success)
+            {
+                return BadRequest("Simulation is not running");
+            }
+
+            return Ok(new { message = "Simulation stopped successfully", simulationId = id });
+        }
+
+        [Authorize(Roles = "User")]
+        [HttpGet("{id}/status")]
+        [LogEvent("Simulation", "Get Simulation Status")]
+        public async Task<IActionResult> GetSimulationStatus(int id)
+        {
+            var simulation = await _simulationRepo.GetByIdAsync(id);
+            if (simulation == null)
+            {
+                return NotFound();
+            }
+
+            var isRunning = await _simulationService.IsSimulationRunningAsync(id);
+            var currentRound = await _simulationService.GetCurrentRoundAsync(id);
+
+            return Ok(new
+            {
+                simulationId = id,
+                isRunning,
+                currentRound = currentRound != null
+                    ? new { currentRound.Id, currentRound.RoundNumber }
+                    : null,
+                roundDuration = _simulationService.GetRoundDurationSeconds()
+            });
         }
     }
 }

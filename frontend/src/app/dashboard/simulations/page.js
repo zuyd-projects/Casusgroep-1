@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
-import { Plus, Calendar, Play, Trash2 } from 'lucide-react';
+import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
+import { Plus, Calendar, Play, Trash2, Square, Loader2 } from 'lucide-react';
 
 export default function SimulationsPage() {
   const [simulations, setSimulations] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState({});
+
+  const { runSimulation, stopSimulation, currentSimulation, currentRound, isRunning } = useSimulation();
 
   // Fetch simulations on component mount
   useEffect(() => {
@@ -47,11 +51,40 @@ export default function SimulationsPage() {
     }
 
     try {
+      // Stop simulation if it's running
+      if (currentSimulation === simulationId && isRunning) {
+        await stopSimulation(simulationId);
+      }
+      
       await api.delete(`/api/Simulations/${simulationId}`);
       setSimulations(simulations.filter(sim => sim.id !== simulationId));
     } catch (error) {
       console.error('Error deleting simulation:', error);
       alert('Failed to delete simulation');
+    }
+  };
+
+  const handleRunSimulation = async (simulationId) => {
+    setActionLoading(prev => ({ ...prev, [simulationId]: 'running' }));
+    try {
+      await runSimulation(simulationId);
+    } catch (error) {
+      console.error('Error running simulation:', error);
+      alert('Failed to start simulation');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [simulationId]: null }));
+    }
+  };
+
+  const handleStopSimulation = async (simulationId) => {
+    setActionLoading(prev => ({ ...prev, [simulationId]: 'stopping' }));
+    try {
+      await stopSimulation(simulationId);
+    } catch (error) {
+      console.error('Error stopping simulation:', error);
+      alert('Failed to stop simulation');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [simulationId]: null }));
     }
   };
 
@@ -152,16 +185,44 @@ export default function SimulationsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => {/* TODO: Add run simulation logic */}}
-                          className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
-                        >
-                          <Play className="h-3 w-3 mr-1" />
-                          Run
-                        </button>
+                        {currentSimulation === simulation.id && isRunning ? (
+                          <div className="flex items-center space-x-2">
+                            {currentRound && (
+                              <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md">
+                                Round {currentRound.number}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleStopSimulation(simulation.id)}
+                              disabled={actionLoading[simulation.id] === 'stopping'}
+                              className="inline-flex items-center px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {actionLoading[simulation.id] === 'stopping' ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Square className="h-3 w-3 mr-1" />
+                              )}
+                              Stop
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleRunSimulation(simulation.id)}
+                            disabled={actionLoading[simulation.id] === 'running' || (isRunning && currentSimulation !== simulation.id)}
+                            className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {actionLoading[simulation.id] === 'running' ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Play className="h-3 w-3 mr-1" />
+                            )}
+                            Run
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDeleteSimulation(simulation.id)}
-                          className="inline-flex items-center px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                          disabled={currentSimulation === simulation.id && isRunning}
+                          className="inline-flex items-center px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Trash2 className="h-3 w-3 mr-1" />
                           Delete

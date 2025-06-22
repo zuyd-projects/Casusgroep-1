@@ -1,15 +1,14 @@
-
 using ERPNumber1.Data;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
 using ERPNumber1.Services;
+using ERPNumber1.Hubs;
 using ERPNumber1.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +27,8 @@ builder.Services.AddCors(options =>
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .SetPreflightMaxAge(TimeSpan.FromSeconds(2520)); // For SignalR WebSocket support
     });
 });
 
@@ -39,9 +39,7 @@ var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING"
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-
-
-
+// Add Identity
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -52,6 +50,7 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<AppDbContext>();
 
+// JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme =
@@ -60,8 +59,8 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme =
     options.DefaultSignInScheme =
     options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
-
-}).AddJwtBearer(options =>
+})
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -76,19 +75,28 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Core services
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEventLogService, EventLogService>();
+builder.Services.AddSingleton<ISimulationService, SimulationService>();
 
-// add RoleRequirementFilter globally
+// SignalR
+builder.Services.AddSignalR(options =>
+{
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+    options.EnableDetailedErrors = true; // Only for development
+});
+
+// Global filter
 builder.Services.AddScoped<RoleRequirementFilter>();
 
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<RoleRequirementFilter>(); 
+    options.Filters.Add<RoleRequirementFilter>();
 });
 
-
-// Add Swagger/OpenAPI
+// Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
@@ -118,6 +126,7 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
+// Repositories
 builder.Services.AddScoped<ISimulationRepository, SimulationRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -127,43 +136,40 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
 builder.Services.AddScoped<ISupplierOrderRepository, SupplierOrderRepository>();
+
 var app = builder.Build();
 
-// Ensure database is created and apply migrations
+// Ensure database exists and apply migrations
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        // This will create the database if it doesn't exist and apply all migrations
         context.Database.EnsureCreated();
         Console.WriteLine("Database ensured and ready.");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Error ensuring database: {ex.Message}");
-        // Don't fail the startup, just log the error
     }
 }
 
-// Configure the HTTP request pipeline.
+// Configure middleware
 if (app.Environment.IsDevelopment())
-{  
+{
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERPNumber1 API v1"));
 }
 
 app.UseHttpsRedirection();
-
-// Enable CORS
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SimulationHub>("/simulationHub");
 
 app.Run();
 
-// Make Program class accessible for testing
+// Allow integration testing
 public partial class Program { }
