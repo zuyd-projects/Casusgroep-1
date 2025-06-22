@@ -25,6 +25,13 @@ export default function SimulationStatus() {
     setLocalTimeLeft(roundTimeLeft);
   }, [roundTimeLeft]);
 
+  // Reset local timer when simulation stops
+  useEffect(() => {
+    if (!isRunning) {
+      setLocalTimeLeft(0);
+    }
+  }, [isRunning]);
+
   // Local countdown timer for smoother updates
   useEffect(() => {
     let timer;

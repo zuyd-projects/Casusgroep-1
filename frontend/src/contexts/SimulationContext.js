@@ -45,6 +45,7 @@ export function SimulationProvider({ children }) {
 
     const unsubscribeStopped = simulationService.onSimulationStopped((data) => {
       console.log('📢 Context: Simulation stopped event', data);
+      // Clear all simulation state
       setCurrentSimulation(null);
       setCurrentRound(null);
       setIsRunning(false);
@@ -64,6 +65,7 @@ export function SimulationProvider({ children }) {
     });
 
     const unsubscribeConnection = simulationService.onConnectionStateChanged((data) => {
+      console.log('📡 Connection state changed:', data);
       setIsConnected(data.state === 'connected');
       if (data.state === 'connected' && data.reconnected && currentSimulation) {
         // Rejoin simulation group after reconnection
@@ -77,7 +79,7 @@ export function SimulationProvider({ children }) {
       unsubscribeNewRound();
       unsubscribeConnection();
     };
-  }, [roundDuration]);
+  }, [roundDuration, currentSimulation]);
 
   const runSimulation = useCallback(async (simulationId) => {
     try {
@@ -101,11 +103,23 @@ export function SimulationProvider({ children }) {
 
   const stopSimulation = useCallback(async (simulationId) => {
     try {
+      console.log(`🛑 Stopping simulation ${simulationId}...`);
+      
+      // Clear local state immediately for instant UI feedback
+      setCurrentSimulation(null);
+      setCurrentRound(null);
+      setIsRunning(false);
+      setRoundTimeLeft(0);
+      
       await api.post(`/api/Simulations/${simulationId}/stop`);
       await simulationService.leaveSimulation(simulationId);
+      
+      console.log(`✅ Successfully stopped simulation ${simulationId}`);
       return true;
     } catch (error) {
-      console.error('Failed to stop simulation:', error);
+      console.error('❌ Failed to stop simulation:', error);
+      // If API call fails, we might want to restore state, but for now keep it cleared
+      // since the user intended to stop the simulation
       throw error;
     }
   }, []);

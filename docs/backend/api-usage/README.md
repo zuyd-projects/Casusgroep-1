@@ -268,3 +268,36 @@ public async Task<ActionResult<Entity>> PostEntity(CreateEntityDto entityDto)
 ```
 
 This documentation should help developers understand and use the API effectively!
+
+## 🔄 Real-Time Features
+
+The ERP system includes a **real-time simulation system** using SignalR WebSockets for live updates during simulation runs.
+
+### Key Features
+- **Live Round Updates**: New rounds created every 30 seconds (configurable)  
+- **WebSocket Communication**: Real-time events via SignalR
+- **Multi-User Support**: All users see synchronized simulation state
+- **Header Status Display**: Current simulation and round info always visible
+
+### Quick Start
+```bash
+# Start a simulation
+POST /api/Simulations/{id}/run
+
+# Stop a simulation  
+POST /api/Simulations/{id}/stop
+
+# Check simulation status
+GET /api/Simulations/{id}/status
+```
+
+### Documentation
+For complete real-time implementation details, see:
+**📖 [Real-Time Simulations Guide](../real-time-simulations.md)**
+
+Covers:
+- SignalR connection setup
+- WebSocket event handling  
+- Frontend React integration
+- Configuration options
+- Troubleshooting guide
