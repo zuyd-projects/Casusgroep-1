@@ -78,7 +78,7 @@ namespace ERPNumber1.Controllers
 
             try
             {
-                //await _context.SaveChangesAsync();
+               
                 
                 await _eventLogService.LogEventAsync($"Product_{id}", "Product Updated", 
                     "ProductsController", "Product", "Completed", 

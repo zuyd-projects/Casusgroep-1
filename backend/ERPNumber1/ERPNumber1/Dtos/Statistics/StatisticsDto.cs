@@ -1,8 +1,6 @@
-﻿using System.Text.Json.Serialization;
-
-namespace ERPNumber1.Models
+﻿namespace ERPNumber1.Dtos.Statistics
 {
-    public class Statistics
+    public class StatisticsDto
     {
         public int Id { get; set; }
         public int SimulationId { get; set; }
@@ -10,12 +8,7 @@ namespace ERPNumber1.Models
         public float DeliveryRate { get; set; }
         public float Revenue { get; set; }
         public float Cost { get; set; }
-        public float NetProfit { get; set; }    
-        [JsonIgnore]
-        public Simulation? Simulation { get; set; }
-
-        public Statistics() { }
-
-        
+        public float NetProfit { get; set; }
     }
 }
+

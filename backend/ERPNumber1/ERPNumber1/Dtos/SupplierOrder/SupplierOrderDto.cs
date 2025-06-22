@@ -1,10 +1,11 @@
-namespace ERPNumber1.Dtos.SupplierOrder
+﻿namespace ERPNumber1.Dtos.SupplierOrder
 {
-    public class CreateSupplierOrderDto
+    public class SupplierOrderDto
     {
+        public int Id { get; set; }
         public string AppUserId { get; set; }
-        public int Quantity { get; set; }
         public int OrderId { get; set; }
+        public int Quantity { get; set; }
         public string? Status { get; set; }
         public int RoundNumber { get; set; }
         public bool IsRMA { get; set; }
