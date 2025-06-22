@@ -40,6 +40,9 @@ jobs:
           CONFIG_FILE=infra/configs/frontend-vm.json
           PROXY_IMAGE=${{ steps.build-proxy.outputs.image }}
 
+          git fetch origin config
+          git checkout -B config origin/config
+
           cp $CONFIG_FILE $CONFIG_FILE.bak
 
           jq --arg proxy "$PROXY_IMAGE" '(.containers[] | select(.name == "proxy") | .image) = $proxy | .lastUpdated = (now | strftime("%Y-%m-%dT%H:%M:%SZ"))' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
