@@ -14,6 +14,8 @@ namespace ERPNumber1.Services
         private readonly IConfiguration _configuration;
         private readonly Dictionary<int, Timer> _runningSimulations = new();
         private readonly Dictionary<int, int> _currentRounds = new();
+        private readonly Dictionary<int, DateTime> _roundStartTimes = new();
+        private readonly Dictionary<int, Timer> _timerUpdateTimers = new();
 
         public SimulationService(IServiceScopeFactory serviceScopeFactory, IHubContext<SimulationHub> hubContext, IConfiguration configuration)
         {
@@ -65,7 +67,11 @@ namespace ERPNumber1.Services
             // Notify ALL clients that simulation started (company-wide notification)
             Console.WriteLine($"Notifying ALL clients that simulation {simulationId} started");
             await _hubContext.Clients.All
-                .SendAsync("SimulationStarted", new { simulationId, roundDuration = GetRoundDurationSeconds() });
+                .SendAsync("SimulationStarted", new { 
+                    simulationId, 
+                    roundDuration = GetRoundDurationSeconds(),
+                    startTime = DateTime.UtcNow.ToString("O")
+                });
 
             return true;
         }
@@ -77,6 +83,14 @@ namespace ERPNumber1.Services
                 timer.Dispose();
                 _runningSimulations.Remove(simulationId);
                 _currentRounds.Remove(simulationId);
+                _roundStartTimes.Remove(simulationId);
+
+                // Stop timer update broadcasts
+                if (_timerUpdateTimers.TryGetValue(simulationId, out var updateTimer))
+                {
+                    updateTimer.Dispose();
+                    _timerUpdateTimers.Remove(simulationId);
+                }
 
                 // Notify ALL clients that simulation stopped (company-wide notification)
                 await _hubContext.Clients.All
@@ -106,6 +120,19 @@ namespace ERPNumber1.Services
         public Task<bool> IsSimulationRunningAsync(int simulationId)
         {
             return Task.FromResult(_runningSimulations.ContainsKey(simulationId));
+        }
+
+        public int GetRemainingTimeForCurrentRound(int simulationId)
+        {
+            if (!_roundStartTimes.ContainsKey(simulationId))
+                return 0;
+
+            var roundStart = _roundStartTimes[simulationId];
+            var elapsed = DateTime.UtcNow - roundStart;
+            var roundDuration = GetRoundDurationSeconds();
+            var remaining = roundDuration - (int)elapsed.TotalSeconds;
+            
+            return Math.Max(0, remaining);
         }
 
         private async Task CreateAndStartNewRound(int simulationId)
@@ -143,6 +170,17 @@ namespace ERPNumber1.Services
                 Console.WriteLine($"Saved round {nextRoundNumber} to database with ID {newRound.Id}");
 
                 _currentRounds[simulationId] = nextRoundNumber;
+                _roundStartTimes[simulationId] = DateTime.UtcNow; // Set start time AFTER database save
+
+                // Set up timer to send periodic updates to clients (every second)
+                if (_timerUpdateTimers.ContainsKey(simulationId))
+                {
+                    _timerUpdateTimers[simulationId].Dispose();
+                }
+
+                var updateTimer = new Timer(async _ => await SendTimerUpdate(simulationId), 
+                                          null, 1000, 1000); // Update every second
+                _timerUpdateTimers[simulationId] = updateTimer;
 
                 // Notify ALL clients about the new round (company-wide notification)
                 Console.WriteLine($"Notifying ALL clients about new round {nextRoundNumber} for simulation {simulationId}");
@@ -152,7 +190,8 @@ namespace ERPNumber1.Services
                         simulationId, 
                         roundId = newRound.Id,
                         roundNumber = nextRoundNumber,
-                        duration = GetRoundDurationSeconds()
+                        duration = GetRoundDurationSeconds(),
+                        startTime = DateTime.UtcNow.ToString("O") // ISO 8601 format
                     });
             }
             catch (Exception ex)
@@ -163,6 +202,36 @@ namespace ERPNumber1.Services
                 
                 // If there's an error, stop the simulation to prevent further errors
                 await StopSimulationAsync(simulationId);
+            }
+        }
+
+        private async Task SendTimerUpdate(int simulationId)
+        {
+            try
+            {
+                if (!_runningSimulations.ContainsKey(simulationId))
+                    return;
+
+                var remainingTime = GetRemainingTimeForCurrentRound(simulationId);
+                
+                // Send timer update to all clients in the simulation group
+                await _hubContext.Clients.Group($"simulation_{simulationId}")
+                    .SendAsync("TimerUpdate", new { 
+                        simulationId, 
+                        timeLeft = remainingTime,
+                        timestamp = DateTime.UtcNow.ToString("O"),
+                        syncType = "periodic"
+                    });
+                
+                // Log periodically to track timer broadcasts
+                if (remainingTime % 10 == 0 || remainingTime <= 5)
+                {
+                    Console.WriteLine($"Broadcasted timer update to simulation_{simulationId}: {remainingTime}s remaining");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending timer update for simulation {simulationId}: {ex.Message}");
             }
         }
     }

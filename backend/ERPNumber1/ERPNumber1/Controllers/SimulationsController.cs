@@ -153,6 +153,9 @@ namespace ERPNumber1.Controllers
 
             var isRunning = await _simulationService.IsSimulationRunningAsync(id);
             var currentRound = await _simulationService.GetCurrentRoundAsync(id);
+            var remainingTime = isRunning ? _simulationService.GetRemainingTimeForCurrentRound(id) : 0;
+
+            Console.WriteLine($"Status request for simulation {id}: isRunning={isRunning}, currentRound={currentRound?.RoundNumber ?? 0}, remainingTime={remainingTime}");
 
             return Ok(new
             {
@@ -161,7 +164,9 @@ namespace ERPNumber1.Controllers
                 currentRound = currentRound != null
                     ? new { currentRound.Id, currentRound.RoundNumber }
                     : null,
-                roundDuration = _simulationService.GetRoundDurationSeconds()
+                roundDuration = _simulationService.GetRoundDurationSeconds(),
+                timeLeft = remainingTime,
+                timestamp = DateTime.UtcNow.ToString("O")
             });
         }
     }
