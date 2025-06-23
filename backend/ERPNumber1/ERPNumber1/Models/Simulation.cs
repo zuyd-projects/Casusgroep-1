@@ -1,4 +1,6 @@
-﻿namespace ERPNumber1.Models
+﻿using System.Text.Json.Serialization;
+
+namespace ERPNumber1.Models
 {
     public class Simulation
     {
@@ -7,7 +9,8 @@
         public DateTime Date { get; set; }
 
         // Navigation
-        public required ICollection<Round> Rounds { get; set; } = new List<Round>();
+        [JsonIgnore]
+        public ICollection<Round>? Rounds { get; set; } = new List<Round>();
         
         // Default constructor for EF Core
         public Simulation() 

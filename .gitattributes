@@ -1,0 +1,2 @@
+infra/configs/*.enc     binary
+infra/configs/*.key.enc binary

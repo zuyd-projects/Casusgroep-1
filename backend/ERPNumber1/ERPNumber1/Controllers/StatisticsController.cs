@@ -4,6 +4,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Extensions;
+using ERPNumber1.Attributes;
+using ERPNumber1.Dtos.Statistics;
+using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
 {
@@ -12,14 +17,17 @@ namespace ERPNumber1.Controllers
     public class StatisticsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IEventLogService _eventLogService;
 
-        public StatisticsController(AppDbContext context)
+        public StatisticsController(AppDbContext context, IEventLogService eventLogService)
         {
             _context = context;
+            _eventLogService = eventLogService;
         }
 
         // GET: api/Statistics
         [HttpGet]
+        [LogEvent("Statistics", "Get All Statistics")]
         public async Task<ActionResult<IEnumerable<Statistics>>> GetStatistics()
         {
             return await _context.Statistics.ToListAsync();
@@ -27,12 +35,17 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Statistics/5
         [HttpGet("{id}")]
+        [LogEvent("Statistics", "Get Statistics by ID")]
         public async Task<ActionResult<Statistics>> GetStatistics(int id)
         {
             var statistics = await _context.Statistics.FindAsync(id);
 
             if (statistics == null)
             {
+                await _eventLogService.LogEventAsync($"Statistics_{id}", "Statistics Retrieval Failed", 
+                    "StatisticsController", "Statistics", "Failed", 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Statistics not found" }), 
+                    id.ToString());
                 return NotFound();
             }
 
@@ -42,14 +55,20 @@ namespace ERPNumber1.Controllers
         // PUT: api/Statistics/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutStatistics(int id, Statistics statistics)
+        public async Task<IActionResult> PutStatistics(int id, UpdateStatisticsDto statisticsDto)
         {
-            if (id != statistics.Id)
+            var statistics = await _context.Statistics.FindAsync(id);
+            if (statistics == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
-            _context.Entry(statistics).State = EntityState.Modified;
+            statistics.SimulationId = statisticsDto.SimulationId;
+            statistics.TotalOrders = statisticsDto.TotalOrders;
+            statistics.DeliveryRate = statisticsDto.DeliveryRate;
+            statistics.Revenue = statisticsDto.Revenue;
+            statistics.Cost = statisticsDto.Cost;
+            statistics.NetProfit = statisticsDto.NetProfit;
 
             try
             {
@@ -73,8 +92,18 @@ namespace ERPNumber1.Controllers
         // POST: api/Statistics
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Statistics>> PostStatistics(Statistics statistics)
+        public async Task<ActionResult<Statistics>> PostStatistics(CreateStatisticsDto statisticsDto)
         {
+            var statistics = new Statistics
+            {
+                SimulationId = statisticsDto.SimulationId,
+                TotalOrders = statisticsDto.TotalOrders,
+                DeliveryRate = statisticsDto.DeliveryRate,
+                Revenue = statisticsDto.Revenue,
+                Cost = statisticsDto.Cost,
+                NetProfit = statisticsDto.NetProfit
+            };
+            
             _context.Statistics.Add(statistics);
             await _context.SaveChangesAsync();
 

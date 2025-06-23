@@ -6,72 +6,74 @@ data "azurerm_resource_group" "rg" {
   name = "2425-B2C6-B2C-3"
 }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "backendVNET"
-  address_space       = ["10.0.0.0/16"]
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+terraform {
+  backend "remote" {
+    organization = "Nummer1"
+    workspaces {
+      name = "Casusgroep-1"
+    }
+  }
 }
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "backendSubnet"
+module "network" {
+  source = "./network"
+
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+}
+
+module "frontend" {
+  source = "./frontend"
+
   resource_group_name  = data.azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
+  location             = data.azurerm_resource_group.rg.location
+  vnet_name            = module.network.vnet_name
+  public_ip_id         = module.network.public_ip_id
+  admin_ssh_public_key = var.admin_ssh_public_key
+  cloud_init = base64encode(templatefile("cloud-init.yaml", {
+    private_key = var.private_key
+    gh_token    = var.github_token
+  }))
 
-resource "azurerm_network_interface" "nic" {
-  name                = "nic-linux-docker"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
-
-  ip_configuration {
-    name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.public_ip.id
-  }
-}
-
-resource "azurerm_public_ip" "public_ip" {
-  name                = "pip-linux-docker"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
-}
-
-resource "azurerm_linux_virtual_machine" "vm" {
-  name                            = "vm-linux-docker"
-  resource_group_name             = data.azurerm_resource_group.rg.name
-  location                        = data.azurerm_resource_group.rg.location
-  size                            = "Standard_B1s"
-  admin_username                  = var.admin_username
-  admin_password                  = var.admin_password
-  disable_password_authentication = false
-
-  network_interface_ids = [
-    azurerm_network_interface.nic.id,
+  depends_on = [
+    module.network,
+    module.backend
   ]
+}
 
-  os_disk {
-    name                 = "disk-linux-docker"
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
+module "backend" {
+  source = "./backend"
 
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
-    version   = "latest"
-  }
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  vnet_name           = module.network.vnet_name
+  public_ip_id        = module.network.public_ip_id
+  admin_password      = var.admin_password
+  cloud_init = base64encode(templatefile("cloud-init.yaml", {
+    private_key = var.private_key
+    gh_token    = var.github_token
+  }))
 
-  computer_name      = "linuxdocker"
-  provision_vm_agent = true
+  depends_on = [
+    module.network,
+    module.database
+  ]
+}
 
-  custom_data = base64encode(file("cloud-init.yaml"))
+module "database" {
+  source = "./database"
 
-  tags = {
-    environment = "dev"
-  }
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  vnet_name           = module.network.vnet_name
+  public_ip_id        = module.network.public_ip_id
+  admin_password      = var.admin_password
+  cloud_init = base64encode(templatefile("cloud-init.yaml", {
+    private_key = var.private_key
+    gh_token    = var.github_token
+  }))
+
+  depends_on = [
+    module.network
+  ]
 }

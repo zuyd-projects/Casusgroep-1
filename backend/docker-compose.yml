@@ -6,8 +6,7 @@ services:
       context: ./ERPNumber1
       dockerfile: ERPNumber1/Dockerfile
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - '8080:8080'
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=SimulationDb;User Id=sa;Password=Your_password123!;TrustServerCertificate=True;
@@ -25,11 +24,15 @@ services:
       ACCEPT_EULA: 1
       MSSQL_DB: SimulationDb
     ports:
-      - "1433:1433"
+      - '1433:1433'
     volumes:
-      - sqlserver_data:/var/opt/mssql
+      - sqlserver_data_backend:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Your_password123!' -C -Q 'SELECT 1' || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Your_password123!' -C -Q 'SELECT 1' || exit 1",
+        ]
       timeout: 20s
       retries: 10
       interval: 10s
@@ -37,7 +40,7 @@ services:
       - app-network
 
 volumes:
-  sqlserver_data:
+  sqlserver_data_backend:
 
 networks:
   app-network:

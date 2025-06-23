@@ -10,6 +10,7 @@ const navItems = [
   { label: "Customers", href: "/dashboard/customers" },
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Account Manager", href: "/dashboard/accountManager" },
+  { label: "Process Mining", href: "/dashboard/process-mining" },
   {
     label: "Products",
     children: [
@@ -18,6 +19,7 @@ const navItems = [
       { label: "Product C", href: "/dashboard/products/c" },
     ],
   },
+  { label: "Admin", href: "/dashboard/admin" },
   { label: "Settings", href: "/dashboard/settings" },
 ];
 
@@ -29,7 +31,7 @@ function SidebarItem({ item, pathname }) {
 
   const baseClass =
     "flex items-center justify-between px-4 py-2 rounded-lg transition-all font-medium";
-  const activeClass = "bg-pink-400/80 text-white shadow";
+  const activeClass = "bg-purple-800 text-white shadow-md";
   const inactiveClass = "text-white/90 hover:bg-white/10 hover:text-white";
 
   if (!item.children) {
@@ -77,8 +79,8 @@ function SidebarItem({ item, pathname }) {
               href={child.href}
               className={`block px-4 py-2 rounded-lg transition-colors font-medium ${
                 pathname === child.href
-                  ? "bg-cyan-400/80 text-white shadow"
-                  : "text-white/80 hover:bg-cyan-400/20 hover:text-white"
+                  ? "bg-pink-700 text-white shadow-md"
+                  : "text-white/80 hover:bg-pink-600/20 hover:text-white"
               }`}
             >
               {child.label}
@@ -94,10 +96,10 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 h-screen hidden lg:block bg-gradient-to-b from-[#7b2ff7] to-[#f107a3] text-white p-6 rounded-r-3xl shadow-2xl relative">
+    <aside className="w-60 h-screen hidden lg:block bg-gradient-to-b from-purple-600 to-pink-600 dark:from-purple-800 dark:to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative">
       <div className="flex items-center mb-10 px-2">
-        <span className="text-3xl font-extrabold tracking-wide drop-shadow">
-          ERP
+        <span className="text-3xl font-extrabold tracking-wide drop-shadow-lg text-white">
+          ERPNumber1
         </span>
       </div>
       <nav className="space-y-2">
@@ -106,7 +108,7 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="absolute bottom-8 left-0 w-full px-6">
-        <span className="text-white/70 text-sm">Settings</span>
+        <span className="text-white/70 text-sm">About</span>
       </div>
     </aside>
   );
