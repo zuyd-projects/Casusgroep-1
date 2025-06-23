@@ -373,7 +373,7 @@ class SimulationService {
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
       await this.connection.invoke('JoinSimulationGroup', simulationId.toString());
       this.currentSimulation = simulationId;
-      console.log(`✅ Successfully joined simulation group: ${simulationId}`);
+      console.log({% raw %}`✅ Successfully joined simulation group: ${simulationId}`{% endraw %});
     }
   }
 
@@ -479,10 +479,10 @@ function SimulationDashboard() {
     try {
       await simulationService.joinSimulation(simulationId);
       
-      const response = await fetch(`/api/Simulations/${simulationId}/run`, {
+      const response = await fetch({% raw %}`/api/Simulations/${simulationId}/run`{% endraw %}, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${getJwtToken()}`,
+          'Authorization': {% raw %}`Bearer ${getJwtToken()}`{% endraw %},
           'Content-Type': 'application/json'
         }
       });
@@ -504,7 +504,7 @@ function SimulationDashboard() {
           <div className="progress-bar">
             <div 
               className="progress" 
-              style={{ width: `${(timeLeft / 30) * 100}%` }}
+              style={% raw %}{{ width: `${(timeLeft / 30) * 100}%` }}{% endraw %}
             />
           </div>
         </div>
@@ -550,7 +550,7 @@ builder.Services.AddCors(options =>
 ```javascript
 {
   source: '/simulationHub/:path*',
-  destination: `${backendUrl}/simulationHub/:path*`
+  destination: {% raw %}`${backendUrl}/simulationHub/:path*`{% endraw %}
 }
 ```
 
