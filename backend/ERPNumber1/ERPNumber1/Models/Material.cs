@@ -12,18 +12,5 @@ namespace ERPNumber1.Models
         [JsonIgnore]
         public Product? product { get; set; }
 
-        public Material()
-        {
-        }
-
-        public Material(int id, int productId, string? name, float cost, int quantity, Product? product)
-        {
-            Id = id;
-            this.productId = productId;
-            this.name = name;
-            this.cost = cost;
-            this.quantity = quantity;
-            this.product = product;
-        }
     }
 }

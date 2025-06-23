@@ -1,27 +1,21 @@
 variable "resource_group_name" {
   description = "The name of the resource group where resources will be deployed"
-  type = string
+  type        = string
 }
 
 variable "location" {
   description = "The Azure region where resources will be deployed"
-  type = string
+  type        = string
 }
 
 variable "vnet_name" {
   description = "The name of the virtual network where the VM will be deployed"
-  type = string
+  type        = string
 }
 
 variable "public_ip_id" {
   description = "The ID of the public IP address to associate with the VM"
-  type = string
-}
-
-variable "private_key" {
-  default   = "Private key used for pulling configuration files from GitHub"
-  type      = string
-  sensitive = true
+  type        = string
 }
 
 variable "cloud_init" {
@@ -30,8 +24,8 @@ variable "cloud_init" {
   sensitive   = true
 }
 
-variable "admin_ssh_public_key" {
-  description = "The SSH public key to access the VM"
+variable "admin_password" {
+  description = "The SSH password to access the VM"
   type        = string
   sensitive   = true
 }

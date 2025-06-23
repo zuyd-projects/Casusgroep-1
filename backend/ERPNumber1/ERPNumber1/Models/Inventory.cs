@@ -12,18 +12,6 @@ namespace ERPNumber1.Models
         [JsonIgnore]
         public AppUser? AppUser { get; set; }
         [JsonIgnore]
-        public List<Material>? Materials { get; set; }
-       
-
-        public Inventory()
-        {
-        }
-        public Inventory(int id, string? name, int quantity, List<Material>? materials)
-        {
-            Id = id;
-            Name = name;
-            Quantity = quantity;
-            Materials = materials;
-        }
+        public List<Material>? Materials { get; set; } = new List<Material>();
     }
 }

@@ -30,7 +30,6 @@ module "frontend" {
   vnet_name            = module.network.vnet_name
   public_ip_id         = module.network.public_ip_id
   admin_ssh_public_key = var.admin_ssh_public_key
-  private_key          = var.private_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
   }))
@@ -44,12 +43,11 @@ module "frontend" {
 module "backend" {
   source = "./backend"
 
-  resource_group_name  = data.azurerm_resource_group.rg.name
-  location             = data.azurerm_resource_group.rg.location
-  vnet_name            = module.network.vnet_name
-  public_ip_id         = module.network.public_ip_id
-  admin_ssh_public_key = var.admin_ssh_public_key
-  private_key          = var.private_key
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  vnet_name           = module.network.vnet_name
+  public_ip_id        = module.network.public_ip_id
+  admin_password      = var.admin_password
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
   }))
@@ -63,12 +61,11 @@ module "backend" {
 module "database" {
   source = "./database"
 
-  resource_group_name  = data.azurerm_resource_group.rg.name
-  location             = data.azurerm_resource_group.rg.location
-  vnet_name            = module.network.vnet_name
-  public_ip_id         = module.network.public_ip_id
-  admin_ssh_public_key = var.admin_ssh_public_key
-  private_key          = var.private_key
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  vnet_name           = module.network.vnet_name
+  public_ip_id        = module.network.public_ip_id
+  admin_password      = var.admin_password
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
   }))

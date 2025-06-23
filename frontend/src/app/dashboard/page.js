@@ -4,34 +4,167 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
-import { orders, dashboardStats } from '@CASUSGROEP1/utils/mockData';
 import { api } from '@CASUSGROEP1/utils/api';
-import { AlertTriangle, TrendingUp, Activity, Clock } from 'lucide-react';
+import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
+import { AlertTriangle, TrendingUp, Activity, Clock, Play, Plus } from 'lucide-react';
 
 export default function Dashboard() {
   const [processMiningData, setProcessMiningData] = useState(null);
   const [deliveryPredictions, setDeliveryPredictions] = useState(null);
+  const [recentSimulations, setRecentSimulations] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalRevenue: 0,
+    activeCustomers: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  const { runSimulation, currentSimulation, currentRound, isRunning } = useSimulation();
+
+  const handleRunSimulation = async (simulationId) => {
+    try {
+      await runSimulation(simulationId);
+    } catch (error) {
+      console.error('Failed to run simulation from dashboard:', error);
+      // You could add a toast notification here
+    }
+  };
 
   useEffect(() => {
-    // Fetch process mining overview data
-    const fetchProcessMiningData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [anomaliesRes, predictionsRes] = await Promise.all([
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [
+          anomaliesRes, 
+          predictionsRes, 
+          simulationsRes, 
+          ordersRes
+        ] = await Promise.all([
           api.get('/api/ProcessMining/anomalies'),
-          api.get('/api/ProcessMining/delivery-predictions')
+          api.get('/api/ProcessMining/delivery-predictions'),
+          api.get('/api/Simulations'),
+          api.get('/api/Order')
         ]);
+
         setProcessMiningData(anomaliesRes);
         setDeliveryPredictions(predictionsRes);
+        
+        // Get the 3 most recent simulations
+        setRecentSimulations(simulationsRes.slice(-3).reverse());
+        
+        // Process orders data
+        const formattedOrders = ordersRes.map(order => ({
+          id: order.id.toString(),
+          customer: `User ${order.appUserId}`,
+          date: new Date(order.orderDate).toLocaleDateString(),
+          amount: order.quantity * 100, // Calculate price (100 per unit)
+          status: 'processing', // Default status
+          motorType: order.motorType,
+          quantity: order.quantity,
+          signature: order.signature,
+          roundId: order.roundId,
+          originalOrder: order
+        }));
+        
+        // Get 5 most recent orders
+        setRecentOrders(formattedOrders.slice(-5).reverse());
+        
+        // Calculate dashboard stats from real data
+        const totalOrders = ordersRes.length;
+        const totalRevenue = ordersRes.reduce((sum, order) => sum + (order.quantity * 100), 0);
+        const uniqueUsers = new Set(ordersRes.map(order => order.appUserId)).size;
+        const pendingOrders = predictionsRes?.delayedOrders || 0;
+        
+        setDashboardStats({
+          totalOrders,
+          pendingOrders,
+          totalRevenue,
+          activeCustomers: uniqueUsers
+        });
+        
       } catch (error) {
-        console.error('Error fetching process mining data:', error);
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProcessMiningData();
+    fetchDashboardData();
   }, []);
 
-  // Get just the 5 most recent orders
-  const recentOrders = orders.slice(0, 5);
+  // Refetch when round changes to get updated data
+  useEffect(() => {
+    if (currentRound && !loading) {
+      console.log('🔄 Round changed, refetching dashboard data for round:', currentRound.number);
+      // Only refetch process mining and orders data, not simulations
+      const fetchUpdatedData = async () => {
+        try {
+          const [predictionsRes, ordersRes] = await Promise.all([
+            api.get('/api/ProcessMining/delivery-predictions'),
+            api.get('/api/Order')
+          ]);
+
+          setDeliveryPredictions(predictionsRes);
+          
+          const formattedOrders = ordersRes.map(order => ({
+            id: order.id.toString(),
+            customer: `User ${order.appUserId}`,
+            date: new Date(order.orderDate).toLocaleDateString(),
+            amount: order.quantity * 100,
+            status: 'processing',
+            motorType: order.motorType,
+            quantity: order.quantity,
+            signature: order.signature,
+            roundId: order.roundId,
+            originalOrder: order
+          }));
+          
+          setRecentOrders(formattedOrders.slice(-5).reverse());
+          
+          // Update stats
+          const totalOrders = ordersRes.length;
+          const totalRevenue = ordersRes.reduce((sum, order) => sum + (order.quantity * 100), 0);
+          const uniqueUsers = new Set(ordersRes.map(order => order.appUserId)).size;
+          const pendingOrders = predictionsRes?.delayedOrders || 0;
+          
+          setDashboardStats({
+            totalOrders,
+            pendingOrders,
+            totalRevenue,
+            activeCustomers: uniqueUsers
+          });
+        } catch (error) {
+          console.error('Error refreshing dashboard data:', error);
+        }
+      };
+      
+      fetchUpdatedData();
+    }
+  }, [currentRound?.number, loading]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-zinc-500 dark:text-zinc-400">Loading dashboard data...</p>
+        </div>
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="h-48 bg-gray-200 rounded-lg"></div>
+          <div className="h-48 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -62,10 +195,76 @@ export default function Dashboard() {
         
         <Card className="flex flex-col">
           <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Active Customers</div>
-          <div className="text-3xl font-bold mt-1">78</div>
-          <div className="text-sm text-green-600 dark:text-green-400 mt-1">+5 new this week</div>
+          <div className="text-3xl font-bold mt-1">{dashboardStats.activeCustomers}</div>
+          <div className="text-sm text-green-600 dark:text-green-400 mt-1">Unique users with orders</div>
         </Card>
       </div>
+
+      {/* Simulations Overview */}
+      <Card title="🎯 Recent Simulations" className="border-purple-200 dark:border-purple-800">
+        <div className="space-y-4">
+          {recentSimulations.length === 0 ? (
+            <div className="text-center py-6">
+              <Play className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
+              <p className="text-zinc-500 dark:text-zinc-400 mb-3">No simulations created yet</p>
+              <Link 
+                href="/dashboard/simulations"
+                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Simulation
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {recentSimulations.map((simulation) => (
+                  <div key={simulation.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-zinc-900 dark:text-zinc-100">{simulation.name}</div>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                        Created {new Date(simulation.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      {currentSimulation === simulation.id && isRunning ? (
+                        <span className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md">
+                          <Play className="h-3 w-3 mr-1" />
+                          Running {currentRound?.number ? `- Round ${currentRound.number}` : ''}
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => handleRunSimulation(simulation.id)}
+                          disabled={isRunning && currentSimulation !== simulation.id}
+                          className="inline-flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Run
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between pt-2">
+                <Link 
+                  href="/dashboard/simulations"
+                  className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                >
+                  View all simulations &rarr;
+                </Link>
+                <Link 
+                  href="/dashboard/simulations"
+                  className="inline-flex items-center px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  New Simulation
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
 
       {/* Process Mining & Planner Overview */}
       {(processMiningData || deliveryPredictions) && (
@@ -120,7 +319,9 @@ export default function Dashboard() {
                 {deliveryPredictions.warnings.slice(0, 2).map((warning, index) => (
                   <div key={index} className="text-xs p-3 bg-orange-50 dark:bg-orange-900/20 rounded border-l-4 border-orange-400">
                     <div className="font-medium">Order {warning.caseId}</div>
-                    <div className="text-orange-600">Levertijd wordt later - {warning.orderAge.toFixed(1)} dagen</div>
+                    <div className="text-orange-600">
+                      Levertijd wordt later - {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} dagen`}
+                    </div>
                     <div className="text-gray-600 dark:text-gray-400 mt-1">{warning.recommendedAction}</div>
                   </div>
                 ))}
@@ -145,24 +346,6 @@ export default function Dashboard() {
           </div>
         </Card>
       )}
-      
-      {/* Monthly sales chart */}
-      <Card title="Monthly Sales">
-        <div className="h-64 flex items-end justify-between space-x-2 px-6">
-          {dashboardStats.monthlySales.map((item) => {
-            const height = (item.sales / 3200) * 100;
-            return (
-              <div key={item.month} className="flex flex-col items-center">
-                <div 
-                  className="w-12 bg-blue-500 rounded-t" 
-                  style={{ height: `${height}%` }}
-                ></div>
-                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">{item.month}</div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
       
       {/* Recent orders */}
       <Card title="Recent Orders">
