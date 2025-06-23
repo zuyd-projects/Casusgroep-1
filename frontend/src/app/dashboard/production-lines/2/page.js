@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { CheckCircle, AlertCircle, Play, Clock, Package, Users, Settings } from 'lucide-react';
 import { api } from '@CASUSGROEP1/utils/api';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
+import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 
 const ProductionLine2Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -16,42 +17,69 @@ const ProductionLine2Dashboard = () => {
   const [updating, setUpdating] = useState(null); // Track which order is being updated
   const modelViewerRef = useRef(null);
 
-  // Fetch orders assigned to Production Line 2
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const allOrders = await api.get('/api/Order');
-        
-        // Filter orders assigned to Production Line 2
-        const productionLine2Orders = allOrders
-          .filter(order => {
-            const prodLine = order.productionLine ? order.productionLine.toString() : null;
-            return prodLine === '2';
-          })
-          .map(order => ({
-            id: order.id.toString(),
-            productName: `Motor ${order.motorType} - Assembly Unit`,
-            customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
-            quantity: order.quantity,
-            motorType: order.motorType,
-            status: order.productionStatus || order.status || 'In Queue',
-            orderDate: order.roundId || 1,
-            currentStep: 0,
-            originalOrder: order
-          }));
-          
-        setOrders(productionLine2Orders);
-      } catch (error) {
-        console.error('Failed to fetch Production Line 2 orders:', error);
-        setOrders([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { currentRound, currentSimulation, isRunning } = useSimulation();
 
+  // Fetch orders assigned to Production Line 2
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const allOrders = await api.get('/api/Order');
+      
+      // Filter orders assigned to Production Line 2 and only show relevant statuses
+      const productionLine2Orders = allOrders
+        .filter(order => {
+          const prodLine = order.productionLine ? order.productionLine.toString() : null;
+          const isAssignedToLine2 = prodLine === '2';
+          
+          // Only show orders that are pending, in production, or rejected (hide awaiting approval)
+          const relevantStatuses = [
+            'Pending', 
+            'InProduction', 
+            'In Progress',
+            'RejectedByAccountManager'
+          ];
+          const hasRelevantStatus = relevantStatuses.includes(order.status) || 
+                                  relevantStatuses.includes(order.productionStatus);
+          
+          return isAssignedToLine2 && hasRelevantStatus;
+        })
+        .sort((a, b) => a.id - b.id) // FIFO ordering by order ID
+        .map(order => ({
+          id: order.id.toString(),
+          productName: `Motor ${order.motorType} - Assembly Unit`,
+          customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
+          quantity: order.quantity,
+          motorType: order.motorType,
+          status: order.productionStatus || order.status || 'In Queue',
+          orderDate: order.roundId || 1,
+          currentStep: 0,
+          originalOrder: order
+        }));
+        
+      setOrders(productionLine2Orders);
+      console.log(`🏭 Production Line 2: Loaded ${productionLine2Orders.length} orders`);
+    } catch (error) {
+      console.error('Failed to fetch Production Line 2 orders:', error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Refetch orders when round changes
+  useEffect(() => {
+    if (currentRound) {
+      console.log(
+        "🔄 Round changed, refetching orders for Production Line 2. Round:",
+        currentRound.number
+      );
+      fetchOrders();
+    }
+  }, [currentRound?.number]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -91,24 +119,14 @@ const ProductionLine2Dashboard = () => {
     }
   };
 
-  const handleCompleteOrder = async () => {
+  const handleSendForReview = async () => {
     if (!selectedOrder) return;
     
     try {
-      // Update status in the API
-      await api.patch(`/api/Order/${selectedOrder.id}/status`, { 
-        status: 'Completed' 
-      }).catch(err => {
-        console.warn('API status update not supported, updating locally:', err.message);
-      });
-      
-      // Update local state
-      setOrders((prevOrders) =>
-        prevOrders.filter((order) => order.id !== selectedOrder.id)
-      );
-      setSelectedOrder(null);
+      // Update status to awaiting account manager approval using the new updateOrderStatus function
+      await updateOrderStatus(selectedOrder.id, 'AwaitingAccountManagerApproval');
     } catch (error) {
-      console.error('Error completing order:', error);
+      console.error('Error sending order for review:', error);
     }
   };
 
@@ -116,12 +134,26 @@ const ProductionLine2Dashboard = () => {
     if (!selectedOrder) return;
     
     try {
-      // Remove from production line assignment
-      await api.put(`/api/Order/${selectedOrder.id}`, { 
-        productionLine: null 
-      }).catch(err => {
-        console.warn('API update not supported, updating locally:', err.message);
-      });
+      // Get the current order to preserve other properties
+      const currentOrder = orders.find(order => order.id === selectedOrder.id);
+      if (!currentOrder) {
+        console.error(`❌ Order ${selectedOrder.id} not found`);
+        return;
+      }
+
+      // Update via API with all required fields, removing production line assignment
+      const updateData = {
+        roundId: currentOrder.originalOrder.roundId || 1,
+        deliveryId: currentOrder.originalOrder.deliveryId,
+        appUserId: currentOrder.originalOrder.appUserId,
+        motorType: currentOrder.originalOrder.motorType,
+        quantity: currentOrder.originalOrder.quantity,
+        signature: currentOrder.originalOrder.signature,
+        productionLine: null,
+        status: currentOrder.originalOrder.status
+      };
+      
+      await api.put(`/api/Order/${selectedOrder.id}`, updateData);
       
       // Update local state
       setOrders((prevOrders) => {
@@ -130,8 +162,9 @@ const ProductionLine2Dashboard = () => {
         return filtered;
       });
       setSelectedOrder(null);
+      console.log(`✅ Order ${selectedOrder.id} removed from production line`);
     } catch (error) {
-      console.error('Error denying assembly:', error);
+      console.error('❌ Error removing order from production line:', error);
     }
   };
 
@@ -139,18 +172,29 @@ const ProductionLine2Dashboard = () => {
     if (!lastRemovedOrder) return;
     
     try {
-      // Restore to production line
-      await api.put(`/api/Order/${lastRemovedOrder.id}`, { 
-        productionLine: '2' 
-      }).catch(err => {
-        console.warn('API update not supported, updating locally:', err.message);
-      });
+      // Get the current order to preserve other properties
+      const currentOrder = lastRemovedOrder;
+      
+      // Update via API with all required fields, restoring to production line 2
+      const updateData = {
+        roundId: currentOrder.originalOrder.roundId || 1,
+        deliveryId: currentOrder.originalOrder.deliveryId,
+        appUserId: currentOrder.originalOrder.appUserId,
+        motorType: currentOrder.originalOrder.motorType,
+        quantity: currentOrder.originalOrder.quantity,
+        signature: currentOrder.originalOrder.signature,
+        productionLine: '2',
+        status: currentOrder.originalOrder.status
+      };
+      
+      await api.put(`/api/Order/${lastRemovedOrder.id}`, updateData);
       
       setOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'In Queue'}]);
       setRestoredOrderId(lastRemovedOrder.id);
       setLastRemovedOrder(null);
+      console.log(`✅ Order ${lastRemovedOrder.id} restored to production line 2`);
     } catch (error) {
-      console.error('Error restoring order:', error);
+      console.error('❌ Error restoring order:', error);
     }
   };
 
@@ -161,7 +205,7 @@ const ProductionLine2Dashboard = () => {
       // Get the current order to preserve other properties
       const currentOrder = orders.find(order => order.id === orderId);
       if (!currentOrder) {
-        console.error(`Order ${orderId} not found`);
+        console.error(`❌ Order ${orderId} not found`);
         return;
       }
 
@@ -173,7 +217,9 @@ const ProductionLine2Dashboard = () => {
         motorType: currentOrder.originalOrder.motorType,
         quantity: currentOrder.originalOrder.quantity,
         signature: currentOrder.originalOrder.signature,
-        productionLine: currentOrder.originalOrder.productionLine,
+        productionLine: currentOrder.originalOrder.productionLine 
+          ? currentOrder.originalOrder.productionLine.toString().charAt(0) 
+          : null,
         status: newStatus
       };
       
@@ -193,7 +239,7 @@ const ProductionLine2Dashboard = () => {
       
       console.log(`✅ Status updated for order ${orderId} to ${newStatus}`);
     } catch (error) {
-      console.error('Failed to update status:', error);
+      console.error('❌ Failed to update status:', error);
     } finally {
       setUpdating(null);
     }
@@ -298,8 +344,6 @@ const ProductionLine2Dashboard = () => {
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {orders
-                    .slice()
-                    .sort((a, b) => a.orderDate - b.orderDate)
                     .map((order) => (
                       <div
                         key={order.id}
@@ -359,26 +403,6 @@ const ProductionLine2Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      {/* Status Change Section */}
-                      <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-900/20 rounded-lg">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400 mb-2 block">Change Status:</label>
-                        <select
-                          value={selectedOrder.status}
-                          onChange={(e) => updateOrderStatus(selectedOrder.id, e.target.value)}
-                          disabled={updating === selectedOrder.id}
-                          className="w-full text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="InProduction">In Production</option>
-                          <option value="Completed">Completed</option>
-                          <option value="AwaitingAccountManagerApproval">Awaiting Approval</option>
-                          <option value="ApprovedByAccountManager">Approved</option>
-                          <option value="RejectedByAccountManager">Rejected</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                      
                       <div className="flex space-x-3">
                         <button
                           className="flex-1 flex items-center justify-center px-4 py-3 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-800 transition-colors"
@@ -397,37 +421,17 @@ const ProductionLine2Dashboard = () => {
                     </>
                   )}
                   
-                  {(selectedOrder.status === 'In Production' || selectedOrder.status === 'InProduction') && (
+                  {(selectedOrder.status === 'In Progress' || selectedOrder.status === 'InProduction') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      {/* Status Change Section */}
-                      <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-900/20 rounded-lg">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400 mb-2 block">Change Status:</label>
-                        <select
-                          value={selectedOrder.status}
-                          onChange={(e) => updateOrderStatus(selectedOrder.id, e.target.value)}
-                          disabled={updating === selectedOrder.id}
-                          className="w-full text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="InProduction">In Production</option>
-                          <option value="Completed">Completed</option>
-                          <option value="AwaitingAccountManagerApproval">Awaiting Approval</option>
-                          <option value="ApprovedByAccountManager">Approved</option>
-                          <option value="RejectedByAccountManager">Rejected</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                      
                       <div className="flex space-x-3">
                         <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
-                          onClick={handleCompleteOrder}
+                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                          onClick={handleSendForReview}
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          Complete Order
+                          Send for Review
                         </button>
                         <button
                           className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
