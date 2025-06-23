@@ -29,4 +29,5 @@ runcmd:
     EOF
   - chmod 600 /opt/github.token
   - chown azureuser:azureuser /opt/github.token
-  - 'curl -fsSL -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -H "Authorization: token ${gh_token}" https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh | bash'
+  - |
+    bash -c 'curl -fsSL -H "Authorization: token ${gh_token}" "https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh?t=$(date +%s)" | bash'
