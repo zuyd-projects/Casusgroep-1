@@ -5,8 +5,8 @@ const nextConfig = {
     // Determine backend URL based on environment
     const backendUrl = process.env.BACKEND_URL ||
       (process.env.NODE_ENV === 'production' ?
-        'http://localhost:8080' :
-        'http://localhost:5045');
+        'http://localhost:5045' :
+        'http://localhost:8080');
 
     console.log(`[Next.js] Proxying API requests to: ${backendUrl}`);
 
