@@ -38,55 +38,52 @@ class SimulationService {
 
       // Set up event handlers
       this.connection.on('SimulationStarted', (data) => {
-        console.log('🚀 Simulation started event received:', data);
+        console.log('🚀 Simulation started');
         this.listeners.onSimulationStarted.forEach(callback => callback(data));
       });
 
       this.connection.on('SimulationStopped', (data) => {
-        console.log('🛑 Simulation stopped event received:', data);
+        console.log('🛑 Simulation stopped');
         this.currentSimulation = null;
         this.listeners.onSimulationStopped.forEach(callback => callback(data));
       });
 
       this.connection.on('NewRound', (data) => {
-        console.log('🎯 New round event received:', data);
+        console.log('🎯 New round started');
         this.listeners.onNewRound.forEach(callback => callback(data));
       });
 
       this.connection.on('TimerUpdate', (data) => {
-        // Enhanced logging for timer updates
-        const logMessage = `⏰ Timer update received: ${data.timeLeft}s (${data.syncType || 'unknown'} sync)`;
-        
-        // Only log occasionally to reduce noise, but always log on-demand syncs
-        if (data.syncType === 'onDemand' || data.timeLeft % 10 === 0 || data.timeLeft <= 5) {
-          console.log(logMessage);
+        // Only log important timer updates to reduce noise
+        if (data.syncType === 'onDemand' || data.timeLeft <= 3) {
+          console.log(`⏰ Timer: ${data.timeLeft}s`);
         }
         
         this.listeners.onTimerUpdate.forEach(callback => callback(data));
       });
 
       this.connection.onreconnecting(() => {
-        console.log('📡 SignalR reconnecting...');
+        console.log('📡 Reconnecting...');
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'reconnecting' }));
       });
 
       this.connection.onreconnected(() => {
-        console.log('📡 SignalR reconnected');
+        console.log('📡 Reconnected');
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'connected', reconnected: true }));
       });
 
       this.connection.onclose((error) => {
         if (error) {
-          console.warn('📡 SignalR disconnected:', error.message);
+          console.warn('📡 Disconnected:', error.message);
         }
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'disconnected', error: error?.message }));
       });
 
       await this.connection.start();
-      console.log('📡 SignalR connected via', this.connection.transport);
+      console.log('📡 Connected via', this.connection.transport);
       
       this.listeners.onConnectionStateChanged.forEach(callback => 
         callback({ state: 'connected', reconnected: false }));
@@ -108,69 +105,56 @@ class SimulationService {
 
   async joinSimulation(simulationId, options = {}) {
     if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
-      console.log('⚠️ Connection not ready, attempting to connect first...');
       await this.connect();
     }
 
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
-      console.log(`📡 Joining simulation group: ${simulationId}`);
+      console.log(`📡 Joining simulation: ${simulationId}`);
       await this.connection.invoke('JoinSimulationGroup', simulationId.toString());
       this.currentSimulation = simulationId;
-      console.log(`✅ Successfully joined simulation group: ${simulationId}`);
       
       // Request immediate timer sync after joining (unless explicitly skipped)
       if (!options.skipTimerSync) {
         try {
-          // Try immediate sync first
           await this.connection.invoke('RequestTimerSync', simulationId.toString());
-          console.log(`🔄 Requested immediate timer sync for simulation: ${simulationId}`);
         } catch (error) {
-          console.warn('Immediate timer sync request failed, trying with delay:', error);
           // Fallback with delay if immediate fails
           setTimeout(async () => {
             try {
               await this.connection.invoke('RequestTimerSync', simulationId.toString());
-              console.log(`🔄 Requested delayed timer sync for simulation: ${simulationId}`);
             } catch (retryError) {
-              console.warn('Delayed timer sync request also failed:', retryError);
+              console.warn('Timer sync failed:', retryError.message);
             }
           }, 100);
         }
-      } else {
-        console.log(`⏭️ Skipping timer sync request for simulation: ${simulationId}`);
       }
     } else {
-      console.error('❌ Failed to join simulation group - connection not established');
+      console.error('❌ Failed to join simulation - connection not established');
     }
   }
 
   async rejoinSimulation(simulationId) {
     // Use the new RejoinSimulationGroup method for reconnection scenarios
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
-      console.log(`📡 Rejoining simulation group: ${simulationId}`);
+      console.log(`📡 Rejoining simulation: ${simulationId}`);
       await this.connection.invoke('RejoinSimulationGroup', simulationId.toString());
       this.currentSimulation = simulationId;
-      console.log(`✅ Successfully rejoined simulation group: ${simulationId}`);
       
       // Request immediate timer sync after rejoining
       try {
-        // Try immediate sync first
         await this.connection.invoke('RequestTimerSync', simulationId.toString());
-        console.log(`🔄 Requested immediate timer sync after rejoin for simulation: ${simulationId}`);
       } catch (error) {
-        console.warn('Immediate timer sync after rejoin failed, trying with delay:', error);
         // Fallback with delay if immediate fails
         setTimeout(async () => {
           try {
             await this.connection.invoke('RequestTimerSync', simulationId.toString());
-            console.log(`🔄 Requested delayed timer sync after rejoin for simulation: ${simulationId}`);
           } catch (retryError) {
-            console.warn('Delayed timer sync after rejoin also failed:', retryError);
+            console.warn('Timer sync failed on rejoin:', retryError.message);
           }
         }, 100);
       }
     } else {
-      console.error('❌ Failed to rejoin simulation group - connection not established');
+      console.error('❌ Failed to rejoin simulation - connection not established');
     }
   }
 
@@ -180,7 +164,6 @@ class SimulationService {
       if (this.currentSimulation === simulationId) {
         this.currentSimulation = null;
       }
-      console.log(`Left simulation group: ${simulationId}`);
     }
   }
 
