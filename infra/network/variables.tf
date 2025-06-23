@@ -12,6 +12,6 @@ variable "environment" {
 }
 
 locals {
-  name_prefix   = var.environment == "prod" ? "prod-" : var.environment == "staging-" ? "staging" : "dev-"
+  name_prefix   = var.environment == "prod" ? "prod-" : var.environment == "staging" ? "staging-" : "dev-"
   address_space = var.environment == "prod" ? ["10.0.0.0/16"] : var.environment == "staging" ? ["10.1.0.0/16"] : ["10.99.0.0/16"]
 }

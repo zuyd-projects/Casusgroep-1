@@ -36,7 +36,7 @@ variable "environment" {
 }
 
 locals {
-  name_prefix    = var.environment == "prod" ? "prod-" : var.environment == "staging-" ? "staging" : "dev-"
+  name_prefix    = var.environment == "prod" ? "prod-" : var.environment == "staging" ? "staging-" : "dev-"
   network_prefix = var.environment == "prod" ? "10.0" : var.environment == "staging" ? "10.1" : "10.99"
-  subnet_prefix  = "${local.network_prefix}.2"
+  subnet_prefix  = "${local.network_prefix}.1"
 }
