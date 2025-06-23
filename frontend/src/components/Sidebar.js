@@ -12,6 +12,7 @@ const navItems = [
   { label: "Account Manager", href: "/dashboard/accountManager" },
   { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Process Mining", href: "/dashboard/process-mining" },
+  { label: "Runner", href: "/dashboard/runner" },
   {
     label: "Products",
     children: [
