@@ -11,9 +11,6 @@ export default function PlanningPage() {
 
   const cycleRef = useRef(null);
 
-  // Lege connection string (placeholder)
-  const connectionString = '';
-
   const fetchOrders = async () => {
     setLoading(true);
     setMessage('');
@@ -51,10 +48,25 @@ export default function PlanningPage() {
     );
   };
 
+  const updateOrderLine = (index, newLine) => {
+    setOrders(prev =>
+      prev.map((order, i) =>
+        i === index ? { ...order, productielijn: newLine } : order
+      )
+    );
+  };
+
+  const saveOrder = (index) => {
+    const order = orders[index];
+    console.log(`Opslaan order:`, order);
+    // Hier kun je een echte API-aanroep doen om de order op te slaan
+    alert(`Order ${order.ordernummer} opgeslagen!`);
+  };
+
   const startCycle = () => {
     if (cycleRunning) return;
 
-    setCycleCount(1); // Start vanaf cyclus 1
+    setCycleCount(1);
     setCycleRunning(true);
 
     cycleRef.current = setInterval(() => {
@@ -71,8 +83,8 @@ export default function PlanningPage() {
         return updated;
       });
 
-      setCycleCount(prev => prev + 1); // Verhoog cyclusnummer
-    }, 20000); // 20 seconden per cyclus
+      setCycleCount(prev => prev + 1);
+    }, 20000);
   };
 
   const stopCycle = () => {
@@ -119,6 +131,7 @@ export default function PlanningPage() {
               <th className="border px-4 py-2">Grijs</th>
               <th className="border px-4 py-2">Productielijn</th>
               <th className="border px-4 py-2">Status</th>
+              <th className="border px-4 py-2">Actie</th>
             </tr>
           </thead>
           <tbody>
@@ -130,7 +143,17 @@ export default function PlanningPage() {
                 <td className="border px-4 py-2">{order.blauw}</td>
                 <td className="border px-4 py-2">{order.rood}</td>
                 <td className="border px-4 py-2">{order.grijs}</td>
-                <td className="border px-4 py-2">{order.productielijn}</td>
+                <td className="border px-4 py-2">
+                  <select
+                    value={order.productielijn}
+                    onChange={(e) => updateOrderLine(index, e.target.value)}
+                    className="p-1 border rounded bg-black text-white"
+                  >
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                  </select>
+                </td>
                 <td className="border px-4 py-2">
                   <select
                     value={order.status}
@@ -141,6 +164,14 @@ export default function PlanningPage() {
                     <option value="processed">Processed</option>
                     <option value="error">Error</option>
                   </select>
+                </td>
+                <td className="border px-4 py-2">
+                  <button
+                    onClick={() => saveOrder(index)}
+                    className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Opslaan
+                  </button>
                 </td>
               </tr>
             ))}
