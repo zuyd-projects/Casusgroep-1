@@ -86,7 +86,13 @@ export default function PlannerWarnings({ compact = false }) {
               <div className="text-xs">
                 <div className="font-medium">Order {warning.caseId}</div>
                 <div className="text-gray-600 dark:text-gray-400">
-                  Levertijd wordt later - {warning.orderAge.toFixed(1)} dagen
+                  {warning.roundsDelay !== undefined ? 
+                    (warning.roundsDelay > 0 ? 
+                      `${warning.roundsDelay} rounds overdue - Levertijd wordt later` :
+                      `Due by Round ${warning.expectedDeliveryRound} - Levertijd wordt later`
+                    ) :
+                    `Levertijd wordt later - ${warning.orderAge.toFixed(1)} dagen`
+                  }
                 </div>
               </div>
             </div>
@@ -104,7 +110,7 @@ export default function PlannerWarnings({ compact = false }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <div className="text-2xl font-bold text-blue-600">{predictions.totalOngoingOrders}</div>
           <div className="text-sm text-blue-500">Ongoing Orders</div>
@@ -116,6 +122,10 @@ export default function PlannerWarnings({ compact = false }) {
         <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
           <div className="text-2xl font-bold text-yellow-600">{predictions.atRiskOrders}</div>
           <div className="text-sm text-yellow-500">At Risk Orders</div>
+        </div>
+        <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+          <div className="text-2xl font-bold text-purple-600">{predictions.roundBasedDelays || 0}</div>
+          <div className="text-sm text-purple-500">3+ Rounds Delayed</div>
         </div>
         <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
           <div className="text-2xl font-bold text-green-600">
@@ -138,6 +148,15 @@ export default function PlannerWarnings({ compact = false }) {
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <div>Last Activity: {warning.lastActivity}</div>
                     <div>Order Age: {warning.orderAge.toFixed(1)} days | Expected: {warning.expectedDelivery.toFixed(1)} days</div>
+                    {warning.roundsDelay !== undefined && (
+                      <div className="text-red-600 font-medium">
+                        {warning.roundsDelay > 0 ? (
+                          <span>Rounds Overdue: {warning.roundsDelay} rounds past deadline (Expected by Round {warning.expectedDeliveryRound})</span>
+                        ) : (
+                          <span>Due Next Round: Must deliver by Round {warning.expectedDeliveryRound}</span>
+                        )}
+                      </div>
+                    )}
                     <div className="font-medium text-blue-600">Action: {warning.recommendedAction}</div>
                   </div>
                 </div>

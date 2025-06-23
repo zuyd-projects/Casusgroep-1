@@ -413,7 +413,73 @@ namespace ERPNumber1.Services
             var predictions = new List<object>();
             var warnings = new List<object>();
 
-            // Analyze ongoing orders
+            // Check for orders not delivered after 3 rounds
+            var ordersWithRoundInfo = await _context.Orders
+                .Include(o => o.Round)
+                .ThenInclude(r => r!.Simulation)
+                .Include(o => o.Deliveries)
+                .Where(o => o.Deliveries == null || !o.Deliveries.IsDelivered)
+                .ToListAsync();
+
+            // Get current round for each simulation
+            var currentRounds = await _context.Rounds
+                .GroupBy(r => r.SimulationId)
+                .Select(g => new { SimulationId = g.Key, MaxRound = g.Max(r => r.RoundNumber) })
+                .ToListAsync();
+
+            // Check orders that should have been delivered by now (3+ rounds from creation)
+            foreach (var order in ordersWithRoundInfo)
+            {
+                var currentRound = currentRounds.FirstOrDefault(cr => cr.SimulationId == order.Round?.SimulationId);
+                if (currentRound != null && order.Round != null)
+                {
+                    var roundsFromCreation = currentRound.MaxRound - order.Round.RoundNumber;
+                    // Orders should be delivered within 3 rounds of creation
+                    if (roundsFromCreation >= 3)
+                    {
+                        warnings.Add(new
+                        {
+                            Type = "Round-Based Delivery Delay",
+                            Severity = roundsFromCreation >= 5 ? "High" : "Medium",
+                            CaseId = $"Order_{order.Id}",
+                            Message = $"Order {order.Id} should have been delivered by round {order.Round.RoundNumber + 3} but is now in round {currentRound.MaxRound}. Levertijd wordt later.",
+                            OrderAge = (DateTime.UtcNow - order.OrderDate).TotalDays,
+                            ExpectedDelivery = 3.0, // Expected within 3 rounds
+                            LastActivity = $"Order Created in Round {order.Round.RoundNumber}",
+                            RecommendedAction = roundsFromCreation >= 5 
+                                ? "Critical: Order is severely overdue - immediate delivery required" 
+                                : "Order overdue - prioritize for delivery in current round",
+                            RoundsDelay = roundsFromCreation - 3, // How many rounds past the 3-round deadline
+                            OrderRound = order.Round.RoundNumber,
+                            CurrentRound = currentRound.MaxRound,
+                            ExpectedDeliveryRound = order.Round.RoundNumber + 3,
+                            SimulationId = order.Round.SimulationId
+                        });
+                    }
+                    // Also check orders that are approaching the 3-round deadline (in round 2)
+                    else if (roundsFromCreation == 2)
+                    {
+                        warnings.Add(new
+                        {
+                            Type = "Round-Based Delivery Warning",
+                            Severity = "Low",
+                            CaseId = $"Order_{order.Id}",
+                            Message = $"Order {order.Id} created in round {order.Round.RoundNumber} must be delivered by next round ({order.Round.RoundNumber + 3}) to meet deadline.",
+                            OrderAge = (DateTime.UtcNow - order.OrderDate).TotalDays,
+                            ExpectedDelivery = 3.0,
+                            LastActivity = $"Order Created in Round {order.Round.RoundNumber}",
+                            RecommendedAction = "Schedule for delivery in next round to meet 3-round deadline",
+                            RoundsDelay = 0, // Not yet delayed
+                            OrderRound = order.Round.RoundNumber,
+                            CurrentRound = currentRound.MaxRound,
+                            ExpectedDeliveryRound = order.Round.RoundNumber + 3,
+                            SimulationId = order.Round.SimulationId
+                        });
+                    }
+                }
+            }
+
+            // Analyze ongoing orders from event logs
             var ongoingOrders = recentEvents
                 .Where(e => e.EventType.ToLower().Contains("order"))
                 .GroupBy(e => e.CaseId)
@@ -487,11 +553,13 @@ namespace ERPNumber1.Services
             return new
             {
                 TotalOngoingOrders = ongoingOrders.Count(),
-                DelayedOrders = predictions.Count(p => ((dynamic)p).Status.ToString() == "Delayed"),
+                DelayedOrders = predictions.Count(p => ((dynamic)p).Status.ToString() == "Delayed") + warnings.Count(w => ((dynamic)w).Type.ToString() == "Round-Based Delivery Delay"),
                 AtRiskOrders = predictions.Count(p => ((dynamic)p).DelayRisk.ToString() == "High"),
                 AverageDeliveryTime = CalculateAverageDeliveryTime(recentEvents),
                 Predictions = predictions.OrderByDescending(p => ((dynamic)p).CurrentAge),
-                Warnings = warnings.OrderByDescending(w => ((dynamic)w).Severity == "High" ? 1 : 0)
+                Warnings = warnings.OrderByDescending(w => ((dynamic)w).Severity == "High" ? 2 : ((dynamic)w).Severity == "Medium" ? 1 : 0),
+                RoundBasedDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Round-Based Delivery Delay"),
+                RoundBasedWarnings = warnings.Count(w => ((dynamic)w).Type.ToString() == "Round-Based Delivery Warning")
             };
         }
 

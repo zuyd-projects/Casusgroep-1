@@ -75,7 +75,8 @@ namespace ERPNumber1.Controllers
                     motorType = orderModel.MotorType,
                     quantity = orderModel.Quantity,
                     orderDate = orderModel.OrderDate,
-                    signature = orderModel.Signature
+                    signature = orderModel.Signature,
+                    roundId = orderModel.RoundId
                 }, userId);
 
             return CreatedAtAction(nameof(GetOrder), new { id = orderModel.Id }, orderModel.ToOrderDto());
@@ -156,6 +157,31 @@ namespace ERPNumber1.Controllers
                 }, userId);
 
             return NoContent();
+        }
+
+        // Helper method to check and log round-based delivery delays
+        private Task CheckRoundBasedDelaysAsync()
+        {
+            // This could be called periodically or after order operations
+            // For now, we'll let the ProcessMining service handle this via the delivery predictions endpoint
+            return Task.CompletedTask;
+        }
+
+        // GET: api/Order/round-delays
+        [HttpGet("round-delays")]
+        [LogEvent("Order", "Check Round Delays")]
+        public ActionResult GetRoundBasedDelays()
+        {
+            try
+            {
+                // This endpoint can be called to specifically check for round-based delays
+                // The actual logic is implemented in the ProcessMining delivery predictions
+                return Ok(new { message = "Round-based delay checking is integrated into delivery predictions endpoint" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error checking round delays: {ex.Message}");
+            }
         }
     }
 }
