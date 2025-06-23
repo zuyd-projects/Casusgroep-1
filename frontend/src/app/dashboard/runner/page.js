@@ -108,7 +108,7 @@ const RunnerDashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Runner Dashboard</h2>
           <p className="text-gray-600 dark:text-gray-400">Overview of all orders and delivery destinations</p>
           <div className="flex justify-start mt-4 mb-2">
-            <span className="inline-flex items-center px-4 py-2 rounded-lg bg-orange-600 text-white text-base font-semibold dark:bg-orange-700">
+            <span className="inline-flex items-center px-4 py-2 rounded-lg bg-purple-600 text-white text-base font-semibold dark:bg-orange-700">
               Total Orders: {orders.length}
             </span>
           </div>
@@ -118,7 +118,7 @@ const RunnerDashboard = () => {
           {/* Left Container - All Orders */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div className="flex justify-between items-center mt-4 mb-4">
-              <h3 className="text-lg font-bold text-orange-700 dark:text-orange-400 mb-0">All Orders</h3>
+              <h3 className="text-lg font-bold text-purple-7cd 00 dark:text-orange-400 mb-0">All Orders</h3>
               <div className="flex items-center m-0">
                 <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
                 <span className="text-sm text-gray-600 dark:text-gray-400">Live</span>
