@@ -11,7 +11,7 @@ export default function OrderDetail({ params }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentStatus, setCurrentStatus] = useState('pending');
+  const [currentStatus, setCurrentStatus] = useState('Pending');
   const [updating, setUpdating] = useState(false);
 
   // Fetch order data on component mount
@@ -27,7 +27,7 @@ export default function OrderDetail({ params }) {
         if (orderData) {
           console.log('[Order Detail] Successfully fetched order data:', orderData);
           setOrder(orderData);
-          setCurrentStatus(orderData.status || 'pending');
+          setCurrentStatus(orderData.status || 'Pending');
         } else {
           console.warn(`[Order Detail] Order ${orderId} not found`);
           setError(`Order ${orderId} not found`);
@@ -52,7 +52,7 @@ export default function OrderDetail({ params }) {
       
       // Try to update via API if the backend supports it
       try {
-        await api.put(`/api/Order/${orderId}/status`, { status: newStatus });
+        await api.patch(`/api/Order/${orderId}/status`, { status: newStatus });
         console.log(`[Order Detail] Status updated via API to ${newStatus}`);
       } catch (apiError) {
         console.warn('[Order Detail] API status update not supported, updating locally:', apiError.message);
@@ -281,10 +281,14 @@ export default function OrderDetail({ params }) {
                 disabled={updating}
                 className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 mt-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="Pending">Pending</option>
+                <option value="InProduction">In Production</option>
+                <option value="AwaitingAccountManagerApproval">Awaiting Account Manager Approval</option>
+                <option value="ApprovedByAccountManager">Approved by Account Manager</option>
+                <option value="RejectedByAccountManager">Rejected by Account Manager</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
               </select>
             </div>
             <button 

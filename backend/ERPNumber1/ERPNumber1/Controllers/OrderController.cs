@@ -46,6 +46,26 @@ namespace ERPNumber1.Controllers
             return Ok(orderDtos);
         }
 
+        // GET: api/Order/pending-approval
+        [HttpGet("pending-approval")]
+        [LogEvent("Order", "Get Orders Pending Approval")]
+        [RequireRole(Role.User)]
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersPendingApproval()
+        {
+            try
+            {
+                var orders = await _orderRepo.GetAllAsync();
+                var pendingOrders = orders.Where(o => o.Status == OrderStatus.AwaitingAccountManagerApproval)
+                                         .Select(o => o.ToOrderDto());
+                
+                return Ok(pendingOrders);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error retrieving pending orders: {ex.Message}");
+            }
+        }
+
         // GET: api/Order/5
         [HttpGet("{id}")]
         [LogEvent("Order", "Get Order by ID")]
@@ -300,6 +320,131 @@ namespace ERPNumber1.Controllers
             catch (Exception ex)
             {
                 return BadRequest($"Error checking round delays: {ex.Message}");
+            }
+        }
+
+        // PATCH: api/Order/5/approve
+        [HttpPatch("{id}/approve")]
+        [LogEvent("Order", "Approve Order")]
+        [RequireRole(Role.User)]
+        public async Task<IActionResult> ApproveOrder(int id)
+        {
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    return NotFound($"Order with ID {id} not found.");
+                }
+
+                order.Status = OrderStatus.ApprovedByAccountManager;
+                var updatedOrder = await _orderRepo.UpdateAysnc(id, order);
+
+                if (updatedOrder == null)
+                {
+                    return BadRequest("Failed to approve order.");
+                }
+
+                await _eventLogService.LogEventAsync(
+                    caseId: $"Order-{id}",
+                    activity: "Order Approved by Account Manager",
+                    resource: User.Identity?.Name ?? "System",
+                    eventType: "Order",
+                    entityId: id.ToString(),
+                    status: "Completed",
+                    additionalData: $"{{\"OrderId\": {id}, \"ApprovedBy\": \"{User.Identity?.Name}\"}}"
+                );
+
+                return Ok(updatedOrder.ToOrderDto());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error approving order: {ex.Message}");
+            }
+        }
+
+        // PATCH: api/Order/5/reject
+        [HttpPatch("{id}/reject")]
+        [LogEvent("Order", "Reject Order")]
+        [RequireRole(Role.User)]
+        public async Task<IActionResult> RejectOrder(int id)
+        {
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    return NotFound($"Order with ID {id} not found.");
+                }
+
+                order.Status = OrderStatus.RejectedByAccountManager;
+                var updatedOrder = await _orderRepo.UpdateAysnc(id, order);
+
+                if (updatedOrder == null)
+                {
+                    return BadRequest("Failed to reject order.");
+                }
+
+                await _eventLogService.LogEventAsync(
+                    caseId: $"Order-{id}",
+                    activity: "Order Rejected by Account Manager",
+                    resource: User.Identity?.Name ?? "System",
+                    eventType: "Order",
+                    entityId: id.ToString(),
+                    status: "Completed",
+                    additionalData: $"{{\"OrderId\": {id}, \"RejectedBy\": \"{User.Identity?.Name}\"}}"
+                );
+
+                return Ok(updatedOrder.ToOrderDto());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error rejecting order: {ex.Message}");
+            }
+        }
+
+        // PATCH: api/Order/5/status
+        [HttpPatch("{id}/status")]
+        [LogEvent("Order", "Update Order Status")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusDto statusDto)
+        {
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    return NotFound($"Order with ID {id} not found.");
+                }
+
+                if (!Enum.TryParse<OrderStatus>(statusDto.Status, out var newStatus))
+                {
+                    return BadRequest($"Invalid status: {statusDto.Status}");
+                }
+
+                var oldStatus = order.Status;
+                order.Status = newStatus;
+                var updatedOrder = await _orderRepo.UpdateAysnc(id, order);
+
+                if (updatedOrder == null)
+                {
+                    return BadRequest("Failed to update order status.");
+                }
+
+                await _eventLogService.LogEventAsync(
+                    caseId: $"Order-{id}",
+                    activity: $"Order Status Changed from {oldStatus} to {newStatus}",
+                    resource: User.Identity?.Name ?? "System",
+                    eventType: "Order",
+                    entityId: id.ToString(),
+                    status: "Completed",
+                    additionalData: $"{{\"OrderId\": {id}, \"OldStatus\": \"{oldStatus}\", \"NewStatus\": \"{newStatus}\"}}"
+                );
+
+                return Ok(updatedOrder.ToOrderDto());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error updating order status: {ex.Message}");
             }
         }
     }
