@@ -15,8 +15,11 @@ const RunnerDashboard = () => {
       try {
         setLoading(true);
         const allOrders = await api.get('/api/Order');
-        // Remove filtering, just map all orders
-        const formattedOrders = allOrders.map(order => ({
+        const filteredOrders = allOrders.filter(order =>
+          order.status === "ApprovedByAccountManager" ||
+          order.status === "ProductionError"
+        );
+        const formattedOrders = filteredOrders.map(order => ({
           id: order.id.toString(),
           productName: `Assembly Unit ${order.motorType}-${order.id}`,
           customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
@@ -172,9 +175,6 @@ const RunnerDashboard = () => {
                       <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                         <span>Qty: {order.quantity}</span>
                         <span>Type: {order.motorType}</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        <span>{order.customer}</span>
                       </div>
                     </div>
                   ))
