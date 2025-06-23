@@ -1,8 +1,8 @@
 resource "azurerm_subnet" "backend" {
-  name                 = "prod-backend-subnet"
+  name                 = "${local.name_prefix}backend-subnet"
   resource_group_name  = var.resource_group_name
   virtual_network_name = var.vnet_name
-  address_prefixes     = ["10.0.2.0/24"]
+  address_prefixes     = ["${local.subnet_prefix}.0/24"]
 }
 
 resource "azurerm_subnet_network_security_group_association" "backend" {
@@ -11,7 +11,7 @@ resource "azurerm_subnet_network_security_group_association" "backend" {
 }
 
 resource "azurerm_network_interface" "backend" {
-  name                = "prod-backend-nic"
+  name                = "${local.name_prefix}backend-nic"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -19,12 +19,15 @@ resource "azurerm_network_interface" "backend" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.backend.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = "10.0.2.10"
+    private_ip_address            = "${local.subnet_prefix}.10"
+  }
+  tags = {
+    environment = var.environment
   }
 }
 
 resource "azurerm_linux_virtual_machine" "backend" {
-  name                            = "prod-backend-vm"
+  name                            = "${local.name_prefix}backend-vm"
   resource_group_name             = var.resource_group_name
   location                        = var.location
   size                            = "Standard_B1s"
@@ -37,7 +40,7 @@ resource "azurerm_linux_virtual_machine" "backend" {
   ]
 
   os_disk {
-    name                 = "prod-backend-disk"
+    name                 = "${local.name_prefix}backend-disk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -55,6 +58,6 @@ resource "azurerm_linux_virtual_machine" "backend" {
   custom_data = var.cloud_init
 
   tags = {
-    environment = "production"
+    environment = var.environment
   }
 }

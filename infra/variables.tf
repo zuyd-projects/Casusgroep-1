@@ -15,3 +15,18 @@ variable "admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "github_token" {
+  description = "GitHub token for accessing private repositories"
+  type        = string
+  sensitive   = true
+}
+
+variable "environment" {
+  description = "The environment for the deployment (prod or staging)"
+  type        = string
+}
+
+locals {
+  workspace_name = var.environment == "prod" ? "Casusgroep-1" : "Casusgroep-1-staging"
+}

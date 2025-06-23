@@ -1,5 +1,5 @@
 resource "azurerm_network_security_group" "frontend" {
-  name                = "prod-frontend-nsg"
+  name                = "${local.name_prefix}frontend-nsg"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -46,6 +46,6 @@ resource "azurerm_network_security_group" "frontend" {
     destination_address_prefix = "*"
   }
   tags = {
-    environment = "production"
+    environment = var.environment
   }
 }
