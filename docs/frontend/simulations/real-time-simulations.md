@@ -20,7 +20,8 @@ The ERP system includes a comprehensive real-time simulation feature that uses *
 The simulation status is prominently displayed in the main application header when a simulation is running:
 
 #### Desktop Layout
-```
+
+```text
 [Logo] -------- [🟦 Sim #1 | 🟣 Round 3 | 🟠 0:25 | 🟢 LIVE | 🔴 STOP] -------- [User]
 ```
 
@@ -32,6 +33,7 @@ The simulation status is prominently displayed in the main application header wh
 - **Stop Button**: Red button for immediate simulation termination
 
 #### Mobile Layout
+
 - **Header Bar**: Compact display showing round number and timer next to logo
 - **Mobile Menu**: Full simulation status panel when menu is expanded
 - **Touch-Friendly**: All controls optimized for touch interaction
@@ -41,6 +43,7 @@ The simulation status is prominently displayed in the main application header wh
 Located at `/dashboard/simulations`, this page provides comprehensive simulation management:
 
 #### Features
+
 - **Create New Simulations**: Form to create simulations with name and date
 - **Simulation List**: Table showing all simulations with creation dates
 - **Run/Stop Controls**: Context-aware buttons in each table row
@@ -48,6 +51,7 @@ Located at `/dashboard/simulations`, this page provides comprehensive simulation
 - **Quick Actions**: Delete simulations (with confirmation)
 
 #### Real-Time Updates
+
 - **Immediate Feedback**: UI updates instantly when starting/stopping
 - **Live Round Display**: Shows current round number in table
 - **Status Indicators**: Visual cues for running vs stopped simulations
@@ -64,6 +68,7 @@ The main dashboard includes simulation-related widgets:
 ### Visual Design
 
 #### Color Coding
+
 - **Blue**: Simulation information and running status
 - **Purple**: Round-specific information
 - **Orange**: Timer and countdown elements
@@ -71,11 +76,13 @@ The main dashboard includes simulation-related widgets:
 - **Red**: Stop controls and alerts
 
 #### Responsive Behavior
+
 - **Large Screens**: Full header integration with all elements visible
 - **Medium Screens**: Compact layout with essential information
 - **Small Screens**: Mobile-optimized with collapsible menu
 
 #### Accessibility
+
 - **High Contrast**: All text meets WCAG contrast requirements
 - **Icon Labels**: Descriptive tooltips for all interactive elements
 - **Keyboard Navigation**: Full keyboard support for all controls
@@ -112,7 +119,11 @@ The main dashboard includes simulation-related widgets:
 3. **Console Logs**: Detailed debugging information available
 4. **Fallback Transports**: System automatically tries multiple connection types
 
-## 🔧 Troubleshootingrt Simulation**: Click "Run" → Creates first round immediately → Timer starts for subsequent rounds
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Start Simulation**: Click "Run" → Creates first round immediately → Timer starts for subsequent rounds
 2. **Real-Time Updates**: WebSocket pushes new round data to all connected clients  
 3. **Integrated Header Display**: Shows simulation ID, round number, countdown timer, connection status, and stop controls
 4. **Round Creation**: Every 30 seconds (configurable), new round is created and broadcast
@@ -122,7 +133,9 @@ The main dashboard includes simulation-related widgets:
 ## 🎮 Header Integration Features
 
 ### Desktop Display
+
 The main header shows a comprehensive simulation status bar when a simulation is running:
+
 - **Connection Status**: Wi-Fi icon showing SignalR connection state
 - **Simulation Badge**: "Sim #X" with current simulation ID
 - **Round Badge**: "Round X" or "Starting..." when initializing
@@ -131,6 +144,7 @@ The main header shows a comprehensive simulation status bar when a simulation is
 - **Stop Button**: One-click simulation termination
 
 ### Mobile Display
+
 - **Header Bar**: Compact round & timer display next to logo
 - **Mobile Menu**: Full simulation status panel with stop functionality
 - **Responsive Design**: Adapts to all screen sizes seamlessly
@@ -138,11 +152,13 @@ The main header shows a comprehensive simulation status bar when a simulation is
 ## 📡 Enhanced SignalR Hub Connection
 
 ### Connection Endpoint
-```
+
+```text
 /simulationHub
 ```
 
 ### Robust Connection Handling
+
 The system now includes enhanced connection management:
 
 ```javascript
@@ -160,6 +176,7 @@ const connection = new signalR.HubConnectionBuilder()
 ```
 
 ### Enhanced Features
+
 - **Transport Fallback**: WebSockets → Server-Sent Events → Long Polling
 - **Aggressive Reconnection**: Multiple retry intervals for better reliability
 - **Detailed Logging**: Comprehensive debugging information
@@ -168,12 +185,14 @@ const connection = new signalR.HubConnectionBuilder()
 ## 🎯 API Endpoints
 
 ### Start Simulation
+
 ```http
 POST /api/Simulations/{id}/run
 Authorization: Bearer {jwt-token}
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Simulation started successfully",
@@ -182,12 +201,14 @@ Authorization: Bearer {jwt-token}
 ```
 
 ### Stop Simulation
+
 ```http
 POST /api/Simulations/{id}/stop
 Authorization: Bearer {jwt-token}
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Simulation stopped successfully", 
@@ -196,12 +217,14 @@ Authorization: Bearer {jwt-token}
 ```
 
 ### Get Simulation Status
+
 ```http
 GET /api/Simulations/{id}/status
 Authorization: Bearer {jwt-token}
 ```
 
 **Response:**
+
 ```json
 {
   "simulationId": 1,
@@ -217,6 +240,7 @@ Authorization: Bearer {jwt-token}
 ## 📨 SignalR Events
 
 ### SimulationStarted
+
 Broadcasted when a simulation begins:
 
 ```javascript
@@ -227,6 +251,7 @@ connection.on('SimulationStarted', (data) => {
 ```
 
 ### NewRound
+
 Broadcasted every round interval (default 30 seconds):
 
 ```javascript
@@ -238,6 +263,7 @@ connection.on('NewRound', (data) => {
 ```
 
 ### SimulationStopped
+
 Broadcasted when a simulation ends:
 
 ```javascript
@@ -250,6 +276,7 @@ connection.on('SimulationStopped', (data) => {
 ## 💻 Frontend Implementation
 
 ### Installing SignalR Client
+
 ```bash
 npm install @microsoft/signalr
 ```
@@ -258,7 +285,8 @@ npm install @microsoft/signalr
 
 The application features a sophisticated real-time display system with the simulation status integrated directly into the main header. This provides users with always-visible simulation information and controls.
 
-#### Architecture Overview:
+#### Architecture Overview
+
 - **SimulationContext**: Central state management for simulation data
 - **Header Integration**: Real-time status display in main navigation
 - **Responsive Design**: Adapts to desktop and mobile layouts
@@ -395,44 +423,8 @@ class SimulationService {
 export const simulationService = new SimulationService();
 ```
 
-    // Set up event handlers
-    this.connection.on('SimulationStarted', this.handleSimulationStarted);
-    this.connection.on('NewRound', this.handleNewRound);
-    this.connection.on('SimulationStopped', this.handleSimulationStopped);
-
-    await this.connection.start();
-    console.log('SignalR connected');
-  }
-
-  async joinSimulation(simulationId) {
-    await this.connection.invoke('JoinSimulationGroup', simulationId.toString());
-    this.currentSimulation = simulationId;
-  }
-
-  async leaveSimulation(simulationId) {
-    await this.connection.invoke('LeaveSimulationGroup', simulationId.toString());
-  }
-
-  handleSimulationStarted = (data) => {
-    console.log('Simulation started:', data);
-    // Update UI state
-  }
-
-  handleNewRound = (data) => {
-    console.log('New round:', data);
-    // Update round display
-  }
-
-  handleSimulationStopped = (data) => {
-    console.log('Simulation stopped:', data);
-    // Reset UI state
-  }
-}
-
-export const simulationService = new SimulationService();
-```
-
 ### React Component Example
+
 ```javascript
 import { useEffect, useState } from 'react';
 import { simulationService } from './simulationService';
@@ -529,6 +521,7 @@ function SimulationDashboard() {
 ## ⚙️ Configuration
 
 ### Backend (appsettings.json)
+
 ```json
 {
   "Simulation": {
@@ -538,6 +531,7 @@ function SimulationDashboard() {
 ```
 
 ### CORS Setup (Program.cs)
+
 ```csharp
 builder.Services.AddCors(options =>
 {
@@ -552,6 +546,7 @@ builder.Services.AddCors(options =>
 ```
 
 ### Next.js Proxy (next.config.mjs)
+
 ```javascript
 {
   source: '/simulationHub/:path*',
@@ -562,17 +557,20 @@ builder.Services.AddCors(options =>
 ## 🎪 Features
 
 ### Real-Time Header Status
+
 - Connection status indicator (WiFi icon)
 - Current simulation ID display
 - Round number and countdown timer
 - Live status indicator
 
 ### Dashboard Integration
+
 - Quick run buttons for recent simulations
 - Visual feedback for running simulations
 - Disabled controls when appropriate
 
 ### Multi-User Support
+
 - All users see the same simulation state
 - Automatic group management (join/leave)
 - Targeted messaging to simulation participants
@@ -580,27 +578,33 @@ builder.Services.AddCors(options =>
 ## 🚫 Troubleshooting
 
 ### Connection Issues
+
 - **Problem**: SignalR connection fails
 - **Solution**: Check JWT token validity and CORS configuration
 
 ### Missing Events
+
 - **Problem**: Not receiving `NewRound` events
 - **Solution**: Ensure you call `JoinSimulationGroup(simulationId)` after connecting
 
 ### Header Shows Old Simulation Data
+
 - **Problem**: Header continues showing simulation status after stopping
 - **Solution**: Context now clears state immediately when `stopSimulation` is called, providing instant UI feedback
 
 ### Simulation Not Visible to All Users
+
 - **Problem**: When one user starts a simulation, other users don't see it automatically
 - **Solution**: System now broadcasts to ALL connected clients via `Clients.All` instead of simulation groups
 - **Implementation**: Auto-connects all users to SignalR and sends company-wide notifications
 
 ### Multiple Connections
+
 - **Problem**: Memory leaks from multiple connections
 - **Solution**: Use singleton pattern and proper cleanup in React useEffect
 
 ### Authentication Errors
+
 - **Problem**: 401 Unauthorized on SignalR connection
 - **Solution**: Verify JWT token is included in `accessTokenFactory`
 
