@@ -2,6 +2,7 @@ using ERPNumber1.Attributes;
 using ERPNumber1.Data;
 using ERPNumber1.Dtos.Order;
 using ERPNumber1.Dtos.Simulation;
+using ERPNumber1.Dtos.SupplierOrder;
 using ERPNumber1.Extensions;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Mapper;
@@ -16,17 +17,23 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
-        
-        private readonly IEventLogService _eventLogService;
         private readonly IOrderRepository _orderRepo;
-        //private readonly AppDbContext _context;    
+        private readonly IEventLogService _eventLogService;
+        private readonly ISupplierOrderRepository _supplierOrderRepo;
 
-        public OrderController(IEventLogService eventLogService,IOrderRepository orderRepo/*, AppDbContext context*/ )
+        // Motor type to block requirements mapping 
+        private static readonly Dictionary<char, Dictionary<string, int>> MotorBlockRequirements = new()
         {
-            
-            _eventLogService = eventLogService;
+            ['A'] = new Dictionary<string, int> { ["Blauw"] = 3, ["Rood"] = 4, ["Grijs"] = 2 },
+            ['B'] = new Dictionary<string, int> { ["Blauw"] = 2, ["Rood"] = 2, ["Grijs"] = 4 },
+            ['C'] = new Dictionary<string, int> { ["Blauw"] = 3, ["Rood"] = 3, ["Grijs"] = 2 }
+        };
+
+        public OrderController(IOrderRepository orderRepo, IEventLogService eventLogService, ISupplierOrderRepository supplierOrderRepo)
+        {
             _orderRepo = orderRepo;
-            //_context = context;
+            _eventLogService = eventLogService;
+            _supplierOrderRepo = supplierOrderRepo;
         }
 
         // GET: api/Order
@@ -65,21 +72,133 @@ namespace ERPNumber1.Controllers
             
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var orderModel = orderDto.ToOrderFromCreate();
-            await _orderRepo.CreateAsync(orderModel);
+            Console.WriteLine($"🛍️ Creating order: MotorType={orderDto.MotorType}, Quantity={orderDto.Quantity}, RoundId={orderDto.RoundId}");
 
+            var orderModel = orderDto.ToOrderFromCreate();
+            var createdOrder = await _orderRepo.CreateAsync(orderModel);
+
+            Console.WriteLine($"✅ Order created with ID: {createdOrder.Id}");
+
+            // Calculate required blocks based on motor type and create supplier order
+            try
+            {
+                await CreateSupplierOrderForMotorType(createdOrder, userId);
+                Console.WriteLine($"✅ Supplier order creation completed for Order ID: {createdOrder.Id}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Failed to create supplier order for Order ID: {createdOrder.Id}, Error: {ex.Message}");
+                // Continue with order creation even if supplier order fails
+            }
 
             // Log the successful order creation
-            await _eventLogService.LogOrderEventAsync(orderModel.Id, "Order Created", "OrderController", "Completed", 
+            await _eventLogService.LogOrderEventAsync(createdOrder.Id, "Order Created", "OrderController", "Completed", 
                 new { 
-                    motorType = orderModel.MotorType,
-                    quantity = orderModel.Quantity,
-                    orderDate = orderModel.OrderDate,
-                    signature = orderModel.Signature,
-                    roundId = orderModel.RoundId
+                    motorType = createdOrder.MotorType,
+                    quantity = createdOrder.Quantity,
+                    orderDate = createdOrder.OrderDate,
+                    signature = createdOrder.Signature,
+                    roundId = createdOrder.RoundId
                 }, userId);
 
-            return CreatedAtAction(nameof(GetOrder), new { id = orderModel.Id }, orderModel.ToOrderDto());
+            return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, createdOrder.ToOrderDto());
+        }
+
+        private async Task CreateSupplierOrderForMotorType(Order order, string? userId)
+        {
+            try
+            {
+                Console.WriteLine($"🔧 Creating supplier order for Order ID: {order.Id}, Motor Type: {order.MotorType}");
+                
+                // Check if a supplier order already exists for this order (due to 1-to-1 relationship)
+                var existingSupplierOrders = await _supplierOrderRepo.GetAllAsync();
+                var existingSupplierOrder = existingSupplierOrders.FirstOrDefault(so => so.OrderId == order.Id);
+                
+                if (existingSupplierOrder != null)
+                {
+                    Console.WriteLine($"⚠️ Supplier order already exists for Order ID: {order.Id}, SupplierOrder ID: {existingSupplierOrder.Id}");
+                    await _eventLogService.LogEventAsync($"Order_{order.Id}", "Supplier Order Already Exists", 
+                        "OrderController", "Order", "Warning", 
+                        System.Text.Json.JsonSerializer.Serialize(new { 
+                            orderId = order.Id,
+                            existingSupplierOrderId = existingSupplierOrder.Id,
+                            message = "Supplier order already exists for this order due to 1-to-1 relationship"
+                        }), order.Id.ToString(), userId: userId);
+                    return;
+                }
+                
+                // Get block requirements for this motor type
+                if (!MotorBlockRequirements.TryGetValue(order.MotorType, out var blockRequirements))
+                {
+                    Console.WriteLine($"❌ Unknown motor type: {order.MotorType}");
+                    await _eventLogService.LogEventAsync($"Order_{order.Id}", "Unknown Motor Type", 
+                        "OrderController", "Order", "Warning", 
+                        System.Text.Json.JsonSerializer.Serialize(new { 
+                            motorType = order.MotorType,
+                            message = "No block requirements defined for this motor type"
+                        }), order.Id.ToString(), userId: userId);
+                    return;
+                }
+
+                Console.WriteLine($"✅ Found block requirements for motor {order.MotorType}: {string.Join(", ", blockRequirements.Select(b => $"{b.Key}={b.Value}"))}");
+
+                // Calculate total blocks needed (multiply by order quantity)
+                var totalBlocks = new Dictionary<string, int>();
+                foreach (var block in blockRequirements)
+                {
+                    totalBlocks[block.Key] = block.Value * order.Quantity;
+                }
+
+                Console.WriteLine($"📊 Total blocks needed: {string.Join(", ", totalBlocks.Select(b => $"{b.Key}={b.Value}"))}");
+
+                // Create supplier order
+                var supplierOrder = new SupplierOrder
+                {
+                    AppUserId = null, // Don't require a specific user for auto-created supplier orders
+                    OrderId = order.Id,
+                    Quantity = totalBlocks.Values.Sum(), // Total blocks needed
+                    Status = "FromOrder", // Automatic status for orders from production
+                    round_number = order.RoundId,
+                    IsRMA = false,
+                    OrderDate = DateTime.UtcNow
+                };
+
+                Console.WriteLine($"🏭 Creating supplier order: AppUserId={supplierOrder.AppUserId}, OrderId={supplierOrder.OrderId}, Quantity={supplierOrder.Quantity}, Status={supplierOrder.Status}, RoundNumber={supplierOrder.round_number}");
+
+                var createdSupplierOrder = await _supplierOrderRepo.CreateAsync(supplierOrder);
+                
+                Console.WriteLine($"✅ Supplier order created successfully with ID: {createdSupplierOrder.Id}");
+
+                // Log supplier order creation with block details
+                await _eventLogService.LogEventAsync($"SupplierOrder_{createdSupplierOrder.Id}", "Supplier Order Auto-Created", 
+                    "OrderController", "SupplierOrder", "Completed", 
+                    System.Text.Json.JsonSerializer.Serialize(new { 
+                        orderId = order.Id,
+                        motorType = order.MotorType,
+                        orderQuantity = order.Quantity,
+                        blockRequirements = totalBlocks,
+                        totalBlocks = createdSupplierOrder.Quantity,
+                        supplierOrderId = createdSupplierOrder.Id,
+                        autoCreated = true
+                    }), createdSupplierOrder.Id.ToString(), userId: userId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error creating supplier order: {ex.Message}");
+                Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+                
+                await _eventLogService.LogEventAsync($"Order_{order.Id}", "Supplier Order Creation Failed", 
+                    "OrderController", "Order", "Failed", 
+                    System.Text.Json.JsonSerializer.Serialize(new { 
+                        error = ex.Message,
+                        stackTrace = ex.StackTrace,
+                        motorType = order.MotorType,
+                        orderId = order.Id
+                    }), order.Id.ToString(), userId: userId);
+                
+                // Re-throw the exception so we can see what's wrong
+                throw;
+            }
         }
 
         // PUT: api/Order/5

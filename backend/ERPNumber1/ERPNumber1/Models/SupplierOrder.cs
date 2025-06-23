@@ -5,7 +5,7 @@ namespace ERPNumber1.Models
     public class SupplierOrder
     {
         public int Id { get; set; }
-        public string AppUserId { get; set; }
+        public string? AppUserId { get; set; }
         public int OrderId { get; set; }
         public int Quantity { get; set; }
         public string? Status { get; set; }  // Must have "FromProduction" status, that can be used in the supplier page or "From Order" to continue automatically.
