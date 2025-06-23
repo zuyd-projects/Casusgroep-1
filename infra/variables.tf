@@ -15,3 +15,10 @@ variable "admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "github_token" {
+  description = "GitHub token for accessing private repositories"
+  type        = string
+  sensitive   = true
+  
+}

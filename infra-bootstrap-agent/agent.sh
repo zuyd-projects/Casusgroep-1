@@ -6,6 +6,7 @@ CONFIG_DIR="/tmp/bootstrap"
 LOG_FILE="/var/log/bootstrap-agent.log"
 POLL_INTERVAL=60  # 1 minute
 HOSTNAME=$(hostname)
+GITHUB_TOKEN=$(cat /opt/github.token)
 
 CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/refs/heads/config/infra/configs/${HOSTNAME}.json"
 ENC_CONFIG_URL="https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra/configs/${HOSTNAME}.enc"
@@ -29,14 +30,14 @@ log() {
 
 download_json() {
   log "Downloading unencrypted config for $HOSTNAME..."
-  curl -fsSL "$CONFIG_URL" -o "$JSON_FILE"
+  curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$CONFIG_URL" -o "$JSON_FILE"
 }
 
 download_encrypted() {
   log "Downloading AES-encrypted config for $HOSTNAME..."
-  curl -fsSL "$ENC_CONFIG_URL" -o "$ENC_FILE"
+  curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$ENC_CONFIG_URL" -o "$ENC_FILE"
   log "Downloading RSA-encrypted AES key for $HOSTNAME..."
-  curl -fsSL "$ENC_KEY_URL" -o "$ENC_KEY_FILE"
+  curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$ENC_KEY_URL" -o "$ENC_KEY_FILE"
 }
 
 decrypt_config() {

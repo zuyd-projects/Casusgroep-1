@@ -32,6 +32,7 @@ module "frontend" {
   admin_ssh_public_key = var.admin_ssh_public_key
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    gh_token    = var.github_token
   }))
 
   depends_on = [
@@ -50,6 +51,7 @@ module "backend" {
   admin_password      = var.admin_password
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    gh_token    = var.github_token
   }))
 
   depends_on = [
@@ -68,6 +70,7 @@ module "database" {
   admin_password      = var.admin_password
   cloud_init = base64encode(templatefile("cloud-init.yaml", {
     private_key = var.private_key
+    gh_token    = var.github_token
   }))
 
   depends_on = [
