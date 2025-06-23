@@ -4,11 +4,14 @@ namespace ERPNumber1.Models
     {
         Pending,
         InProduction,
+        RejectedByVoorraadbeheer,
         AwaitingAccountManagerApproval,
         ApprovedByAccountManager,
         RejectedByAccountManager,
         Delivered,
         Completed,
         Cancelled
+        
+
     }
 }
