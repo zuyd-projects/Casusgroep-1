@@ -39,7 +39,7 @@ export default function Orders() {
         customer: `User ${order.appUserId}`,
         date: new Date(order.orderDate).toLocaleDateString(),
         amount: order.quantity * 100, // Calculate price (100 per unit)
-        status: 'processing', // Default status since API doesn't have status field
+        status: order.status || 'Pending', // Use actual status from backend
         motorType: order.motorType,
         quantity: order.quantity,
         signature: order.signature,

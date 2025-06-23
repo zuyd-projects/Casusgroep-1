@@ -9,5 +9,6 @@ namespace ERPNumber1.Dtos.Order
         public int Quantity { get; set; }
         public string? Signature { get; set; }
         public char? ProductionLine { get; set; }
+        public string? Status { get; set; }
     }
 }

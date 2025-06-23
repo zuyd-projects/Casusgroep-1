@@ -17,8 +17,8 @@ namespace ERPNumber1.Mapper
                 MotorType = orderModel.MotorType,
                 Quantity = orderModel.Quantity,
                 Signature = orderModel.Signature,
-                OrderDate = orderModel.OrderDate,   
-
+                OrderDate = orderModel.OrderDate,
+                Status = orderModel.Status.ToString()
             };
 
         }
@@ -34,6 +34,9 @@ namespace ERPNumber1.Mapper
                 Quantity = orderDto.Quantity,
                 Signature = orderDto.Signature,
                 ProductionLine = orderDto.ProductionLine,
+                Status = !string.IsNullOrEmpty(orderDto.Status) && Enum.TryParse<OrderStatus>(orderDto.Status, out var status) 
+                    ? status 
+                    : OrderStatus.Pending
             };
         }
 
@@ -41,7 +44,6 @@ namespace ERPNumber1.Mapper
         {
             return new Order
             {
-
                 RoundId = orderDto.RoundId,
                 DeliveryId = orderDto.DeliveryId,
                 AppUserId = orderDto.AppUserId,
@@ -49,6 +51,9 @@ namespace ERPNumber1.Mapper
                 Quantity = orderDto.Quantity,
                 Signature = orderDto.Signature,
                 ProductionLine = orderDto.ProductionLine,
+                Status = !string.IsNullOrEmpty(orderDto.Status) && Enum.TryParse<OrderStatus>(orderDto.Status, out var status) 
+                    ? status 
+                    : OrderStatus.Pending
             };
         }
     }
