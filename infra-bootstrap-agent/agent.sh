@@ -31,7 +31,11 @@ log() {
 download_file() {
   local url="$1"
   local output="$2"
-  local headers="-H 'Authorization: token ${GITHUB_TOKEN}' -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache'"
+  local headers=(
+    -H "Authorization: token ${GITHUB_TOKEN}"
+    -H "Cache-Control: no-cache, no-store"
+    -H "Pragma: no-cache"
+  )
 
   local timestamp=$(date +%s)
   local full_url="${url}?t=${timestamp}"
@@ -39,7 +43,7 @@ download_file() {
   rm -f "$output"
 
   log "Downloading $url..."
-  curl -fsSL ${headers} "${full_url}" -o "${output}"
+  curl -fsSL "${headers[@]}" "${full_url}" -o "${output}"
 }
 
 download_json() {
