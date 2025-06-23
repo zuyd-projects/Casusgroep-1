@@ -23,10 +23,6 @@ export default function PlannerWarnings({ compact = false }) {
 
   useEffect(() => {
     fetchPredictions();
-    
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchPredictions, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, []);
 
   // Refetch when round changes

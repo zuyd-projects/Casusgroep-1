@@ -1,152 +1,457 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
+import { useState, useEffect } from "react";
+import { api } from "@CASUSGROEP1/utils/api";
+import { useSimulation } from "@CASUSGROEP1/contexts/SimulationContext";
+import Card from "@CASUSGROEP1/components/Card";
+import StatusBadge from "@CASUSGROEP1/components/StatusBadge";
+import { PlayCircle, AlertCircle, Settings } from "lucide-react";
+import PlannerWarnings from "@CASUSGROEP1/components/PlannerWarnings";
 
 export default function PlanningPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [cycleRunning, setCycleRunning] = useState(false);
-  const [cycleCount, setCycleCount] = useState(0);
+  const [message, setMessage] = useState("");
+  const [showCurrentRoundOnly, setShowCurrentRoundOnly] = useState(false);
+  const [updating, setUpdating] = useState(null); // Track which order is being updated
 
-  const cycleRef = useRef(null);
+  const { currentRound, currentSimulation, isRunning } = useSimulation();
 
-  // Lege connection string (placeholder)
-  const connectionString = '';
+  // Motor type to block requirements mapping (same as backend)
+  const MotorBlockRequirements = {
+    A: { Blauw: 3, Rood: 4, Grijs: 2 },
+    B: { Blauw: 2, Rood: 2, Grijs: 4 },
+    C: { Blauw: 3, Rood: 3, Grijs: 2 },
+  };
 
+  // Fetch real orders from API
   const fetchOrders = async () => {
     setLoading(true);
-    setMessage('');
+    setMessage("");
 
-    setTimeout(() => {
-      const fetchedOrders = [
-        { ordernummer: 'ORD-001', motortype: 'A', aantal: 3, blauw: 9, rood: 12, grijs: 6, productielijn: 'A' },
-        { ordernummer: 'ORD-002', motortype: 'B', aantal: 2, blauw: 4, rood: 4, grijs: 8, productielijn: 'C' },
-        { ordernummer: 'ORD-003', motortype: 'C', aantal: 1, blauw: 3, rood: 3, grijs: 2, productielijn: 'B' },
-        { ordernummer: 'ORD-004', motortype: 'A', aantal: 2, blauw: 6, rood: 6, grijs: 4, productielijn: 'A' },
-        { ordernummer: 'ORD-005', motortype: 'C', aantal: 3, blauw: 9, rood: 9, grijs: 6, productielijn: 'C' },
-        { ordernummer: 'ORD-006', motortype: 'B', aantal: 1, blauw: 3, rood: 3, grijs: 2, productielijn: 'C' },
-        { ordernummer: 'ORD-007', motortype: 'A', aantal: 2, blauw: 4, rood: 4, grijs: 8, productielijn: 'A' },
-      ].map(order => ({ ...order, status: 'pending' }));
+    try {
+      const apiOrders = await api.get("/api/Order");
 
-      const currentData = JSON.stringify(orders);
-      const newData = JSON.stringify(fetchedOrders);
+      // Transform API orders to match the planning table format
+      const fetchedOrders = apiOrders.map((order) => {
+        const blockRequirements = MotorBlockRequirements[order.motorType] || {};
+        const totalBlocks = {
+          blauw: (blockRequirements.Blauw || 0) * order.quantity,
+          rood: (blockRequirements.Rood || 0) * order.quantity,
+          grijs: (blockRequirements.Grijs || 0) * order.quantity,
+        };
 
-      if (currentData === newData) {
-        setMessage('No new data found');
-      } else {
-        setOrders(fetchedOrders);
-        setMessage('');
-      }
-
-      setLoading(false);
-    }, 1500);
-  };
-
-  const updateOrderStatus = (index, newStatus) => {
-    setOrders(prev =>
-      prev.map((order, i) =>
-        i === index ? { ...order, status: newStatus } : order
-      )
-    );
-  };
-
-  const startCycle = () => {
-    if (cycleRunning) return;
-
-    setCycleCount(1); // Start vanaf cyclus 1
-    setCycleRunning(true);
-
-    cycleRef.current = setInterval(() => {
-      setOrders(prev => {
-        const nextIndex = prev.findIndex(o => o.status === 'pending');
-        if (nextIndex === -1) {
-          setMessage('Alle orders zijn verwerkt.');
-          stopCycle();
-          return prev;
-        }
-
-        const updated = [...prev];
-        updated[nextIndex] = { ...updated[nextIndex], status: 'processed' };
-        return updated;
+        return {
+          id: order.id,
+          ordernummer: `ORD-${order.id.toString().padStart(3, "0")}`,
+          motortype: order.motorType,
+          aantal: order.quantity,
+          blauw: totalBlocks.blauw,
+          rood: totalBlocks.rood,
+          grijs: totalBlocks.grijs,
+          productielijn: order.productionLine
+            ? order.productionLine.toString()
+            : null,
+          status: order.status || "Pending",
+          roundId: order.roundId,
+          customer: order.appUserId ? `Customer ${order.appUserId}` : "Unknown",
+          originalOrder: order,
+        };
       });
 
-      setCycleCount(prev => prev + 1); // Verhoog cyclusnummer
-    }, 20000); // 20 seconden per cyclus
+      setOrders(fetchedOrders);
+      setMessage("✅ Orders loaded from API");
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      setMessage("❌ Failed to fetch orders from API");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const stopCycle = () => {
-    clearInterval(cycleRef.current);
-    setCycleRunning(false);
+  // Load orders on component mount
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // Refetch orders when round changes
+  useEffect(() => {
+    if (currentRound) {
+      console.log(
+        "🔄 Round changed, refetching orders for round:",
+        currentRound.number
+      );
+      fetchOrders();
+    }
+  }, [currentRound?.number]);
+
+  // Update production line assignment
+  const updateProductionLine = async (orderId, productionLine) => {
+    setUpdating(orderId);
+    try {
+      // Convert string to char for backend (null/empty for unassigned)
+      const productionLineChar = productionLine
+        ? productionLine.charAt(0)
+        : null;
+
+      // Get the current order to preserve other properties
+      const currentOrder = orders.find((order) => order.id === orderId);
+      if (!currentOrder) {
+        setMessage(`❌ Order ${orderId} not found`);
+        return;
+      }
+
+      // Update via API with all required fields
+      const updateData = {
+        roundId: currentOrder.originalOrder.roundId || 1,
+        deliveryId: currentOrder.originalOrder.deliveryId,
+        appUserId: currentOrder.originalOrder.appUserId,
+        motorType: currentOrder.originalOrder.motorType,
+        quantity: currentOrder.originalOrder.quantity,
+        signature: currentOrder.originalOrder.signature,
+        productionLine: productionLineChar,
+        status: currentOrder.originalOrder.status,
+      };
+
+      await api.put(`/api/Order/${orderId}`, updateData);
+
+      // Update local state
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId
+            ? { ...order, productielijn: productionLine }
+            : order
+        )
+      );
+
+      setMessage(`✅ Production line updated for order ${orderId}`);
+    } catch (error) {
+      console.error("Failed to update production line:", error);
+      setMessage(`❌ Failed to update production line for order ${orderId}`);
+    } finally {
+      setUpdating(null);
+    }
   };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    setUpdating(orderId);
+    try {
+      // Get the current order to preserve other properties
+      const currentOrder = orders.find((order) => order.id === orderId);
+      if (!currentOrder) {
+        setMessage(`❌ Order ${orderId} not found`);
+        return;
+      }
+
+      // Update via API with all required fields
+      const updateData = {
+        roundId: currentOrder.originalOrder.roundId || 1,
+        deliveryId: currentOrder.originalOrder.deliveryId,
+        appUserId: currentOrder.originalOrder.appUserId,
+        motorType: currentOrder.originalOrder.motorType,
+        quantity: currentOrder.originalOrder.quantity,
+        signature: currentOrder.originalOrder.signature,
+        productionLine: currentOrder.productielijn
+          ? currentOrder.productielijn.charAt(0)
+          : null,
+        status: newStatus,
+      };
+
+      await api.put(`/api/Order/${orderId}`, updateData);
+
+      // Update local state
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+
+      setMessage(`✅ Status updated for order ${orderId}`);
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      setMessage(`❌ Failed to update status for order ${orderId}`);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  // Filter orders based on round selection
+  const filteredOrders =
+    showCurrentRoundOnly && currentRound
+      ? orders.filter((order) => order.roundId === currentRound.id)
+      : orders;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Productie Planning</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Production Planning
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            Assign orders to production lines and manage their status
+          </p>
+        </div>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <button
-          onClick={fetchOrders}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          disabled={loading}
-        >
-          {loading ? 'Scannen...' : 'Data ophalen'}
-        </button>
-        <button
-          onClick={cycleRunning ? stopCycle : startCycle}
-          className={`px-4 py-2 text-white rounded ${cycleRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-        >
-          {cycleRunning ? 'Stop Cyclus' : 'Start Cyclus'}
-        </button>
-        {cycleRunning && (
-          <span className="text-sm text-gray-700">
-            Huidige cyclus: <strong>{cycleCount}</strong> (elke 20 sec)
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {currentRound && (
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={showCurrentRoundOnly}
+                onChange={(e) => setShowCurrentRoundOnly(e.target.checked)}
+                className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+              />
+              <span className="ml-2 text-sm text-zinc-700 dark:text-zinc-300">
+                Show only Round {currentRound.number} orders
+              </span>
+            </label>
+          )}
+        </div>
       </div>
 
-      {message && <p className="mb-4 text-yellow-600 font-medium">{message}</p>}
-
-      {orders.length > 0 && (
-        <table className="w-full border border-gray-300">
-          <thead>
-            <tr className="bg-black text-white">
-              <th className="border px-4 py-2">Ordernummer</th>
-              <th className="border px-4 py-2">Motortype</th>
-              <th className="border px-4 py-2">Aantal</th>
-              <th className="border px-4 py-2">Blauw</th>
-              <th className="border px-4 py-2">Rood</th>
-              <th className="border px-4 py-2">Grijs</th>
-              <th className="border px-4 py-2">Productielijn</th>
-              <th className="border px-4 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order, index) => (
-              <tr key={index} className="text-center">
-                <td className="border px-4 py-2">{order.ordernummer}</td>
-                <td className="border px-4 py-2">{order.motortype}</td>
-                <td className="border px-4 py-2">{order.aantal}</td>
-                <td className="border px-4 py-2">{order.blauw}</td>
-                <td className="border px-4 py-2">{order.rood}</td>
-                <td className="border px-4 py-2">{order.grijs}</td>
-                <td className="border px-4 py-2">{order.productielijn}</td>
-                <td className="border px-4 py-2">
-                  <select
-                    value={order.status}
-                    onChange={(e) => updateOrderStatus(index, e.target.value)}
-                    className="p-1 border rounded bg-black text-white"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="processed">Processed</option>
-                    <option value="error">Error</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Simulation Status */}
+      {isRunning && currentRound ? (
+        <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+          <div className="flex items-center space-x-4">
+            <PlayCircle className="h-6 w-6 text-green-600" />
+            <div>
+              <h3 className="font-medium text-green-900 dark:text-green-100">
+                Simulation {currentSimulation} - Round {currentRound.number}{" "}
+                Active
+              </h3>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                Planning assignments for active round. Round ID:{" "}
+                {currentRound.id}
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20">
+          <div className="flex items-center space-x-4">
+            <AlertCircle className="h-6 w-6 text-yellow-600" />
+            <div>
+              <h3 className="font-medium text-yellow-900 dark:text-yellow-100">
+                No Active Simulation
+              </h3>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                Start a simulation to plan orders for specific rounds. Currently
+                showing all orders.
+              </p>
+            </div>
+          </div>
+        </Card>
       )}
+
+         {/* Planner Warnings Section */}
+        <Card
+          title="⚠️ Delivery Warnings for Planners"
+          className="border-orange-200 dark:border-orange-800"
+        >
+          <PlannerWarnings />
+        </Card>
+
+      {/* Planning Statistics */}
+      {filteredOrders.length > 0 && (
+        <Card title="📊 Planning Overview">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">
+                {filteredOrders.length}
+              </div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                {showCurrentRoundOnly ? "Current Round Orders" : "Total Orders"}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {filteredOrders.filter((o) => o.productielijn === "1").length}
+              </div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                Production Line 1
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {filteredOrders.filter((o) => o.productielijn === "2").length}
+              </div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                Production Line 2
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {filteredOrders.filter((o) => !o.productielijn).length}
+              </div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                Unassigned
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {message && (
+        <Card
+          className={
+            message.includes("❌")
+              ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+              : message.includes("✅")
+              ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
+              : "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20"
+          }
+        >
+          <p
+            className={
+              message.includes("❌")
+                ? "text-red-700 dark:text-red-300"
+                : message.includes("✅")
+                ? "text-green-700 dark:text-green-300"
+                : "text-yellow-700 dark:text-yellow-300"
+            }
+          >
+            {message}
+          </p>
+        </Card>
+      )}
+
+      {/* Orders table */}
+      <Card>
+        {loading ? (
+          <div className="py-20 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-zinc-500 dark:text-zinc-400">
+              Loading orders...
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+              <thead className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Order ID
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Customer
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Motor Type
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Quantity
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Round
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Blue Blocks
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Red Blocks
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Gray Blocks
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Production Line
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {filteredOrders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.customer}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">
+                        Motor {order.motortype}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.aantal}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.roundId ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                          Round {order.roundId}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">No Round</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.blauw}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.rood}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.grijs}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={order.productielijn || ""}
+                        onChange={(e) =>
+                          updateProductionLine(order.id, e.target.value || null)
+                        }
+                        disabled={updating === order.id}
+                        className="text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <option value="">Unassigned</option>
+                        <option value="1">Production Line 1</option>
+                        <option value="2">Production Line 2</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={order.status}
+                        onChange={(e) =>
+                          updateOrderStatus(order.id, e.target.value)
+                        }
+                        disabled={updating === order.id}
+                        className="text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="InProduction">In Production</option>
+                        <option value="Completed">Completed</option>
+                        <option value="AwaitingAccountManagerApproval">
+                          Awaiting Approval
+                        </option>
+                        <option value="ApprovedByAccountManager">
+                          Approved
+                        </option>
+                        <option value="RejectedByAccountManager">
+                          Rejected
+                        </option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {filteredOrders.length === 0 && (
+              <div className="py-20 text-center text-zinc-500 dark:text-zinc-400">
+                {showCurrentRoundOnly && currentRound
+                  ? `No orders found for Round ${currentRound.number}`
+                  : "No orders found"}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

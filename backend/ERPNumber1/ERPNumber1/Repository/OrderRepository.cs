@@ -61,8 +61,7 @@ namespace ERPNumber1.Repository
             existingOrder.Quantity = orderModel.Quantity;
             existingOrder.Signature = orderModel.Signature;
             existingOrder.ProductionLine = orderModel.ProductionLine;
-
-
+            existingOrder.Status = orderModel.Status;
 
             await _context.SaveChangesAsync();
             return existingOrder;
