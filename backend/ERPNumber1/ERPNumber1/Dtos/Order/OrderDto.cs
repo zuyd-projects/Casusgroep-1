@@ -9,6 +9,7 @@
         public char MotorType { get; set; }
         public int Quantity { get; set; }
         public string? Signature { get; set; }
+        public char? ProductionLine { get; set; }
         public DateTime OrderDate { get; set; }
         public string Status { get; set; } = string.Empty;
     }
