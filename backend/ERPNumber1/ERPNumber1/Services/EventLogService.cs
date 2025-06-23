@@ -553,9 +553,15 @@ namespace ERPNumber1.Services
                 }
             }
 
+            // Calculate actual ongoing orders from the Orders table, not event logs
+            var actualOngoingOrders = await _context.Orders
+                .Include(o => o.Deliveries)
+                .Where(o => o.Deliveries == null || !o.Deliveries.IsDelivered)
+                .CountAsync();
+
             return new
             {
-                TotalOngoingOrders = ongoingOrders.Count(),
+                TotalOngoingOrders = actualOngoingOrders, // Use actual count from Orders table
                 DelayedOrders = predictions.Count(p => ((dynamic)p).Status.ToString() == "Delayed") + warnings.Count(w => ((dynamic)w).Type.ToString() == "Round-Based Delivery Delay"),
                 AtRiskOrders = predictions.Count(p => ((dynamic)p).DelayRisk.ToString() == "High"),
                 AverageDeliveryTime = CalculateAverageDeliveryTime(recentEvents),
