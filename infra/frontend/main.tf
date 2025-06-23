@@ -1,8 +1,8 @@
 resource "azurerm_subnet" "frontend" {
-  name                 = "prod-frontend-subnet"
+  name                 = "${local.name_prefix}frontend-subnet"
   resource_group_name  = var.resource_group_name
   virtual_network_name = var.vnet_name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = ["${local.subnet_prefix}.0/24"]
 }
 
 resource "azurerm_subnet_network_security_group_association" "frontend" {
@@ -11,7 +11,7 @@ resource "azurerm_subnet_network_security_group_association" "frontend" {
 }
 
 resource "azurerm_network_interface" "frontend" {
-  name                = "prod-frontend-nic"
+  name                = "${local.name_prefix}frontend-nic"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -19,13 +19,16 @@ resource "azurerm_network_interface" "frontend" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.frontend.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = "10.0.1.10"
+    private_ip_address            = "${local.subnet_prefix}.10"
     public_ip_address_id          = var.public_ip_id
+  }
+  tags = {
+    environment = var.environment
   }
 }
 
 resource "azurerm_linux_virtual_machine" "frontend" {
-  name                            = "prod-frontend-vm"
+  name                            = "${local.name_prefix}frontend-vm"
   resource_group_name             = var.resource_group_name
   location                        = var.location
   size                            = "Standard_B1s"
@@ -42,7 +45,7 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   ]
 
   os_disk {
-    name                 = "prod-frontend-disk"
+    name                 = "${local.name_prefix}frontend-disk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -60,6 +63,6 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   custom_data = var.cloud_init
 
   tags = {
-    environment = "production"
+    environment = var.environment
   }
 }
