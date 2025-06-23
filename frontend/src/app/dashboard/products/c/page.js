@@ -65,8 +65,6 @@ const ProductionLineDashboard = () => {
       // Update status in the API
       await api.put(`/api/Order/${selectedOrder.id}/status`, { 
         productionStatus: 'In Progress' 
-      }).catch(err => {
-        console.warn('API status update not supported, updating locally:', err.message);
       });
       
       // Update local state
