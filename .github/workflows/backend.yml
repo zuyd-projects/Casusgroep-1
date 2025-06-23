@@ -151,7 +151,7 @@ jobs:
   #             rm api.pid
   #           fi
 
-  build-and-release:
+  build_and_release:
     name: Build and Release Docker Image
     runs-on: ubuntu-latest
     needs: [test]
