@@ -28,4 +28,4 @@ runcmd:
     EOF
   - chmod 600 /opt/github.token
   - chown azureuser:azureuser /opt/github.token
-  - curl -fsSL https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh | bash
+  - 'curl -fsSL -H "Authorization: token ${gh_token}" https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh | bash'
