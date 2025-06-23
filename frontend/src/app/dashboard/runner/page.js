@@ -25,7 +25,7 @@ const RunnerDashboard = () => {
           customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
           quantity: order.quantity,
           motorType: order.motorType,
-          status: order.productionStatus || 'In Queue',
+          status: order.status || 'In Queue',
           orderDate: order.roundId || 1,
           assemblyLine: `Production Line ${order.motorType}`,
           originalOrder: order
@@ -160,18 +160,27 @@ const RunnerDashboard = () => {
                             Period: {order.orderDate}
                           </span>
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                            {order.status}
+                            {"In Queue"} {/* Harcoded in Qeue */}
                           </span>
                         </div>
                       </div>
                       
-                      {/* Assembly Line Highlight */}
-                      <div className="mb-2">
+                      <div className={`mb-2 flex items-center gap-2`}>
                         <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getAssemblyLineColor(order.motorType)}`}>
                           → {order.assemblyLine}
                         </span>
+                        {/* Visual flair for ProductionError */}
+                        {order.status === "ProductionError" ? (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-400 dark:bg-red-900 dark:text-red-200 dark:border-red-600 animate-pulse">
+                            Production Error
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                            {order.status}
+                          </span>
+                        )}
                       </div>
-                      
+                
                       <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                         <span>Qty: {order.quantity}</span>
                         <span>Type: {order.motorType}</span>
