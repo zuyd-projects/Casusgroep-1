@@ -122,7 +122,7 @@ export default function ProcessMining() {
               <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Avg Case Duration</div>
             </div>
             <div className="text-3xl font-bold mt-1">
-              {statistics.averageCaseDuration ? `${statistics.averageCaseDuration.toFixed(1)}h` : 'N/A'}
+              {statistics.averageCaseDuration ? `${statistics.averageCaseDuration.toFixed(1)}ms` : 'N/A'}
             </div>
           </Card>
           
