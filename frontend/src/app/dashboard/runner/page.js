@@ -16,8 +16,13 @@ const RunnerDashboard = () => {
         setLoading(true);
         const allOrders = await api.get('/api/Order');
         
-        // Format all orders for runner view
-        const formattedOrders = allOrders.map(order => ({
+        // Only include orders with the desired statuses
+        const filteredOrders = allOrders.filter(order =>
+          order.productionStatus === "ApprovedByAccountManager" ||
+          order.productionStatus === "ProductionError"
+        );
+
+        const formattedOrders = filteredOrders.map(order => ({
           id: order.id.toString(),
           productName: `Assembly Unit ${order.motorType}-${order.id}`,
           customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
@@ -28,7 +33,7 @@ const RunnerDashboard = () => {
           assemblyLine: `Production Line ${order.motorType}`,
           originalOrder: order
         }));
-          
+        
         setOrders(formattedOrders);
       } catch (error) {
         console.error('Failed to fetch orders:', error);
