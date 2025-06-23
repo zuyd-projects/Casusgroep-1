@@ -449,26 +449,6 @@ const ProductionLine2Dashboard = () => {
                         <CheckCircle className="w-10 h-10 mx-auto text-green-600 dark:text-green-400 mb-2" />
                         <p className="text-green-700 dark:text-green-400 font-semibold">Order Completed!</p>
                       </div>
-                      
-                      {/* Status Change Section */}
-                      <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-900/20 rounded-lg">
-                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400 mb-2 block">Change Status:</label>
-                        <select
-                          value={selectedOrder.status}
-                          onChange={(e) => updateOrderStatus(selectedOrder.id, e.target.value)}
-                          disabled={updating === selectedOrder.id}
-                          className="w-full text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="InProduction">In Production</option>
-                          <option value="Completed">Completed</option>
-                          <option value="AwaitingAccountManagerApproval">Awaiting Approval</option>
-                          <option value="ApprovedByAccountManager">Approved</option>
-                          <option value="RejectedByAccountManager">Rejected</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </div>
                     </>
                   )}
                 </div>
