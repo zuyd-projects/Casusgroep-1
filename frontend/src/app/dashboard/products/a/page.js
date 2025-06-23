@@ -96,6 +96,9 @@ const ProductionLineDashboard = () => {
         console.warn('API status update not supported, updating locally:', err.message);
       });
       
+      // Log the order status before removing
+      console.log("Order completed:", selectedOrder.id, "Status:", 'Completed');
+
       // Update local state
       setOrders((prevOrders) =>
         prevOrders.filter((order) => order.id !== selectedOrder.id)

@@ -8,6 +8,7 @@ const RunnerDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastDeliveredOrder, setLastDeliveredOrder] = useState(null);
 
   // Fetch all orders from API when component mounts
   useEffect(() => {
@@ -15,10 +16,12 @@ const RunnerDashboard = () => {
       try {
         setLoading(true);
         const allOrders = await api.get('/api/Order');
+        // Filter by status
         const filteredOrders = allOrders.filter(order =>
           order.status === "ApprovedByAccountManager" ||
           order.status === "ProductionError"
         );
+
         const formattedOrders = filteredOrders.map(order => ({
           id: order.id.toString(),
           productName: `Assembly Unit ${order.motorType}-${order.id}`,
@@ -26,7 +29,7 @@ const RunnerDashboard = () => {
           quantity: order.quantity,
           motorType: order.motorType,
           status: order.status || 'In Queue',
-          orderDate: order.roundId || 1,
+          orderDate: order.roundId || order.orderDate || 1,
           assemblyLine: `Production Line ${order.motorType}`,
           originalOrder: order
         }));
@@ -101,6 +104,35 @@ const RunnerDashboard = () => {
       </div>
     </div>
   );
+
+  const handleDeliveredOrder = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      // Save the current order and its previous status for undo
+      setLastDeliveredOrder({
+        ...selectedOrder,
+        previousStatus: selectedOrder.status,
+        status: "Delivered"
+      });
+
+      // Update status in the API
+      await api.put(`/api/Order/${selectedOrder.id}/OrderStatus`, { status: "Delivered" })
+        .catch(err => {
+          console.warn('API status update not supported, updating locally:', err.message);
+        });
+
+      // Optionally, update the local selectedOrder status before removing
+      setSelectedOrder(prev =>
+        prev ? { ...prev, status: "Delivered" } : prev
+      );
+
+      // Remove from list
+      setOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+    } catch (error) {
+      console.error('Error delivering order:', error);
+    }
+  };
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900">
@@ -194,34 +226,54 @@ const RunnerDashboard = () => {
           {/* Right Container - Order Details & Delivery Info / Future Notifications */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             {selectedOrder ? (
-              <div>
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold text-black dark:text-white">{selectedOrder.productName}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Order: {selectedOrder.id}</p>
+              selectedOrder.status === "Delivered" ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  {/* Delivery Complete Icon */}
+                  <Package className="w-16 h-16 text-green-500 dark:text-green-400 mb-4" />
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-300 mb-2">Order Delivered!</p>
+                  <p className="text-gray-600 dark:text-gray-400">This order has been marked as delivered and is no longer active.</p>
                 </div>
-                
-                {/* Delivery Information - Highlighted */}
-                <div className="mb-6">
-                  {renderDeliveryInfo(selectedOrder)}
-                </div>
-                
-                {/* Order Details */}
-                {renderOrderDetails(selectedOrder)}
-                
-                {/* Runner Action Info */}
-                <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <Package className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2" />
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Runner Instructions</h4>
+              ) : (
+                <div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-black dark:text-white">{selectedOrder.productName}</h3>
+                    <p className="text-gray-600 dark:text-gray-400">Order: {selectedOrder.id}</p>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Deliver this order to <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedOrder.assemblyLine}</span>
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Priority: Period {selectedOrder.orderDate} order
-                  </p>
+                  
+                  {/* Delivery Information - Highlighted */}
+                  <div className="mb-6">
+                    {renderDeliveryInfo(selectedOrder)}
+                  </div>
+                  
+                  {/* Order Details */}
+                  {renderOrderDetails(selectedOrder)}
+                  
+                  {/* Runner Action Info */}
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <Package className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2" />
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Runner Instructions</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Deliver this order to <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedOrder.assemblyLine}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      Priority: Period {selectedOrder.orderDate} order
+                    </p>
+                  </div>
+
+                  {/* Delivered Button */}
+                  <div className="flex flex-col items-stretch justify-start gap-2 mt-4 pl-2">
+                    <button
+                      className="w-full px-6 py-3 text-lg bg-green-600 text-white rounded-md font-bold hover:bg-green-700 disabled:opacity-50 transition-all"
+                      onClick={handleDeliveredOrder}
+                      disabled={selectedOrder?.status === "Delivered"}
+                    >
+                      Delivered
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 <div className="text-center">
@@ -234,6 +286,40 @@ const RunnerDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Move Undo Last Delivered button OUTSIDE and BELOW the right container */}
+      {lastDeliveredOrder && lastDeliveredOrder.status === "Delivered" && (
+        <div className="flex justify-end mt-4 mb-8 pr-8">
+          <button
+            className="px-6 py-3 bg-yellow-500 text-white rounded-md font-bold hover:bg-yellow-600 shadow-lg transition-all"
+            onClick={async () => {
+              // Revert status in backend to previousStatus
+              await api.put(`/api/Order/${lastDeliveredOrder.id}/OrderStatus`, { status: lastDeliveredOrder.previousStatus });
+              // Fetch the updated order from the backend
+              const restoredOrder = await api.get(`/api/Order/${lastDeliveredOrder.id}`);
+              // Add back to list with previous status
+              setOrders(prev => [
+                {
+                  ...restoredOrder,
+                  id: restoredOrder.id.toString(),
+                  productName: `Assembly Unit ${restoredOrder.motorType}-${restoredOrder.id}`,
+                  customer: restoredOrder.appUserId ? `Customer ${restoredOrder.appUserId}` : 'Unknown Customer',
+                  quantity: restoredOrder.quantity,
+                  motorType: restoredOrder.motorType,
+                  status: lastDeliveredOrder.previousStatus,
+                  orderDate: restoredOrder.roundId || restoredOrder.orderDate || 1,
+                  assemblyLine: `Production Line ${restoredOrder.motorType}`,
+                  originalOrder: restoredOrder
+                },
+                ...prev
+              ]);
+              setLastDeliveredOrder(null);
+            }}
+          >
+            Undo Last Delivered
+          </button>
+        </div>
+      )}
     </div>
   );
 };
