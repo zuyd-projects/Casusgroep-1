@@ -71,8 +71,16 @@ EOF
 )
   
   # Replace the placeholder with the SSL configuration
-  sed "s|# DOMAIN_NAME_PLACEHOLDER|${SSL_CONFIG}|" /etc/nginx/nginx.conf.tmp > /etc/nginx/nginx.conf
-  
+  grep -v "# DOMAIN_NAME_PLACEHOLDER" /etc/nginx/nginx.conf.tmp > /etc/nginx/nginx.conf.new
+  # Remove the last line containing the closing bracket
+  head -n -1 /etc/nginx/nginx.conf.new > /etc/nginx/nginx.conf
+  # Append the SSL configuration
+  echo "${SSL_CONFIG}" >> /etc/nginx/nginx.conf
+  # Add the closing bracket
+  echo "}" >> /etc/nginx/nginx.conf
+  # Clean up the temporary file
+  rm -f /etc/nginx/nginx.conf.new
+
   # Check if we need to obtain a new certificate
   if [ ! -d "/etc/letsencrypt/live/${DOMAIN_NAME}" ]; then
     echo "Obtaining initial SSL certificate for ${DOMAIN_NAME}..."
