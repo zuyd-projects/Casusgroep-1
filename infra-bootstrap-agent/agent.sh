@@ -28,16 +28,30 @@ log() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') [bootstrap] $*" | tee -a "$LOG_FILE"
 }
 
+download_file() {
+  local url="$1"
+  local output="$2"
+  local headers="-H Authorization: token ${GITHUB_TOKEN} -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache'"
+
+  local timestamp=$(date +%s)
+  local full_url="${url}?t=${timestamp}"
+
+  rm -f "$output"
+
+  log "Downloading $url..."
+  curl -fsSL ${headers} "${full_url}" -o "${output}"
+}
+
 download_json() {
   log "Downloading unencrypted config for $HOSTNAME..."
-  curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$CONFIG_URL" -o "$JSON_FILE"
+  download_file "$CONFIG_URL" "$JSON_FILE"
 }
 
 download_encrypted() {
   log "Downloading AES-encrypted config for $HOSTNAME..."
-  curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$ENC_CONFIG_URL" -o "$ENC_FILE"
+  download_file "$ENC_CONFIG_URL" "$ENC_FILE"
   log "Downloading RSA-encrypted AES key for $HOSTNAME..."
-  curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$ENC_KEY_URL" -o "$ENC_KEY_FILE"
+  download_file "$ENC_KEY_URL" "$ENC_KEY_FILE"
 }
 
 decrypt_config() {
