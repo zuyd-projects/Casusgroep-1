@@ -11,6 +11,9 @@ const navItems = [
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Plannings", href: "/dashboard/plannings" },
   { label: "Account Manager", href: "/dashboard/accountManager" },
+  { label: "Simulations", href: "/dashboard/simulations" },
+  { label: "Process Mining", href: "/dashboard/process-mining" },
+  { label: "Runner", href: "/dashboard/runner" },
   {
     label: "Production Lines",
     children: [

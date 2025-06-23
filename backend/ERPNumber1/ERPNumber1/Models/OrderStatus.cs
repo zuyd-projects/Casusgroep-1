@@ -9,6 +9,7 @@ namespace ERPNumber1.Models
         RejectedByAccountManager,
         Delivered,
         Completed,
-        Cancelled
+        Cancelled,
+        ProductionError,
     }
 }
