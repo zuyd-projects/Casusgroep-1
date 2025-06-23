@@ -375,3 +375,119 @@ GET /api/Order
 - **Training Accuracy**: Realistic order placement during simulation rounds  
 - **Data Integrity**: Clear traceability between orders and simulation phases
 - **Team Coordination**: All users create orders for the same active round
+
+## 📋 Order Status Management
+
+The ERP system now includes comprehensive order status tracking to support Account Manager workflows and order lifecycle management.
+
+### Order Status States
+
+Orders can have the following statuses:
+
+- **Pending**: Default status when an order is created
+- **InProduction**: Order is being manufactured
+- **AwaitingAccountManagerApproval**: Order requires Account Manager review
+- **ApprovedByAccountManager**: Order approved and can proceed
+- **RejectedByAccountManager**: Order rejected by Account Manager
+- **Delivered**: Order has been delivered to customer
+- **Completed**: Order lifecycle completed
+- **Cancelled**: Order was cancelled
+
+### Account Manager Endpoints
+
+#### Get Orders Pending Approval
+**Endpoint**: `GET /api/Order/pending-approval`
+**Role Required**: AccountManager
+```json
+{
+  "method": "GET",
+  "headers": {
+    "Authorization": "Bearer <jwt-token>"
+  }
+}
+```
+
+#### Approve Order
+**Endpoint**: `PATCH /api/Order/{id}/approve`
+**Role Required**: AccountManager
+```json
+{
+  "method": "PATCH",
+  "headers": {
+    "Authorization": "Bearer <jwt-token>"
+  }
+}
+```
+
+#### Reject Order
+**Endpoint**: `PATCH /api/Order/{id}/reject`
+**Role Required**: AccountManager
+```json
+{
+  "method": "PATCH",
+  "headers": {
+    "Authorization": "Bearer <jwt-token>"
+  }
+}
+```
+
+#### Update Order Status
+**Endpoint**: `PATCH /api/Order/{id}/status`
+```json
+{
+  "method": "PATCH",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "status": "InProduction"
+  }
+}
+```
+
+### Updated Order DTOs
+
+#### OrderDto (Response)
+```json
+{
+  "id": 1,
+  "roundId": 1,
+  "deliveryId": null,
+  "appUserId": "user123",
+  "motorType": "A",
+  "quantity": 10,
+  "signature": "order-signature-001",
+  "orderDate": "2025-06-20T10:00:00",
+  "status": "Pending"
+}
+```
+
+#### CreateOrderDto (Request)
+```json
+{
+  "roundId": 1,
+  "appUserId": "user123",
+  "motorType": "A",
+  "quantity": 10,
+  "signature": "order-signature-001",
+  "productionLine": "A",
+  "status": "Pending"  // Optional - defaults to Pending
+}
+```
+
+### Workflow Example
+
+1. **Order Creation**: Order starts with "Pending" status
+2. **Production**: Status updated to "InProduction"
+3. **Quality Check**: Status updated to "AwaitingAccountManagerApproval"
+4. **Account Manager Review**: Account Manager approves/rejects
+5. **Delivery**: Status updated to "Delivered"
+6. **Completion**: Status updated to "Completed"
+
+### Event Logging
+
+All status changes are automatically logged in the EventLog system with:
+- Case ID: Order-{orderId}
+- Activity: Status change description
+- Resource: User who made the change
+- Additional Data: Previous and new status

@@ -88,6 +88,17 @@ export const api = {
     return await handleResponse(response);
   },
 
+  async patch(endpoint, data) {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      mode: 'cors',
+    });
+    
+    return await handleResponse(response);
+  },
+
   async delete(endpoint) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
