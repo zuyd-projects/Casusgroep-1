@@ -19,10 +19,7 @@ download_file() {
 
   local timestamp=$(date +%s)
   local full_url="${url}?t=${timestamp}"
-
-  rm -f "$output"
-
-  log "Downloading $url..."
+  
   curl -fsSL "${headers[@]}" "${full_url}" -o "${output}"
 }
 
