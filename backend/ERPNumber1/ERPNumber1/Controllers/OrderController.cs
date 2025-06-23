@@ -49,7 +49,7 @@ namespace ERPNumber1.Controllers
         // GET: api/Order/pending-approval
         [HttpGet("pending-approval")]
         [LogEvent("Order", "Get Orders Pending Approval")]
-        [RequireRole(Role.AccountManager)]
+        [RequireRole(Role.User)]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersPendingApproval()
         {
             try
@@ -326,7 +326,7 @@ namespace ERPNumber1.Controllers
         // PATCH: api/Order/5/approve
         [HttpPatch("{id}/approve")]
         [LogEvent("Order", "Approve Order")]
-        [RequireRole(Role.AccountManager)]
+        [RequireRole(Role.User)]
         public async Task<IActionResult> ApproveOrder(int id)
         {
             try
@@ -366,7 +366,7 @@ namespace ERPNumber1.Controllers
         // PATCH: api/Order/5/reject
         [HttpPatch("{id}/reject")]
         [LogEvent("Order", "Reject Order")]
-        [RequireRole(Role.AccountManager)]
+        [RequireRole(Role.User)]
         public async Task<IActionResult> RejectOrder(int id)
         {
             try

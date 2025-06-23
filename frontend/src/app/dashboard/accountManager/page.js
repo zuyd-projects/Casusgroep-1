@@ -22,13 +22,22 @@ export default function AccountManagerDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch orders pending approval (now that backend routing is fixed)
-      const pendingResponse = await api.get('/api/Order/pending-approval');
-      setPendingOrders(pendingResponse);
-
-      // Fetch all orders for overview
+      // Fetch all orders first
       const allOrdersResponse = await api.get('/api/Order');
       setAllOrders(allOrdersResponse);
+
+      // Try to fetch orders pending approval, but fall back to filtering if unauthorized
+      try {
+        const pendingResponse = await api.get('/api/Order/pending-approval');
+        setPendingOrders(pendingResponse);
+      } catch (pendingError) {
+        console.warn('Could not fetch pending orders directly, filtering from all orders:', pendingError);
+        // Filter pending orders from all orders as fallback
+        const pendingFromAll = allOrdersResponse.filter(order => 
+          order.status === 'AwaitingAccountManagerApproval'
+        );
+        setPendingOrders(pendingFromAll);
+      }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       setError('Failed to load orders. Please try again.');
