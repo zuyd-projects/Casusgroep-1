@@ -8,13 +8,28 @@ SERVICE_NAME="bootstrap-agent"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 GITHUB_TOKEN=$(cat /opt/github.token)
 
+download_file() {
+  local url="$1"
+  local output="$2"
+  local headers=(
+    -H "Authorization: token ${GITHUB_TOKEN}"
+    -H "Cache-Control: no-cache, no-store"
+    -H "Pragma: no-cache"
+  )
+
+  local timestamp=$(date +%s)
+  local full_url="${url}?t=${timestamp}"
+  
+  curl -fsSL "${headers[@]}" "${full_url}" -o "${output}"
+}
+
 # Step 1: Install dependencies
 echo "[INFO] Installing required packages..."
 sudo apt-get update && sudo apt-get install -y bash curl openssl jq
 
 # Step 2: Download the bootstrap-agent script
 echo "[INFO] Downloading bootstrap agent script..."
-curl -fsSL -H "Authorization: token $GITHUB_TOKEN" "$SCRIPT_URL" -o "${INSTALL_DIR}/${SERVICE_NAME}.sh"
+download_file "$SCRIPT_URL" "${INSTALL_DIR}/${SERVICE_NAME}.sh"
 chmod +x "${INSTALL_DIR}/${SERVICE_NAME}.sh"
 
 # Step 3: Create the systemd service unit
