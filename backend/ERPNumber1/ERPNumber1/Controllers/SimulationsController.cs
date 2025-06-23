@@ -30,7 +30,6 @@ namespace ERPNumber1.Controllers
             _simulationService = simulationService;
         }
 
-        [Authorize(Roles = "User")]
         [HttpGet]
         [LogEvent("Simulation", "Get All Simulations")]
         public async Task<ActionResult<IEnumerable<SimulationDto>>> GetSimulations()
@@ -40,7 +39,6 @@ namespace ERPNumber1.Controllers
             return Ok(simulationDtos);
         }
 
-        [Authorize(Roles = "User")]
         [HttpGet("{id}")]
         [LogEvent("Simulation", "Get Simulation by ID")]
         public async Task<ActionResult<SimulationDto>> GetSimulation(int id)
@@ -59,7 +57,6 @@ namespace ERPNumber1.Controllers
             return Ok(simulation.ToSimulationDto());
         }
 
-        [Authorize(Roles = "User")]
         [HttpPut("{id}")]
         [LogEvent("Simulation", "Update Simulation")]
         public async Task<IActionResult> PutSimulation(int id, UpdateSimulationDto simulationDto)
@@ -74,7 +71,6 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "User")]
         [HttpPost]
         [LogEvent("Simulation", "Create Simulation")]
         public async Task<ActionResult<SimulationDto>> PostSimulation(CreateSimulationDto simulationDto)
@@ -85,7 +81,6 @@ namespace ERPNumber1.Controllers
             return CreatedAtAction(nameof(GetSimulation), new { id = simulationModel.Id }, simulationModel.ToSimulationDto());
         }
 
-        [Authorize(Roles = "User")]
         [HttpDelete("{id}")]
         [LogEvent("Simulation", "Delete Simulation")]
         public async Task<IActionResult> DeleteSimulation(int id)
@@ -100,7 +95,6 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "User")]
         [HttpPost("{id}/run")]
         [LogEvent("Simulation", "Run Simulation")]
         public async Task<IActionResult> RunSimulation(int id)
@@ -120,7 +114,6 @@ namespace ERPNumber1.Controllers
             return Ok(new { message = "Simulation started successfully", simulationId = id });
         }
 
-        [Authorize(Roles = "User")]
         [HttpPost("{id}/stop")]
         [LogEvent("Simulation", "Stop Simulation")]
         public async Task<IActionResult> StopSimulation(int id)
@@ -140,7 +133,6 @@ namespace ERPNumber1.Controllers
             return Ok(new { message = "Simulation stopped successfully", simulationId = id });
         }
 
-        [Authorize(Roles = "User")]
         [HttpGet("{id}/status")]
         [LogEvent("Simulation", "Get Simulation Status")]
         public async Task<IActionResult> GetSimulationStatus(int id)
