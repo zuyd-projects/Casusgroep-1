@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
-import { orders, dashboardStats } from '@CASUSGROEP1/utils/mockData';
 import { api } from '@CASUSGROEP1/utils/api';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { AlertTriangle, TrendingUp, Activity, Clock, Play, Plus } from 'lucide-react';
@@ -13,6 +12,14 @@ export default function Dashboard() {
   const [processMiningData, setProcessMiningData] = useState(null);
   const [deliveryPredictions, setDeliveryPredictions] = useState(null);
   const [recentSimulations, setRecentSimulations] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalRevenue: 0,
+    activeCustomers: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   const { runSimulation, currentSimulation, currentRound, isRunning } = useSimulation();
 
@@ -26,37 +33,138 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Fetch process mining overview data
-    const fetchProcessMiningData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [anomaliesRes, predictionsRes] = await Promise.all([
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [
+          anomaliesRes, 
+          predictionsRes, 
+          simulationsRes, 
+          ordersRes
+        ] = await Promise.all([
           api.get('/api/ProcessMining/anomalies'),
-          api.get('/api/ProcessMining/delivery-predictions')
+          api.get('/api/ProcessMining/delivery-predictions'),
+          api.get('/api/Simulations'),
+          api.get('/api/Order')
         ]);
+
         setProcessMiningData(anomaliesRes);
         setDeliveryPredictions(predictionsRes);
-      } catch (error) {
-        console.error('Error fetching process mining data:', error);
-      }
-    };
-
-    // Fetch recent simulations
-    const fetchRecentSimulations = async () => {
-      try {
-        const simulations = await api.get('/api/Simulations');
+        
         // Get the 3 most recent simulations
-        setRecentSimulations(simulations.slice(-3).reverse());
+        setRecentSimulations(simulationsRes.slice(-3).reverse());
+        
+        // Process orders data
+        const formattedOrders = ordersRes.map(order => ({
+          id: order.id.toString(),
+          customer: `User ${order.appUserId}`,
+          date: new Date(order.orderDate).toLocaleDateString(),
+          amount: order.quantity * 100, // Calculate price (100 per unit)
+          status: 'processing', // Default status
+          motorType: order.motorType,
+          quantity: order.quantity,
+          signature: order.signature,
+          roundId: order.roundId,
+          originalOrder: order
+        }));
+        
+        // Get 5 most recent orders
+        setRecentOrders(formattedOrders.slice(-5).reverse());
+        
+        // Calculate dashboard stats from real data
+        const totalOrders = ordersRes.length;
+        const totalRevenue = ordersRes.reduce((sum, order) => sum + (order.quantity * 100), 0);
+        const uniqueUsers = new Set(ordersRes.map(order => order.appUserId)).size;
+        const pendingOrders = predictionsRes?.delayedOrders || 0;
+        
+        setDashboardStats({
+          totalOrders,
+          pendingOrders,
+          totalRevenue,
+          activeCustomers: uniqueUsers
+        });
+        
       } catch (error) {
-        console.error('Error fetching simulations:', error);
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProcessMiningData();
-    fetchRecentSimulations();
+    fetchDashboardData();
   }, []);
 
-  // Get just the 5 most recent orders
-  const recentOrders = orders.slice(0, 5);
+  // Refetch when round changes to get updated data
+  useEffect(() => {
+    if (currentRound && !loading) {
+      console.log('🔄 Round changed, refetching dashboard data for round:', currentRound.number);
+      // Only refetch process mining and orders data, not simulations
+      const fetchUpdatedData = async () => {
+        try {
+          const [predictionsRes, ordersRes] = await Promise.all([
+            api.get('/api/ProcessMining/delivery-predictions'),
+            api.get('/api/Order')
+          ]);
+
+          setDeliveryPredictions(predictionsRes);
+          
+          const formattedOrders = ordersRes.map(order => ({
+            id: order.id.toString(),
+            customer: `User ${order.appUserId}`,
+            date: new Date(order.orderDate).toLocaleDateString(),
+            amount: order.quantity * 100,
+            status: 'processing',
+            motorType: order.motorType,
+            quantity: order.quantity,
+            signature: order.signature,
+            roundId: order.roundId,
+            originalOrder: order
+          }));
+          
+          setRecentOrders(formattedOrders.slice(-5).reverse());
+          
+          // Update stats
+          const totalOrders = ordersRes.length;
+          const totalRevenue = ordersRes.reduce((sum, order) => sum + (order.quantity * 100), 0);
+          const uniqueUsers = new Set(ordersRes.map(order => order.appUserId)).size;
+          const pendingOrders = predictionsRes?.delayedOrders || 0;
+          
+          setDashboardStats({
+            totalOrders,
+            pendingOrders,
+            totalRevenue,
+            activeCustomers: uniqueUsers
+          });
+        } catch (error) {
+          console.error('Error refreshing dashboard data:', error);
+        }
+      };
+      
+      fetchUpdatedData();
+    }
+  }, [currentRound?.number, loading]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-zinc-500 dark:text-zinc-400">Loading dashboard data...</p>
+        </div>
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="h-48 bg-gray-200 rounded-lg"></div>
+          <div className="h-48 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -211,7 +319,9 @@ export default function Dashboard() {
                 {deliveryPredictions.warnings.slice(0, 2).map((warning, index) => (
                   <div key={index} className="text-xs p-3 bg-orange-50 dark:bg-orange-900/20 rounded border-l-4 border-orange-400">
                     <div className="font-medium">Order {warning.caseId}</div>
-                    <div className="text-orange-600">Levertijd wordt later - {warning.orderAge.toFixed(1)} dagen</div>
+                    <div className="text-orange-600">
+                      Levertijd wordt later - {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} dagen`}
+                    </div>
                     <div className="text-gray-600 dark:text-gray-400 mt-1">{warning.recommendedAction}</div>
                   </div>
                 ))}
@@ -236,24 +346,6 @@ export default function Dashboard() {
           </div>
         </Card>
       )}
-      
-      {/* Monthly sales chart */}
-      <Card title="Monthly Sales">
-        <div className="h-64 flex items-end justify-between space-x-2 px-6">
-          {dashboardStats.monthlySales.map((item) => {
-            const height = (item.sales / 3200) * 100;
-            return (
-              <div key={item.month} className="flex flex-col items-center">
-                <div 
-                  className="w-12 bg-blue-500 rounded-t" 
-                  style={{ height: `${height}%` }}
-                ></div>
-                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">{item.month}</div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
       
       {/* Recent orders */}
       <Card title="Recent Orders">

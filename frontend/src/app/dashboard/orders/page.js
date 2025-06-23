@@ -29,35 +29,51 @@ export default function Orders() {
   });
 
   // Fetch orders from API
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const apiOrders = await api.get('/api/Order');
-        // Convert API orders to match display format
-        const formattedOrders = apiOrders.map(order => ({
-          id: order.id.toString(),
-          customer: `User ${order.appUserId}`,
-          date: new Date(order.orderDate).toLocaleDateString(),
-          amount: order.quantity * 100, // Calculate price (100 per unit)
-          status: 'processing', // Default status since API doesn't have status field
-          motorType: order.motorType,
-          quantity: order.quantity,
-          signature: order.signature,
-          roundId: order.roundId,
-          originalOrder: order
-        }));
-        setOrders(formattedOrders);
-      } catch (error) {
-        console.error('Failed to fetch orders:', error);
-        setOrders([]); // Set empty array on error
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const apiOrders = await api.get('/api/Order');
+      // Convert API orders to match display format
+      const formattedOrders = apiOrders.map(order => ({
+        id: order.id.toString(),
+        customer: `User ${order.appUserId}`,
+        date: new Date(order.orderDate).toLocaleDateString(),
+        amount: order.quantity * 100, // Calculate price (100 per unit)
+        status: 'processing', // Default status since API doesn't have status field
+        motorType: order.motorType,
+        quantity: order.quantity,
+        signature: order.signature,
+        roundId: order.roundId,
+        originalOrder: order
+      }));
+      setOrders(formattedOrders);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      setOrders([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Refetch orders when round changes
+  useEffect(() => {
+    if (currentRound) {
+      console.log('🔄 Round changed, refetching orders for round:', currentRound.number);
+      fetchOrders();
+    }
+  }, [currentRound?.number]); // Only trigger when round number changes
+
+  // Also refetch when simulation starts/stops
+  useEffect(() => {
+    if (isRunning !== null) { // Only refetch after initial load
+      console.log('🔄 Simulation state changed, refetching orders. Running:', isRunning);
+      fetchOrders();
+    }
+  }, [isRunning]);
 
   // Handle new order creation
   const handleCreateOrder = async (e) => {
@@ -106,7 +122,8 @@ export default function Orders() {
         originalOrder: createdOrder
       };
       
-      setOrders(prev => [formattedOrder, ...prev]);
+      // Refetch orders to ensure we have the latest data from server
+      await fetchOrders();
       
       // Reset form
       setNewOrder({

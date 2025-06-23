@@ -3,29 +3,47 @@
 import { useState, useEffect } from 'react';
 import { api } from '@CASUSGROEP1/utils/api';
 import { AlertTriangle, Clock, TrendingDown, CheckCircle } from 'lucide-react';
+import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 
 export default function PlannerWarnings({ compact = false }) {
   const [predictions, setPredictions] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { currentRound, isRunning } = useSimulation();
+
+  const fetchPredictions = async () => {
+    try {
+      const response = await api.get('/api/ProcessMining/delivery-predictions');
+      setPredictions(response);
+    } catch (error) {
+      console.error('Error fetching delivery predictions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPredictions = async () => {
-      try {
-        const response = await api.get('/api/ProcessMining/delivery-predictions');
-        setPredictions(response);
-      } catch (error) {
-        console.error('Error fetching delivery predictions:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPredictions();
     
     // Refresh every 5 minutes
     const interval = setInterval(fetchPredictions, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Refetch when round changes
+  useEffect(() => {
+    if (currentRound) {
+      console.log('🔄 Round changed, refetching delivery predictions for round:', currentRound.number);
+      fetchPredictions();
+    }
+  }, [currentRound?.number]); // Only trigger when round number changes
+
+  // Also refetch when simulation starts/stops
+  useEffect(() => {
+    if (isRunning !== null) { // Only refetch after initial load
+      console.log('🔄 Simulation state changed, refetching delivery predictions. Running:', isRunning);
+      fetchPredictions();
+    }
+  }, [isRunning]);
 
   if (loading) {
     return (
@@ -91,7 +109,7 @@ export default function PlannerWarnings({ compact = false }) {
                       `${warning.roundsDelay} rounds overdue - Levertijd wordt later` :
                       `Due by Round ${warning.expectedDeliveryRound} - Levertijd wordt later`
                     ) :
-                    `Levertijd wordt later - ${warning.orderAge.toFixed(1)} dagen`
+                    `Levertijd wordt later - ${warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} dagen`}`
                   }
                 </div>
               </div>
@@ -147,7 +165,7 @@ export default function PlannerWarnings({ compact = false }) {
                   <div className="text-sm opacity-75 mb-2">{warning.message}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <div>Last Activity: {warning.lastActivity}</div>
-                    <div>Order Age: {warning.orderAge.toFixed(1)} days | Expected: {warning.expectedDelivery.toFixed(1)} days</div>
+                    <div>Order Age: {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} days`} | Expected: {warning.expectedDelivery.toFixed(1)} {warning.orderRoundAge > 0 ? 'rounds' : 'days'}</div>
                     {warning.roundsDelay !== undefined && (
                       <div className="text-red-600 font-medium">
                         {warning.roundsDelay > 0 ? (

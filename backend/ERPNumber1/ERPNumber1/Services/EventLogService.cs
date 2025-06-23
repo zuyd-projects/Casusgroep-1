@@ -444,6 +444,7 @@ namespace ERPNumber1.Services
                             CaseId = $"Order_{order.Id}",
                             Message = $"Order {order.Id} should have been delivered by round {order.Round.RoundNumber + 3} but is now in round {currentRound.MaxRound}. Levertijd wordt later.",
                             OrderAge = (DateTime.UtcNow - order.OrderDate).TotalDays,
+                            OrderRoundAge = roundsFromCreation, // Number of rounds since order creation
                             ExpectedDelivery = 3.0, // Expected within 3 rounds
                             LastActivity = $"Order Created in Round {order.Round.RoundNumber}",
                             RecommendedAction = roundsFromCreation >= 5 
@@ -466,6 +467,7 @@ namespace ERPNumber1.Services
                             CaseId = $"Order_{order.Id}",
                             Message = $"Order {order.Id} created in round {order.Round.RoundNumber} must be delivered by next round ({order.Round.RoundNumber + 3}) to meet deadline.",
                             OrderAge = (DateTime.UtcNow - order.OrderDate).TotalDays,
+                            OrderRoundAge = roundsFromCreation, // Number of rounds since order creation
                             ExpectedDelivery = 3.0,
                             LastActivity = $"Order Created in Round {order.Round.RoundNumber}",
                             RecommendedAction = "Schedule for delivery in next round to meet 3-round deadline",
@@ -541,6 +543,7 @@ namespace ERPNumber1.Services
                             ? $"Order {order.Key} is delayed by {currentAge - avgDeliveryTime:F1} days. Levertijd wordt later." 
                             : $"Order {order.Key} at risk of delay. Current age: {currentAge:F1} days.",
                         OrderAge = currentAge,
+                        OrderRoundAge = 0, // Not available for event log based warnings
                         ExpectedDelivery = avgDeliveryTime,
                         LastActivity = lastActivity.Activity,
                         RecommendedAction = isDelayed 
