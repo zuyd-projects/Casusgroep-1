@@ -42,6 +42,14 @@ namespace ERPNumber1.Data
                 .WithOne(d => d.Order)
                 .HasForeignKey<Delivery>(d => d.OrderId);
 
+            // Order - SupplierOrder (1-1)
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.SupplierOrder)
+                .WithOne(so => so.Order)
+                .HasForeignKey<SupplierOrder>(so => so.OrderId);
+
+
             // Order - Product (1-many)
             modelBuilder.Entity<Order>()
                 .HasMany(o => o.Products)

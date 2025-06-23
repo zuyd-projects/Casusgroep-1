@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: backend_app-backend
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DB_CONNECTION_STRING: 'Server=sqlserver;Database=SimulationDb;User Id=sa;Password=New_password123!;TrustServerCertificate=True;'
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  sqlserver:
+    container_name: sqlserver-backend
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    environment:
+      SA_PASSWORD: New_password123!
+      ACCEPT_EULA: 1
+      MSSQL_DB: SimulationDb
+    ports:
+      - '1433:1433'
+    volumes:
+      - sqlserver_data_backend:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'New_password123!' -C -Q 'SELECT 1' || exit 1",
+        ]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    networks:
+      - app-network
+
+volumes:
+  sqlserver_data_backend:
+
+networks:
+  app-network:
+    driver: bridge

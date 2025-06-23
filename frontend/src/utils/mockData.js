@@ -72,10 +72,14 @@ export const orders = [
 // Order status options
 export const orderStatuses = [
   { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'InProduction', label: 'In Production' },
+  { value: 'AwaitingAccountManagerApproval', label: 'Awaiting Approval' },
+  { value: 'ApprovedByAccountManager', label: 'Approved' },
+  { value: 'RejectedByAccountManager', label: 'Rejected' },
+  { value: 'Delivered', label: 'Delivered' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Cancelled', label: 'Cancelled' },
 ];
 
 // Some statistics for the dashboard

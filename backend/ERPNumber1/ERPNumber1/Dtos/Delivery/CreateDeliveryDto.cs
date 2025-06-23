@@ -6,5 +6,7 @@ namespace ERPNumber1.Dtos.Delivery
         public bool IsDelivered { get; set; }
         public bool QualityCheckPassed { get; set; }
         public bool ApprovedByCustomer { get; set; }
+        public string? DeliveryRound { get; set; }
+
     }
 }

@@ -72,7 +72,7 @@ export default function RegisterPage() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Full Name
+                Username
               </label>
               <div className="relative">
                 <input

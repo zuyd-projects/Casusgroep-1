@@ -6,21 +6,23 @@ import { useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Orders", href: "/dashboard/orders" },
-  { label: "Customers", href: "/dashboard/customers" },
   { label: "Supplier", href: "/dashboard/supplier" },
+  { label: "Plannings", href: "/dashboard/plannings" },
   { label: "Account Manager", href: "/dashboard/accountManager" },
+  { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Process Mining", href: "/dashboard/process-mining" },
+  { label: "Runner", href: "/dashboard/runner" },
   {
-    label: "Products",
+    label: "Production Lines",
     children: [
-      { label: "Product A", href: "/dashboard/products/a" },
-      { label: "Product B", href: "/dashboard/products/b" },
-      { label: "Product C", href: "/dashboard/products/c" },
+      { label: "Production Line 1", href: "/dashboard/production-lines/1" },
+      { label: "Production Line 2", href: "/dashboard/production-lines/2" },
     ],
   },
+  { label: "Process Mining", href: "/dashboard/process-mining" },
   { label: "Admin", href: "/dashboard/admin" },
-  { label: "Settings", href: "/dashboard/settings" },
 ];
 
 function SidebarItem({ item, pathname }) {

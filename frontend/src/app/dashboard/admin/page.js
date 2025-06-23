@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
-import { Database, Play, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Database, Play, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(false);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState(''); // 'success' or 'error'
 
@@ -23,6 +24,26 @@ export default function AdminPage() {
       setMessageType('error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const cleanupDatabase = async () => {
+    if (!confirm('⚠️ WARNING: This will permanently delete ALL data from the database. This action cannot be undone. Are you sure you want to continue?')) {
+      return;
+    }
+
+    setCleanupLoading(true);
+    setMessage('');
+    
+    try {
+      const response = await api.post('/api/ProcessMining/cleanup-database');
+      setMessage(`Success: ${response.message}`);
+      setMessageType('success');
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+      setMessageType('error');
+    } finally {
+      setCleanupLoading(false);
     }
   };
 
@@ -52,7 +73,7 @@ export default function AdminPage() {
           <div className="flex items-center space-x-4">
             <button
               onClick={seedSampleData}
-              disabled={loading}
+              disabled={loading || cleanupLoading}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
@@ -67,6 +88,35 @@ export default function AdminPage() {
                 </>
               )}
             </button>
+
+            <button
+              onClick={cleanupDatabase}
+              disabled={loading || cleanupLoading}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {cleanupLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Cleaning Database...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  <span>Clean Database</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <h3 className="font-semibold text-red-800 dark:text-red-200">Danger Zone</h3>
+            </div>
+            <p className="text-sm text-red-700 dark:text-red-300">
+              The "Clean Database" button will permanently delete ALL data from all tables including Orders, Deliveries, 
+              Event Logs, Simulations, Rounds, and more. This action cannot be undone and will reset all identity columns.
+            </p>
           </div>
 
           {message && (
@@ -139,8 +189,22 @@ export default function AdminPage() {
       </Card>
 
       {/* Instructions */}
-      <Card title="How to Use Process Mining Features">
+      <Card title="Database Management & Process Mining Features">
         <div className="space-y-4 text-sm">
+          <div>
+            <h4 className="font-semibold mb-2 text-red-600">⚠️ Database Cleanup</h4>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              Use "Clean Database" to completely reset all data. This will:
+            </p>
+            <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 ml-4 space-y-1">
+              <li>Delete all Orders, Deliveries, and Event Logs</li>
+              <li>Clear all Simulations, Rounds, and Statistics</li>
+              <li>Remove all Materials, Products, and Inventory data</li>
+              <li>Reset all identity columns to start from 1</li>
+              <li><strong>This action cannot be undone!</strong></li>
+            </ul>
+          </div>
+
           <div>
             <h4 className="font-semibold mb-2">1. Generate Sample Data</h4>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
@@ -175,7 +239,14 @@ export default function AdminPage() {
           </div>
           
           <div>
-            <h4 className="font-semibold mb-2">4. Dutch Planner Messages</h4>
+            <h4 className="font-semibold mb-2">4. Round-Based Delay Detection</h4>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              The system now automatically detects orders that haven't been delivered after 3 rounds and shows them as high-priority warnings.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-semibold mb-2">5. Dutch Planner Messages</h4>
             <p className="text-gray-600 dark:text-gray-400">
               Delivery warnings include the Dutch message "Levertijd wordt later" to inform planning teams about delivery delays.
             </p>

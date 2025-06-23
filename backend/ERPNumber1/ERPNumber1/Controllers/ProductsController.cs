@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Order;
+using ERPNumber1.Dtos.Product;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
-using ERPNumber1.Models;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
-using ERPNumber1.Dtos.Product;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ERPNumber1.Controllers
 {
@@ -19,13 +21,15 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        //private readonly AppDbContext _context;
         private readonly IEventLogService _eventLogService;
+        private readonly IProductRepository _productRepo;
 
-        public ProductsController(AppDbContext context, IEventLogService eventLogService)
+        public ProductsController(IEventLogService eventLogService, IProductRepository productRepo)
         {
-            _context = context;
+            //_context = context;
             _eventLogService = eventLogService;
+            _productRepo  = productRepo;
         }
 
         // GET: api/Products
@@ -33,7 +37,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Product", "Get All Products")]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            return await _context.Products.ToListAsync();
+            return await _productRepo.GetAllAsync();
         }
 
         // GET: api/Products/5
@@ -41,7 +45,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Product", "Get Product by ID")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _productRepo.GetByIdAsync(id);
 
             if (product == null)
             {
@@ -62,7 +66,7 @@ namespace ERPNumber1.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            var product = await _context.Products.FindAsync(id);
+            var product = await _productRepo.UpdateAsync(id, productDto.ToProductFromUpdate());
             if (product == null)
             {
                 await _eventLogService.LogEventAsync($"Product_{id}", "Product Update Failed", 
@@ -72,12 +76,9 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            product.orderId = productDto.OrderId;
-            product.type = productDto.Type;
-
             try
             {
-                await _context.SaveChangesAsync();
+               
                 
                 await _eventLogService.LogEventAsync($"Product_{id}", "Product Updated", 
                     "ProductsController", "Product", "Completed", 
@@ -90,7 +91,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ProductExists(id))
+                if (! await _productRepo.ProductExistsAsync(id))
                 {
                     await _eventLogService.LogEventAsync($"Product_{id}", "Product Update Failed", 
                         "ProductsController", "Product", "Failed", 
@@ -117,15 +118,10 @@ namespace ERPNumber1.Controllers
         public async Task<ActionResult<Product>> PostProduct(CreateProductDto productDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            var product = new Product
-            {
-                orderId = productDto.OrderId,
-                type = productDto.Type
-            };
-            
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+
+            var product = productDto.ToProductFromCreate();
+            await _productRepo.CreateAsync(product);
+
 
             await _eventLogService.LogEventAsync($"Product_{product.Id}", "Product Created", 
                 "ProductsController", "Product", "Completed", 
@@ -143,8 +139,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Product", "Delete Product")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            var product = await _productRepo.DeleteAsync(id);
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var product = await _context.Products.FindAsync(id);
+            
             
             if (product == null)
             {
@@ -155,8 +152,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
+            
 
             await _eventLogService.LogEventAsync($"Product_{id}", "Product Deleted", 
                 "ProductsController", "Product", "Completed", 
@@ -170,9 +166,6 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        private bool ProductExists(int id)
-        {
-            return _context.Products.Any(e => e.Id == id);
-        }
+        
     }
 }
