@@ -150,12 +150,6 @@ export default function SupplierPage() {
     }
   };
 
-  // Manual refresh function
-  const handleManualRefresh = async () => {
-    console.log('🔄 Manual refresh triggered');
-    await fetchSupplierOrders();
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -204,32 +198,6 @@ export default function SupplierPage() {
                     <p><strong>Motor C:</strong> {MotorBlockRequirements.C.Blauw} Blauw, {MotorBlockRequirements.C.Rood} Rood, {MotorBlockRequirements.C.Grijs} Grijs per motor</p>
                   </div>
                 </div>
-              </div>
-              
-              {/* Refresh button */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleManualRefresh}
-                  disabled={loading}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white rounded-lg font-medium transition-colors border border-white/30 hover:border-white/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  title="Refresh supplier orders"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
               </div>
             </div>
           </div>

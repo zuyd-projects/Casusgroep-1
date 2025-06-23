@@ -200,6 +200,67 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Production Lines Quick Access */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Planning Center</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Assign orders to production lines</p>
+            </div>
+            <Activity className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="mt-4">
+            <Link 
+              href="/dashboard/plannings"
+              className="inline-flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Go to Planning
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="border-green-200 dark:border-green-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Production Line 1</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Monitor and manage line 1 orders</p>
+            </div>
+            <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded-lg">
+              <span className="text-xl font-bold text-green-600 dark:text-green-400">1</span>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Link 
+              href="/dashboard/production-lines/1"
+              className="inline-flex items-center justify-center w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+            >
+              View Line 1
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="border-purple-200 dark:border-purple-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Production Line 2</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Monitor and manage line 2 orders</p>
+            </div>
+            <div className="bg-purple-100 dark:bg-purple-900/20 p-2 rounded-lg">
+              <span className="text-xl font-bold text-purple-600 dark:text-purple-400">2</span>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Link 
+              href="/dashboard/production-lines/2"
+              className="inline-flex items-center justify-center w-full px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              View Line 2
+            </Link>
+          </div>
+        </Card>
+      </div>
+
       {/* Simulations Overview */}
       <Card title="🎯 Recent Simulations" className="border-purple-200 dark:border-purple-800">
         <div className="space-y-4">

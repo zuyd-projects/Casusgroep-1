@@ -13,11 +13,10 @@ const navItems = [
   { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Process Mining", href: "/dashboard/process-mining" },
   {
-    label: "Products",
+    label: "Production Lines",
     children: [
-      { label: "Product A", href: "/dashboard/products/a" },
-      { label: "Product B", href: "/dashboard/products/b" },
-      { label: "Product C", href: "/dashboard/products/c" },
+      { label: "Production Line 1", href: "/dashboard/production-lines/1" },
+      { label: "Production Line 2", href: "/dashboard/production-lines/2" },
     ],
   },
   { label: "Admin", href: "/dashboard/admin" },
