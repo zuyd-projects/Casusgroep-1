@@ -17,6 +17,7 @@ namespace ERPNumber1.Mapper
                 MotorType = orderModel.MotorType,
                 Quantity = orderModel.Quantity,
                 Signature = orderModel.Signature,
+                ProductionLine = orderModel.ProductionLine,
                 OrderDate = orderModel.OrderDate,
                 Status = orderModel.Status.ToString()
             };
