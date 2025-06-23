@@ -1,47 +1,53 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Script from 'next/script';
 import { CheckCircle, AlertCircle, Play } from 'lucide-react';
+import { api } from '@CASUSGROEP1/utils/api';
 
 const ProductionLineDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [orders, setOrders] = useState([
-    { 
-      id: 'ORD-101',
-      productName: 'Assembly Unit B-100',
-      customer: 'TechCorp Industries',
-      quantity: 5,
-      unit: 'B',
-      status: 'In Queue',
-      orderDate: 8,
-      currentStep: 1
-    },
-    {
-      id: 'ORD-102',
-      productName: 'Assembly Unit B-200',
-      customer: 'Manufacturing Plus',
-      quantity: 3,
-      unit: 'B',
-      status: 'In Progress',
-      orderDate: 15,
-      currentStep: 4
-    },
-    {
-      id: 'ORD-103',
-      productName: 'Assembly Unit B-150',
-      customer: 'Global Systems',
-      quantity: 4,
-      unit: 'B',
-      status: 'In Queue',
-      orderDate: 3,
-      currentStep: 0
-    }
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
   const modelViewerRef = useRef(null);
+
+  // Fetch orders from API when component mounts
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const allOrders = await api.get('/api/Order');
+        
+        // Filter orders for product type B and format them
+        const typeBOrders = allOrders
+          .filter(order => order.motorType === 'B')
+          .map(order => ({
+            id: order.id.toString(),
+            productName: `Assembly Unit B-${order.id}`,
+            customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
+            quantity: order.quantity,
+            unit: 'B',
+            status: order.productionStatus || 'In Queue', // Default to 'In Queue' if no status
+            orderDate: order.roundId || 1, // Use roundId as orderDate if available
+            currentStep: 0,
+            originalOrder: order // Keep original order data
+          }));
+          
+        setOrders(typeBOrders);
+      } catch (error) {
+        console.error('Failed to fetch Product B orders:', error);
+        // Fallback to empty array if API fails
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {

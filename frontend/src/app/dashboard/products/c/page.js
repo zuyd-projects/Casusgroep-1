@@ -1,47 +1,53 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Script from 'next/script';
 import { CheckCircle, AlertCircle, Play } from 'lucide-react';
+import { api } from '@CASUSGROEP1/utils/api';
 
 const ProductionLineDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [orders, setOrders] = useState([
-    { 
-      id: 'ORD-201',
-      productName: 'Assembly Unit C-100',
-      customer: 'TechCorp Industries',
-      quantity: 7,
-      unit: 'C',
-      status: 'In Queue',
-      orderDate: 6,
-      currentStep: 1
-    },
-    {
-      id: 'ORD-202',
-      productName: 'Assembly Unit C-200',
-      customer: 'Manufacturing Plus',
-      quantity: 4,
-      unit: 'C',
-      status: 'In Progress',
-      orderDate: 18,
-      currentStep: 4
-    },
-    {
-      id: 'ORD-203',
-      productName: 'Assembly Unit C-150',
-      customer: 'Global Systems',
-      quantity: 2,
-      unit: 'C',
-      status: 'In Queue',
-      orderDate: 1,
-      currentStep: 0
-    }
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
   const modelViewerRef = useRef(null);
+
+  // Fetch orders from API when component mounts
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const allOrders = await api.get('/api/Order');
+        
+        // Filter orders for product type C and format them
+        const typeCOrders = allOrders
+          .filter(order => order.motorType === 'C')
+          .map(order => ({
+            id: order.id.toString(),
+            productName: `Assembly Unit C-${order.id}`,
+            customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
+            quantity: order.quantity,
+            unit: 'C',
+            status: order.productionStatus || 'In Queue', // Default to 'In Queue' if no status
+            orderDate: order.roundId || 1, // Use roundId as orderDate if available
+            currentStep: 0,
+            originalOrder: order // Keep original order data
+          }));
+          
+        setOrders(typeCOrders);
+      } catch (error) {
+        console.error('Failed to fetch Product C orders:', error);
+        // Fallback to empty array if API fails
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -52,45 +58,95 @@ const ProductionLineDashboard = () => {
     }
   };
 
-  const handleStartAssembly = () => {
+  const handleStartAssembly = async () => {
     if (!selectedOrder) return;
-    setOrders((prevOrders) =>
-      prevOrders.map((order) =>
-        order.id === selectedOrder.id
-          ? { ...order, status: 'In Progress' }
-          : order
-      )
-    );
-    setSelectedOrder((prev) =>
-      prev ? { ...prev, status: 'In Progress' } : prev
-    );
+    
+    try {
+      // Update status in the API
+      await api.put(`/api/Order/${selectedOrder.id}/status`, { 
+        productionStatus: 'In Progress' 
+      });
+      
+      // Update local state
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === selectedOrder.id
+            ? { ...order, status: 'In Progress' }
+            : order
+        )
+      );
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, status: 'In Progress' } : prev
+      );
+    } catch (error) {
+      console.error('Error updating order status:', error);
+    }
   };
 
-  const handleCompleteOrder = () => {
+  const handleCompleteOrder = async () => {
     if (!selectedOrder) return;
-    setOrders((prevOrders) =>
-      prevOrders.filter((order) => order.id !== selectedOrder.id)
-    );
-    setSelectedOrder((prev) =>
-      prev ? { ...prev, status: 'Completed' } : prev
-    );
+    
+    try {
+      // Update status in the API
+      await api.put(`/api/Order/${selectedOrder.id}/status`, { 
+        productionStatus: 'Completed' 
+      }).catch(err => {
+        console.warn('API status update not supported, updating locally:', err.message);
+      });
+      
+      // Update local state
+      setOrders((prevOrders) =>
+        prevOrders.filter((order) => order.id !== selectedOrder.id)
+      );
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, status: 'Completed' } : prev
+      );
+    } catch (error) {
+      console.error('Error completing order:', error);
+    }
   };
 
-  const handleDenyAssembly = () => {
+  const handleDenyAssembly = async () => {
     if (!selectedOrder) return;
-    setOrders((prevOrders) => {
-      const filtered = prevOrders.filter((order) => order.id !== selectedOrder.id);
-      setLastRemovedOrder(selectedOrder);
-      return filtered;
-    });
-    setSelectedOrder(null);
+    
+    try {
+      // Update status in the API
+      await api.put(`/api/Order/${selectedOrder.id}/status`, { 
+        productionStatus: 'Denied' 
+      }).catch(err => {
+        console.warn('API status update not supported, updating locally:', err.message);
+      });
+      
+      // Update local state
+      setOrders((prevOrders) => {
+        const filtered = prevOrders.filter((order) => order.id !== selectedOrder.id);
+        setLastRemovedOrder(selectedOrder);
+        return filtered;
+      });
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error('Error denying order:', error);
+    }
   };
 
-  const handleRestoreLastOrder = () => {
+  const handleRestoreLastOrder = async () => {
     if (!lastRemovedOrder) return;
-    setOrders((prevOrders) => [...prevOrders, lastRemovedOrder]);
-    setRestoredOrderId(lastRemovedOrder.id); // Track the restored order
-    setLastRemovedOrder(null);
+    
+    try {
+      // Update status in the API back to In Queue
+      await api.put(`/api/Order/${lastRemovedOrder.id}/status`, { 
+        productionStatus: 'In Queue' 
+      }).catch(err => {
+        console.warn('API status update not supported, updating locally:', err.message);
+      });
+      
+      // Update local state
+      setOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'In Queue'}]);
+      setRestoredOrderId(lastRemovedOrder.id);
+      setLastRemovedOrder(null);
+    } catch (error) {
+      console.error('Error restoring order:', error);
+    }
   };
 
   const render3DModel = () => (
@@ -167,51 +223,62 @@ const ProductionLineDashboard = () => {
                 </div>
               </div>
               
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {orders
-                  .slice()
-                  .sort((a, b) => a.orderDate - b.orderDate)
-                  .map((order) => (
-                    <div
-                      key={order.id}
-                      onClick={() => setSelectedOrder(order)}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                        selectedOrder?.id === order.id
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-400'
-                          : restoredOrderId === order.id
-                            ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-400'
-                            : 'border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-400'
-                      }`}
-                      onMouseEnter={() => {
-                        if (restoredOrderId === order.id) setRestoredOrderId(null);
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">{order.id}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{order.productName}</p>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                  <AlertCircle className="w-8 h-8 mb-2" />
+                  <p>No orders found for Product C</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {orders
+                    .slice()
+                    .sort((a, b) => a.orderDate - b.orderDate)
+                    .map((order) => (
+                      <div
+                        key={order.id}
+                        onClick={() => setSelectedOrder(order)}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                          selectedOrder?.id === order.id
+                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-400'
+                            : restoredOrderId === order.id
+                              ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-400'
+                              : 'border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-400'
+                        }`}
+                        onMouseEnter={() => {
+                          if (restoredOrderId === order.id) setRestoredOrderId(null);
+                        }}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">{order.id}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{order.productName}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                              Period Ordered: {order.orderDate}
+                            </span>
+                            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                              {order.status}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                            Period Ordered: {order.orderDate}
-                          </span>
-                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                            {order.status}
-                          </span>
+                      
+                        <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                          <span>{order.quantity}</span>
+                          <span>{order.unit}</span>
+                        </div>
+                      
+                        <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          <span>{order.customer}</span>
                         </div>
                       </div>
-                      
-                      <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
-                        <span>{order.quantity}</span>
-                        <span>{order.unit}</span>
-                      </div>
-                      
-                      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        <span>{order.customer}</span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+              )}
             </div>
             
             {/* 3D Product Placeholder and Order Details */}
