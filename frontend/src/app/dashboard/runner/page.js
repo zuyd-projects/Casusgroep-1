@@ -7,6 +7,7 @@ import { api } from '@CASUSGROEP1/utils/api';
 const RunnerDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [missingBlocksRequests, setMissingBlocksRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastDeliveredOrder, setLastDeliveredOrder] = useState(null);
 
@@ -15,11 +16,15 @@ const RunnerDashboard = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const allOrders = await api.get('/api/Order');
-        // Filter by status
+        // Fetch regular orders and missing blocks requests
+        const [allOrders, missingBlocksData] = await Promise.all([
+          api.get('/api/Order'),
+          api.get('/api/MissingBlocks/runner')
+        ]);
+
+        // Filter regular orders by status
         const filteredOrders = allOrders.filter(order =>
-          order.status === "ApprovedByAccountManager" ||
-          order.status === "ProductionError"
+          order.status === "ApprovedByAccountManager"
         );
 
         const formattedOrders = filteredOrders.map(order => ({
@@ -31,9 +36,28 @@ const RunnerDashboard = () => {
           status: order.status || 'In Queue',
           orderDate: order.roundId || order.orderDate || 1,
           assemblyLine: `Production Line ${order.motorType}`,
-          originalOrder: order
+          originalOrder: order,
+          type: 'regular'
         }));
-        setOrders(formattedOrders);
+
+        // Format missing blocks requests as orders for the runner
+        const formattedMissingBlocks = missingBlocksData.map(request => ({
+          id: `missing-${request.id}`,
+          productName: `Missing Blocks - Order ${request.orderId}`,
+          customer: 'Production Line',
+          quantity: request.quantity,
+          motorType: request.motorType,
+          status: 'Missing Blocks',
+          orderDate: 999, // High priority
+          assemblyLine: `Production Line ${request.productionLine}`,
+          missingBlocksRequest: request,
+          type: 'missing-blocks'
+        }));
+
+        // Combine both types of orders
+        const allFormattedOrders = [...formattedOrders, ...formattedMissingBlocks];
+        setOrders(allFormattedOrders);
+        setMissingBlocksRequests(missingBlocksData);
       } catch (error) {
         console.error('Failed to fetch orders:', error);
         setOrders([]);
@@ -50,6 +74,8 @@ const RunnerDashboard = () => {
       case 'In Progress': return 'text-cyan-600 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/20';
       case 'In Queue': return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/20';
       case 'Completed': return 'text-pink-600 bg-pink-100 dark:text-pink-400 dark:bg-pink-900/20';
+      case 'ProductionError': return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20';
+      case 'Missing Blocks': return 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 animate-pulse';
       default: return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800';
     }
   };
@@ -64,24 +90,60 @@ const RunnerDashboard = () => {
   };
 
   const renderOrderDetails = (order) => (
-    <div className="grid grid-cols-2 gap-4 mb-6">
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-purple-700 dark:text-purple-400">Customer</label>
-        <p className="text-gray-900 dark:text-white font-medium">{order.customer}</p>
-      </div>
-      <div className="bg-cyan-50 dark:bg-cyan-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-cyan-700 dark:text-cyan-400">Quantity</label>
-        <p className="text-gray-900 dark:text-white font-medium">{order.quantity}</p>
-      </div>
-      <div className="bg-pink-50 dark:bg-pink-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-pink-700 dark:text-pink-400">Motor Type</label>
-        <p className="text-gray-900 dark:text-white font-medium">{order.motorType}</p>
-      </div>
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-blue-700 dark:text-blue-400">Period Ordered</label>
-        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 font-medium">
-          {order.orderDate}
-        </span>
+    <div>
+      {/* Missing Blocks Alert */}
+      {order.status === "Missing Blocks" && (
+        <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-4 mb-6">
+          <div className="flex items-center mb-2">
+            <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 mr-2" />
+            <h4 className="text-lg font-bold text-orange-800 dark:text-orange-300">Missing Building Blocks</h4>
+          </div>
+          <p className="text-orange-700 dark:text-orange-300 font-medium">
+            Production Line {order.missingBlocksRequest?.productionLine} is missing building blocks.
+          </p>
+          {order.missingBlocksRequest && (
+            <div className="mt-3 text-sm text-orange-600 dark:text-orange-400">
+              <p>Missing: Blue: {order.missingBlocksRequest.blueBlocks}, Red: {order.missingBlocksRequest.redBlocks}, Gray: {order.missingBlocksRequest.grayBlocks}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Production Error Alert */}
+      {order.status === "ProductionError" && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+          <div className="flex items-center mb-2">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+            <h4 className="text-lg font-bold text-red-800 dark:text-red-300">Production Error</h4>
+          </div>
+          <p className="text-red-700 dark:text-red-300 font-medium">
+            This production line is missing building blocks and needs supplies delivered.
+          </p>
+          <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+            Contact the supplier to arrange delivery of missing components.
+          </p>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-purple-700 dark:text-purple-400">Customer</label>
+          <p className="text-gray-900 dark:text-white font-medium">{order.customer}</p>
+        </div>
+        <div className="bg-cyan-50 dark:bg-cyan-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-cyan-700 dark:text-cyan-400">Quantity</label>
+          <p className="text-gray-900 dark:text-white font-medium">{order.quantity}</p>
+        </div>
+        <div className="bg-pink-50 dark:bg-pink-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-pink-700 dark:text-pink-400">Motor Type</label>
+          <p className="text-gray-900 dark:text-white font-medium">{order.motorType}</p>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-blue-700 dark:text-blue-400">Period Ordered</label>
+          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 font-medium">
+            {order.orderDate === 999 ? 'URGENT' : order.orderDate}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -109,28 +171,48 @@ const RunnerDashboard = () => {
     if (!selectedOrder) return;
 
     try {
-      // Save the current order and its previous status for undo
-      setLastDeliveredOrder({
-        ...selectedOrder,
-        previousStatus: selectedOrder.status,
-        status: "Delivered"
-      });
-
-      // Update status in the API
-      await api.put(`/api/Order/${selectedOrder.id}/OrderStatus`, { status: "Delivered" })
-        .catch(err => {
-          console.warn('API status update not supported, updating locally:', err.message);
+      if (selectedOrder.type === 'missing-blocks') {
+        // For missing blocks requests, escalate to supplier instead of marking as delivered
+        const request = selectedOrder.missingBlocksRequest;
+        
+        // Update the missing blocks request to mark that runner attempted delivery
+        await api.put(`/api/MissingBlocks/${request.id}`, {
+          status: 'Pending',
+          runnerAttempted: true,
+          resolvedBy: null
         });
 
-      // Optionally, update the local selectedOrder status before removing
-      setSelectedOrder(prev =>
-        prev ? { ...prev, status: "Delivered" } : prev
-      );
+        // Remove from runner's list (it will now appear on supplier page)
+        setOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+        setSelectedOrder(null);
+        
+        alert(`Cannot deliver missing blocks. Request escalated to supplier for Order ${request.orderId}.`);
+        
+      } else {
+        // Regular order delivery logic
+        // Save the current order and its previous status for undo
+        setLastDeliveredOrder({
+          ...selectedOrder,
+          previousStatus: selectedOrder.status,
+          status: "Delivered"
+        });
 
-      // Remove from list
-      setOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+        // Update status in the API - Set to Pending so production lines can start working
+        await api.patch(`/api/Order/${selectedOrder.id}/status`, { status: "Pending" })
+          .catch(err => {
+            console.warn('API status update not supported, updating locally:', err.message);
+          });
+
+        // Optionally, update the local selectedOrder status before removing
+        setSelectedOrder(prev =>
+          prev ? { ...prev, status: "Pending" } : prev
+        );
+
+        // Remove from list
+        setOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+      }
     } catch (error) {
-      console.error('Error delivering order:', error);
+      console.error('Error handling delivery:', error);
     }
   };
 
@@ -171,7 +253,12 @@ const RunnerDashboard = () => {
               ) : (
                 orders
                   .slice()
-                  .sort((a, b) => a.orderDate - b.orderDate) // Sort by period ordered (earliest first)
+                  .sort((a, b) => {
+                    // Missing blocks requests (orderDate: 999) should appear at top
+                    if (a.orderDate === 999 && b.orderDate !== 999) return -1;
+                    if (a.orderDate !== 999 && b.orderDate === 999) return 1;
+                    return a.orderDate - b.orderDate;
+                  })
                   .map((order) => (
                     <div
                       key={order.id}
@@ -179,17 +266,25 @@ const RunnerDashboard = () => {
                       className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
                         selectedOrder?.id === order.id
                           ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-400' 
+                          : order.status === 'Missing Blocks'
+                          ? 'border-orange-300 dark:border-orange-600 hover:border-orange-400 dark:hover:border-orange-500 bg-orange-25 dark:bg-orange-900/10'
                           : 'border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">{order.id}</h4>
+                          <h4 className="font-medium text-gray-900 dark:text-white">
+                            {order.type === 'missing-blocks' ? `Order ${order.missingBlocksRequest?.orderId}` : order.id}
+                          </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400">{order.productName}</p>
                         </div>
                         <div className="flex flex-col space-y-1">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                            Period: {order.orderDate}
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            order.orderDate === 999 
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                          }`}>
+                            {order.orderDate === 999 ? 'URGENT' : `Period: ${order.orderDate}`}
                           </span>
                         </div>
                       </div>
@@ -198,8 +293,12 @@ const RunnerDashboard = () => {
                         <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getAssemblyLineColor(order.motorType)}`}>
                           → {order.assemblyLine}
                         </span>
-                        {/* Visual flair for ProductionError */}
-                        {order.status === "ProductionError" ? (
+                        {/* Visual flair for Missing Blocks */}
+                        {order.status === "Missing Blocks" ? (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-400 dark:bg-orange-900 dark:text-orange-200 dark:border-orange-600 animate-pulse">
+                            Missing Blocks
+                          </span>
+                        ) : order.status === "ProductionError" ? (
                           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-400 dark:bg-red-900 dark:text-red-200 dark:border-red-600 animate-pulse">
                             Production Error
                           </span>
@@ -251,22 +350,39 @@ const RunnerDashboard = () => {
                       <Package className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2" />
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Runner Instructions</h4>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Deliver this order to <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedOrder.assemblyLine}</span>
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      Priority: Period {selectedOrder.orderDate} order
-                    </p>
+                    {selectedOrder.type === 'missing-blocks' ? (
+                      <>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Try to deliver missing blocks to <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedOrder.assemblyLine}</span>
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          If you cannot deliver, click "Can't Deliver" to escalate to supplier
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Deliver this order to <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedOrder.assemblyLine}</span>
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          Priority: Period {selectedOrder.orderDate} order
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   {/* Delivered Button */}
                   <div className="flex flex-col items-stretch justify-start gap-2 mt-4 pl-2">
                     <button
-                      className="w-full px-6 py-3 text-lg bg-green-600 text-white rounded-md font-bold hover:bg-green-700 disabled:opacity-50 transition-all"
+                      className={`w-full px-6 py-3 text-lg text-white rounded-md font-bold disabled:opacity-50 transition-all ${
+                        selectedOrder.type === 'missing-blocks'
+                          ? 'bg-orange-600 hover:bg-orange-700'
+                          : 'bg-green-600 hover:bg-green-700'
+                      }`}
                       onClick={handleDeliveredOrder}
                       disabled={selectedOrder?.status === "Delivered"}
                     >
-                      Delivered
+                      {selectedOrder.type === 'missing-blocks' ? "Can't Deliver - Escalate to Supplier" : "Delivered"}
                     </button>
                   </div>
                 </div>

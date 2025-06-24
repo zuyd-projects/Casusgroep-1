@@ -17,6 +17,12 @@ const ProductionLine2Dashboard = () => {
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
   const [updating, setUpdating] = useState(null); // Track which order is being updated
+  const [showMissingBlocksModal, setShowMissingBlocksModal] = useState(false);
+  const [missingBlocks, setMissingBlocks] = useState({
+    blue: 0,
+    red: 0,
+    gray: 0
+  });
   const modelViewerRef = useRef(null);
 
   const { currentRound, currentSimulation, isRunning } = useSimulation();
@@ -31,9 +37,7 @@ const ProductionLine2Dashboard = () => {
       ]);
 
       const allOrders = ordersResponse.data || ordersResponse;
-      const apiRounds = roundsResponse.data || roundsResponse;
-      
-      // Filter orders assigned to Production Line 2 and only show relevant statuses
+      const apiRounds = roundsResponse.data || roundsResponse;        // Filter orders assigned to Production Line 2 and only show relevant statuses
       const productionLine2Orders = allOrders
         .filter(order => {
           const prodLine = order.productionLine ? order.productionLine.toString() : null;
@@ -41,17 +45,24 @@ const ProductionLine2Dashboard = () => {
           
           // Only show orders that are pending, in production, or rejected (hide awaiting approval)
           const relevantStatuses = [
-            'Pending', 
+            'Pending',  // Include pending orders (returned from missing blocks)
             'InProduction', 
             'In Progress',
-            'RejectedByAccountManager'
+            'RejectedByAccountManager',
+            'ApprovedByAccountManager'  // Include approved orders
           ];
           const hasRelevantStatus = relevantStatuses.includes(order.status) || 
                                   relevantStatuses.includes(order.productionStatus);
           
           return isAssignedToLine2 && hasRelevantStatus;
         })
-        .sort((a, b) => a.id - b.id) // FIFO ordering by order ID
+        .sort((a, b) => {
+          // Prioritize orders returned from missing blocks
+          if (a.wasReturnedFromMissingBlocks && !b.wasReturnedFromMissingBlocks) return -1;
+          if (!a.wasReturnedFromMissingBlocks && b.wasReturnedFromMissingBlocks) return 1;
+          // Then FIFO by order ID
+          return a.id - b.id;
+        })
         .map(order => {
           const roundData = apiRounds.find(round => round.id === order.roundId);
           return {
@@ -65,7 +76,8 @@ const ProductionLine2Dashboard = () => {
             roundNumber: roundData ? roundData.roundNumber : 'Unknown',
             simulationId: roundData ? roundData.simulationId : 'Unknown',
             currentStep: 0,
-            originalOrder: order
+            originalOrder: order,
+            wasReturnedFromMissingBlocks: order.wasReturnedFromMissingBlocks || false  // New field
           };
         });
         
@@ -234,7 +246,8 @@ const ProductionLine2Dashboard = () => {
         productionLine: currentOrder.originalOrder.productionLine 
           ? currentOrder.originalOrder.productionLine.toString().charAt(0) 
           : null,
-        status: newStatus
+        status: newStatus,
+        wasReturnedFromMissingBlocks: newStatus === 'InProduction' ? false : currentOrder.originalOrder.wasReturnedFromMissingBlocks
       };
       
       await api.put(`/api/Order/${orderId}`, updateData);
@@ -256,6 +269,52 @@ const ProductionLine2Dashboard = () => {
       console.error('❌ Failed to update status:', error);
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleReportMissingBlocks = async () => {
+    if (!selectedOrder) return;
+    
+    // Reset missing blocks state and show modal
+    setMissingBlocks({ blue: 0, red: 0, gray: 0 });
+    setShowMissingBlocksModal(true);
+  };
+
+  const handleSubmitMissingBlocks = async () => {
+    if (!selectedOrder) return;
+    
+    // Check if at least one block is missing
+    const totalMissing = missingBlocks.blue + missingBlocks.red + missingBlocks.gray;
+    if (totalMissing === 0) {
+      alert('Please specify at least one missing block.');
+      return;
+    }
+    
+    try {
+      // Create missing blocks request via API
+      const missingBlocksData = {
+        orderId: selectedOrder.id,
+        productionLine: '2',
+        motorType: selectedOrder.motorType,
+        quantity: selectedOrder.quantity,
+        blueBlocks: missingBlocks.blue,
+        redBlocks: missingBlocks.red,
+        grayBlocks: missingBlocks.gray
+      };
+
+      // Send to API (this will also update the order status to ProductionError automatically)
+      await api.post('/api/MissingBlocks', missingBlocksData);
+      
+      // Close modal and show success message
+      setShowMissingBlocksModal(false);
+      alert(`Missing blocks reported for Order ${selectedOrder.id}. Sent to supplier for delivery.`);
+      
+      // Refresh orders to get updated status
+      fetchOrders();
+      
+    } catch (error) {
+      console.error('Error reporting missing blocks:', error);
+      alert('Failed to report missing blocks. Please try again.');
     }
   };
 
@@ -371,6 +430,8 @@ const ProductionLine2Dashboard = () => {
                         className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
                           selectedOrder?.id === order.id
                             ? 'border-zinc-500 bg-zinc-50 dark:bg-zinc-900/20 dark:border-zinc-400'
+                            : order.wasReturnedFromMissingBlocks
+                              ? 'bg-orange-50 border-orange-300 dark:bg-orange-900/20 dark:border-orange-400 border-2 shadow-md'
                             : restoredOrderId === order.id
                               ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-400'
                               : 'border-zinc-200 dark:border-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-400'
@@ -381,7 +442,14 @@ const ProductionLine2Dashboard = () => {
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="font-medium text-zinc-900 dark:text-white">Order #{order.id}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-zinc-900 dark:text-white">Order #{order.id}</h4>
+                              {order.wasReturnedFromMissingBlocks && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200 border border-orange-300 dark:border-orange-700">
+                                  🚨 PRIORITY - Returned
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">{order.productName}</p>
                           </div>
                           <div className="flex space-x-2">
@@ -441,6 +509,15 @@ const ProductionLine2Dashboard = () => {
                           Remove from Line
                         </button>
                       </div>
+                      <div className="mt-3">
+                        <button
+                          className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                          onClick={handleReportMissingBlocks}
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Report Missing Building Blocks
+                        </button>
+                      </div>
                     </>
                   )}
                   
@@ -461,6 +538,15 @@ const ProductionLine2Dashboard = () => {
                           onClick={handleDenyAssembly}
                         >
                           Remove from Line
+                        </button>
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                          onClick={handleReportMissingBlocks}
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Report Missing Building Blocks
                         </button>
                       </div>
                     </>
@@ -497,6 +583,82 @@ const ProductionLine2Dashboard = () => {
             >
               Restore Last Removed Order
             </button>
+          </div>
+        )}
+
+        {/* Missing Blocks Modal */}
+        {showMissingBlocksModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
+                Report Missing Building Blocks
+              </h3>
+              <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+                Order #{selectedOrder?.id} - Specify how many blocks are missing:
+              </p>
+              
+              <div className="space-y-4">
+                {/* Blue Blocks */}
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                    Blue Blocks Missing
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={missingBlocks.blue}
+                    onChange={(e) => setMissingBlocks(prev => ({ ...prev, blue: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+                
+                {/* Red Blocks */}
+                <div>
+                  <label className="block text-sm font-medium text-red-700 dark:text-red-300 mb-2">
+                    Red Blocks Missing
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={missingBlocks.red}
+                    onChange={(e) => setMissingBlocks(prev => ({ ...prev, red: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-zinc-700 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+                
+                {/* Gray Blocks */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Gray Blocks Missing
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={missingBlocks.gray}
+                    onChange={(e) => setMissingBlocks(prev => ({ ...prev, gray: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 dark:bg-zinc-700 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => setShowMissingBlocksModal(false)}
+                  className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitMissingBlocks}
+                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                >
+                  Report Missing Blocks
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
