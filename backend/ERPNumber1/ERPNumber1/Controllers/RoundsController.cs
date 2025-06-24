@@ -1,16 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Order;
+using ERPNumber1.Dtos.Round;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
-using ERPNumber1.Models;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ERPNumber1.Controllers
 {
@@ -18,21 +21,24 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class RoundsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        //private readonly AppDbContext _context;
         private readonly IEventLogService _eventLogService;
+        private readonly IRoundRepository _roundRepo;
 
-        public RoundsController(AppDbContext context, IEventLogService eventLogService)
+        public RoundsController(IEventLogService eventLogService, IRoundRepository roundRepo)
         {
-            _context = context;
+            //_context = context;
             _eventLogService = eventLogService;
+            _roundRepo = roundRepo; 
         }
 
         // GET: api/Rounds
         [HttpGet]
-        [LogEvent("Round", "Get All Rounds")]
         public async Task<ActionResult<IEnumerable<Round>>> GetRounds()
         {
-            return await _context.Rounds.ToListAsync();
+            var rounds = await _roundRepo.GetAllAsync();
+            var roundDtos = rounds.Select(s => s.ToRoundDto());
+            return Ok(roundDtos);
         }
 
         // GET: api/Rounds/5
@@ -40,7 +46,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Round", "Get Round by ID")]
         public async Task<ActionResult<Round>> GetRound(int id)
         {
-            var round = await _context.Rounds.FindAsync(id);
+            var round = await _roundRepo.GetByIdAsync(id);
 
             if (round == null)
             {
@@ -51,28 +57,27 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            return round;
+            return Ok(round.ToRoundDto());
         }
 
         // PUT: api/Rounds/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutRound(int id, Round round)
+        public async Task<IActionResult> PutRound(int id, UpdateRoundDto roundDto)
         {
-            if (id != round.Id)
+            var round = await _roundRepo.GetByIdAsync(id);
+            if (round == null)
             {
-                return BadRequest();
+                return NotFound();
             }
-
-            _context.Entry(round).State = EntityState.Modified;
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _roundRepo.UpdateAsync(id, roundDto.ToRoundFromUpdate());
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!RoundExists(id))
+                if (! await _roundRepo.RoundExistsAsync(id))
                 {
                     return NotFound();
                 }
@@ -88,33 +93,28 @@ namespace ERPNumber1.Controllers
         // POST: api/Rounds
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Round>> PostRound(Round round)
+        public async Task<ActionResult<Round>> PostRound(CreateRoundDto roundDto)
         {
-            _context.Rounds.Add(round);
-            await _context.SaveChangesAsync();
+            var roundModel = roundDto.ToRoundFromCreate();
+            await _roundRepo.CreateAsync(roundModel);
 
-            return CreatedAtAction("GetRound", new { id = round.Id }, round);
+            return CreatedAtAction(nameof(GetRound), new { id = roundModel.Id }, roundModel.ToRoundDto());
         }
 
         // DELETE: api/Rounds/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRound(int id)
         {
-            var round = await _context.Rounds.FindAsync(id);
+            var round = await _roundRepo.GetByIdAsync(id);
             if (round == null)
             {
                 return NotFound();
             }
 
-            _context.Rounds.Remove(round);
-            await _context.SaveChangesAsync();
+            await _roundRepo.DeleteAsync(id);
 
             return NoContent();
         }
 
-        private bool RoundExists(int id)
-        {
-            return _context.Rounds.Any(e => e.Id == id);
-        }
     }
 }

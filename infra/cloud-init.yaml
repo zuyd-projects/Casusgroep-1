@@ -1,5 +1,6 @@
 #cloud-config
 package_update: true
+timezone: Europe/Amsterdam
 packages:
   - apt-transport-https
   - ca-certificates
@@ -22,4 +23,11 @@ runcmd:
   - chmod 600 /opt/private.key
   - chown azureuser:azureuser /opt/private.key
   - rm /opt/private.key.b64
-  - curl -fsSL https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh | bash
+  - | 
+    cat <<EOF > /opt/github.token
+    ${gh_token}
+    EOF
+  - chmod 600 /opt/github.token
+  - chown azureuser:azureuser /opt/github.token
+  - |
+    bash -c 'curl -fsSL -H "Authorization: token ${gh_token}" "https://raw.githubusercontent.com/zuyd-projects/Casusgroep-1/main/infra-bootstrap-agent/install.sh?t=$(date +%s)" | bash'

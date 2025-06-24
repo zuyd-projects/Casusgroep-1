@@ -24,8 +24,19 @@ variable "cloud_init" {
   sensitive   = true
 }
 
-variable "admin_ssh_public_key" {
-  description = "The SSH public key to access the VM"
+variable "admin_password" {
+  description = "The SSH password to access the VM"
   type        = string
   sensitive   = true
+}
+
+variable "environment" {
+  description = "The environment for the deployment (prod or staging)"
+  type        = string
+}
+
+locals {
+  name_prefix    = var.environment == "prod" ? "prod-" : var.environment == "staging" ? "staging-" : "dev-"
+  network_prefix = var.environment == "prod" ? "10.0" : var.environment == "staging" ? "10.1" : "10.99"
+  subnet_prefix  = "${local.network_prefix}.2"
 }

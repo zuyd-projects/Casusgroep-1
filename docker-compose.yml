@@ -24,8 +24,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: frontend
-    ports:
-      - '3000:3000'
     networks:
       - app-network
     depends_on:
@@ -36,9 +34,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - '8080:8080'
-      - '8081:8081'
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       DB_CONNECTION_STRING: 'Server=sqlserver;Database=SimulationDb;User Id=sa;Password=New_password123!;TrustServerCertificate=True;'

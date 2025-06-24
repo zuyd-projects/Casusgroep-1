@@ -1,16 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Material;
+using ERPNumber1.Dtos.Product;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Data;
-using ERPNumber1.Models;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ERPNumber1.Controllers
 {
@@ -18,13 +21,15 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class MaterialsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        
         private readonly IEventLogService _eventLogService;
+        private readonly IMaterialRepository _materialRepo;
 
-        public MaterialsController(AppDbContext context, IEventLogService eventLogService)
+        public MaterialsController(IEventLogService eventLogService, IMaterialRepository materialRepo)
         {
-            _context = context;
+            
             _eventLogService = eventLogService;
+            _materialRepo = materialRepo;   
         }
 
         // GET: api/Materials
@@ -32,7 +37,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Material", "Get All Materials")]
         public async Task<ActionResult<IEnumerable<Material>>> GetMaterials()
         {
-            return await _context.Materials.ToListAsync();
+            return await _materialRepo.GetAllAsync();
         }
 
         // GET: api/Materials/5
@@ -40,7 +45,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Material", "Get Material by ID")]
         public async Task<ActionResult<Material>> GetMaterial(int id)
         {
-            var material = await _context.Materials.FindAsync(id);
+            var material = await _materialRepo.GetByIdAsync(id);
 
             if (material == null)
             {
@@ -57,23 +62,25 @@ namespace ERPNumber1.Controllers
         // PUT: api/Materials/5
         [HttpPut("{id}")]
         [LogEvent("Material", "Update Material", logRequest: true)]
-        public async Task<IActionResult> PutMaterial(int id, Material material)
+        public async Task<IActionResult> PutMaterial(int id, UpdateMaterialDto materialDto)
         {
-            if (id != material.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            var material = await _materialRepo.UpdateAsync(id, materialDto.ToMaterialFromUpdate());
+            if (material == null)
             {
                 await _eventLogService.LogEventAsync($"Material_{id}", "Material Update Failed", 
                     "MaterialsController", "Material", "Failed", 
-                    System.Text.Json.JsonSerializer.Serialize(new { reason = "ID mismatch" }), 
+                    System.Text.Json.JsonSerializer.Serialize(new { reason = "Material not found" }), 
                     id.ToString());
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(material).State = EntityState.Modified;
+            
 
             try
             {
-                await _context.SaveChangesAsync();
+               
                 
                 await _eventLogService.LogEventAsync($"Material_{id}", "Material Updated", 
                     "MaterialsController", "Material", "Completed", 
@@ -86,7 +93,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!MaterialExists(id))
+                if (! await _materialRepo.MaterialExistsAsync(id))
                 {
                     await _eventLogService.LogEventAsync($"Material_{id}", "Material Update Failed", 
                         "MaterialsController", "Material", "Failed", 
@@ -110,12 +117,12 @@ namespace ERPNumber1.Controllers
         // POST: api/Materials
         [HttpPost]
         [LogEvent("Material", "Create Material", logRequest: true)]
-        public async Task<ActionResult<Material>> PostMaterial(Material material)
+        public async Task<ActionResult<Material>> PostMaterial(CreateMaterialDto materialDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            _context.Materials.Add(material);
-            await _context.SaveChangesAsync();
+
+            var material = materialDto.ToMaterialFromCreate();
+            await _materialRepo.CreateAsync(material);
 
             await _eventLogService.LogEventAsync($"Material_{material.Id}", "Material Created", 
                 "MaterialsController", "Material", "Completed", 
@@ -126,7 +133,7 @@ namespace ERPNumber1.Controllers
                     productId = material.productId
                 }), material.Id.ToString(), userId: userId);
 
-            return CreatedAtAction("GetMaterial", new { id = material.Id }, material);
+            return CreatedAtAction("GetMaterial", new { id = material.Id }, material.ToMaterialDto());
         }
 
         // DELETE: api/Materials/5
@@ -134,8 +141,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Material", "Delete Material")]
         public async Task<IActionResult> DeleteMaterial(int id)
         {
+            var material = await _materialRepo.DeleteAsync(id);
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var material = await _context.Materials.FindAsync(id);
+            
             
             if (material == null)
             {
@@ -145,9 +153,6 @@ namespace ERPNumber1.Controllers
                     id.ToString());
                 return NotFound();
             }
-
-            _context.Materials.Remove(material);
-            await _context.SaveChangesAsync();
 
             await _eventLogService.LogEventAsync($"Material_{id}", "Material Deleted", 
                 "MaterialsController", "Material", "Completed", 
@@ -161,9 +166,5 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        private bool MaterialExists(int id)
-        {
-            return _context.Materials.Any(e => e.Id == id);
-        }
     }
 }

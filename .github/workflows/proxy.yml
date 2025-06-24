@@ -9,7 +9,8 @@ on:
       - 'proxy/**'
 
 jobs:
-  build_and_update:
+  build_and_release:
+    name: Build and Release Docker Image
     runs-on: ubuntu-latest
 
     permissions:

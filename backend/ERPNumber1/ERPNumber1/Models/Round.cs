@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ERPNumber1.Models
 {
@@ -9,19 +10,8 @@ namespace ERPNumber1.Models
         public int RoundNumber { get; set; }
 
         // Navigation
-        public required Simulation Simulation { get; set; }
+        [JsonIgnore]
+        public Simulation? Simulation { get; set; }
 
-        // Default constructor for EF Core
-        public Round()
-        {
-        }
-
-        // Convenience constructor
-        public Round(Simulation simulation, int roundNumber)
-        {
-            Simulation = simulation;
-            SimulationId = simulation.Id;
-            RoundNumber = roundNumber;
-        }
     }
 }

@@ -1,10 +1,14 @@
+using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Inventory;
+using ERPNumber1.Dtos.Product;
+using ERPNumber1.Dtos.Round;
+using ERPNumber1.Extensions;
+using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
+using ERPNumber1.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Models;
-using ERPNumber1.Data;
-using ERPNumber1.Interfaces;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -13,13 +17,14 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class InventoryController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        
         private readonly IEventLogService _eventLogService;
+        private readonly IInventoryRepository _inventoryRepo;
 
-        public InventoryController(AppDbContext context, IEventLogService eventLogService)
-        {
-            _context = context;
+        public InventoryController(IEventLogService eventLogService, IInventoryRepository inventoryRepo)
+        {           
             _eventLogService = eventLogService;
+            _inventoryRepo = inventoryRepo;
         }
 
         // GET: api/Inventory
@@ -27,9 +32,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Inventory", "Get All Inventories")]
         public async Task<ActionResult<IEnumerable<Inventory>>> GetInventories()
         {
-            return await _context.Inventories
-                .Include(i => i.Materials)
-                .ToListAsync();
+            var inventories = await _inventoryRepo.GetAllAsync();
+            var inventoriesDtos = inventories.Select(s => s.ToInventoryDto());
+            return Ok(inventoriesDtos);
         }
 
         // GET: api/Inventory/5
@@ -37,9 +42,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("Inventory", "Get Inventory by ID")]
         public async Task<ActionResult<Inventory>> GetInventory(int id)
         {
-            var inventory = await _context.Inventories
-                .Include(i => i.Materials)
-                .FirstOrDefaultAsync(i => i.Id == id);
+            var inventory = await _inventoryRepo.GetByIdAsync(id);
 
             if (inventory == null)
             {
@@ -49,18 +52,18 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            return inventory;
+            return Ok(inventory.ToInventoryDto());
         }
 
         // POST: api/Inventory
         [HttpPost]
         [LogEvent("Inventory", "Create Inventory", logRequest: true)]
-        public async Task<ActionResult<Inventory>> PostInventory(Inventory inventory)
+        public async Task<ActionResult<Inventory>> PostInventory(CreateInventoryDto inventoryDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            _context.Inventories.Add(inventory);
-            await _context.SaveChangesAsync();
+
+            var inventory = inventoryDto.ToInventoryFromCreate();
+            await _inventoryRepo.CreateAsync(inventory);
 
             await _eventLogService.LogInventoryEventAsync(inventory.Id, "Inventory Created", 
                 "InventoryController", "Completed", 
@@ -69,29 +72,23 @@ namespace ERPNumber1.Controllers
                     createdBy = userId
                 }, userId);
 
-            return CreatedAtAction(nameof(GetInventory), new { id = inventory.Id }, inventory);
+            return CreatedAtAction(nameof(GetInventory), new { id = inventory.Id }, inventory.ToInventoryDto());
         }
 
         // PUT: api/Inventory/5
         [HttpPut("{id}")]
         [LogEvent("Inventory", "Update Inventory", logRequest: true)]
-        public async Task<IActionResult> PutInventory(int id, Inventory inventory)
+        public async Task<IActionResult> PutInventory(int id, UpdateInventoryDto inventoryDto)
         {
-            if (id != inventory.Id)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var inventory = await _inventoryRepo.UpdateAsync(id, inventoryDto.ToInventoryFromUpdate());
+            if (inventory == null)
             {
-                await _eventLogService.LogInventoryEventAsync(id, "Inventory Update Failed", 
-                    "InventoryController", "Failed", 
-                    new { reason = "ID mismatch" });
-                return BadRequest();
+                return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _context.Entry(inventory).State = EntityState.Modified;
-
             try
-            {
-                await _context.SaveChangesAsync();
-                
+            {               
                 await _eventLogService.LogInventoryEventAsync(id, "Inventory Updated", 
                     "InventoryController", "Completed", 
                     new { 
@@ -101,7 +98,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!InventoryExists(id))
+                if (!await _inventoryRepo.InventoryExistsAsync(id))
                 {
                     await _eventLogService.LogInventoryEventAsync(id, "Inventory Update Failed", 
                         "InventoryController", "Failed", 
@@ -125,8 +122,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("Inventory", "Delete Inventory")]
         public async Task<IActionResult> DeleteInventory(int id)
         {
+            var inventory = await _inventoryRepo.DeleteAsync(id);
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var inventory = await _context.Inventories.FindAsync(id);
+            
             
             if (inventory == null)
             {
@@ -136,8 +134,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            _context.Inventories.Remove(inventory);
-            await _context.SaveChangesAsync();
+            
 
             await _eventLogService.LogInventoryEventAsync(id, "Inventory Deleted", 
                 "InventoryController", "Completed", 
@@ -150,9 +147,6 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        private bool InventoryExists(int id)
-        {
-            return _context.Inventories.Any(e => e.Id == id);
-        }
+
     }
 }

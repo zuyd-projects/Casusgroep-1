@@ -106,6 +106,9 @@ namespace ERPNumber1.Migrations
                     b.Property<bool>("ApprovedByCustomer")
                         .HasColumnType("bit");
 
+                    b.Property<string>("DeliveryRound")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsDelivered")
                         .HasColumnType("bit");
 
@@ -190,7 +193,6 @@ namespace ERPNumber1.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Quantity")
@@ -223,7 +225,6 @@ namespace ERPNumber1.Migrations
                         .HasColumnType("real");
 
                     b.Property<string>("name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("productId")
@@ -241,6 +242,63 @@ namespace ERPNumber1.Migrations
                     b.HasIndex("productId");
 
                     b.ToTable("Materials");
+                });
+
+            modelBuilder.Entity("ERPNumber1.Models.MissingBlocks", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlueBlocks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GrayBlocks")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MotorType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductionLine")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RedBlocks")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("RunnerAttempted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RunnerAttemptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("MissingBlocks");
                 });
 
             modelBuilder.Entity("ERPNumber1.Models.Order", b =>
@@ -264,6 +322,9 @@ namespace ERPNumber1.Migrations
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ProductionLine")
+                        .HasColumnType("nvarchar(1)");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -271,8 +332,13 @@ namespace ERPNumber1.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Signature")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("WasReturnedFromMissingBlocks")
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -388,18 +454,20 @@ namespace ERPNumber1.Migrations
                     b.Property<string>("AppUserId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<bool>("IsRMA")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
 
                     b.Property<int>("round_number")
                         .HasColumnType("int");
@@ -407,6 +475,9 @@ namespace ERPNumber1.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
 
                     b.ToTable("SupplierOrders");
                 });
@@ -609,6 +680,17 @@ namespace ERPNumber1.Migrations
                     b.Navigation("product");
                 });
 
+            modelBuilder.Entity("ERPNumber1.Models.MissingBlocks", b =>
+                {
+                    b.HasOne("ERPNumber1.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("ERPNumber1.Models.Order", b =>
                 {
                     b.HasOne("ERPNumber1.Models.Round", "Round")
@@ -659,7 +741,15 @@ namespace ERPNumber1.Migrations
                         .WithMany()
                         .HasForeignKey("AppUserId");
 
+                    b.HasOne("ERPNumber1.Models.Order", "Order")
+                        .WithOne("SupplierOrder")
+                        .HasForeignKey("ERPNumber1.Models.SupplierOrder", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("AppUser");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -725,10 +815,12 @@ namespace ERPNumber1.Migrations
 
             modelBuilder.Entity("ERPNumber1.Models.Order", b =>
                 {
-                    b.Navigation("Deliveries")
-                        .IsRequired();
+                    b.Navigation("Deliveries");
 
                     b.Navigation("Products");
+
+                    b.Navigation("SupplierOrder")
+                        .IsRequired();
 
                     b.Navigation("appUsers");
                 });
