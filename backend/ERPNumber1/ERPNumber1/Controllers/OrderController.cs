@@ -38,7 +38,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Order
         [HttpGet]
-        [LogEvent("Order", "Get All Orders")]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
         {
             var orders = await _orderRepo.GetAllAsync();
