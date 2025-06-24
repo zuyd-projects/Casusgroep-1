@@ -10,17 +10,17 @@ const navItems = [
   { label: "Orders", href: "/dashboard/orders" },
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Plannings", href: "/dashboard/plannings" },
-  { label: "Account Manager", href: "/dashboard/accountManager" },
-  { label: "Delivery", href: "/dashboard/delivery" },
-  { label: "Process Mining", href: "/dashboard/process-mining" },
   { label: "Runner", href: "/dashboard/runner" },
-  {
+    {
     label: "Production Lines",
     children: [
       { label: "Production Line 1", href: "/dashboard/production-lines/1" },
       { label: "Production Line 2", href: "/dashboard/production-lines/2" },
     ],
   },
+  { label: "Account Manager", href: "/dashboard/accountManager" },
+  { label: "Delivery", href: "/dashboard/delivery" },
+  { label: "Process Mining", href: "/dashboard/process-mining" },
   { label: "Admin", href: "/dashboard/admin" },
 ];
 
