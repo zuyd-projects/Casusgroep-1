@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Menu, X } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -24,7 +25,7 @@ const navItems = [
   { label: "Admin", href: "/dashboard/admin" },
 ];
 
-function SidebarItem({ item, pathname }) {
+function SidebarItem({ item, pathname, onMobileMenuClose }) {
   const [open, setOpen] = useState(false);
   const isActive = item.href
     ? pathname === item.href
@@ -39,6 +40,7 @@ function SidebarItem({ item, pathname }) {
     return (
       <Link
         href={item.href}
+        onClick={onMobileMenuClose}
         className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
       >
         <span>{item.label}</span>
@@ -78,6 +80,7 @@ function SidebarItem({ item, pathname }) {
             <Link
               key={child.href}
               href={child.href}
+              onClick={onMobileMenuClose}
               className={`block px-4 py-2 rounded-lg transition-colors font-medium ${
                 pathname === child.href
                   ? "bg-pink-700 text-white shadow-md"
@@ -95,9 +98,39 @@ function SidebarItem({ item, pathname }) {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <aside className="w-60 h-screen hidden lg:block bg-gradient-to-b from-purple-600 to-pink-600 dark:from-purple-800 dark:to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative">
+    <>
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-purple-600 text-white rounded-lg shadow-lg"
+        aria-label="Toggle mobile menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="w-6 h-6" />
+        ) : (
+          <Menu className="w-6 h-6" />
+        )}
+      </button>
+
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside 
+        className={`
+          w-60 h-screen bg-gradient-to-b from-purple-600 to-pink-600 dark:from-purple-800 dark:to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative
+          lg:block
+          ${isMobileMenuOpen ? 'fixed left-0 top-0 z-40' : 'hidden lg:block'}
+        `}
+      >
       <div className="flex items-center mb-10 px-2">
         <span className="text-3xl font-extrabold tracking-wide drop-shadow-lg text-white">
           ERPNumber1
@@ -105,12 +138,18 @@ export default function Sidebar() {
       </div>
       <nav className="space-y-2">
         {navItems.map((item) => (
-          <SidebarItem key={item.label} item={item} pathname={pathname} />
+          <SidebarItem 
+            key={item.label} 
+            item={item} 
+            pathname={pathname}
+            onMobileMenuClose={() => setIsMobileMenuOpen(false)}
+          />
         ))}
       </nav>
       <div className="absolute bottom-8 left-0 w-full px-6">
         <span className="text-white/70 text-sm">About</span>
       </div>
     </aside>
+    </>
   );
 }
