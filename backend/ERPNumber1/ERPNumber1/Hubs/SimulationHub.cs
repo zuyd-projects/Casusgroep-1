@@ -55,21 +55,37 @@ namespace ERPNumber1.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            // Log when a user connects (useful for debugging reconnection scenarios)
-            Console.WriteLine($"User {Context.UserIdentifier} connected to SimulationHub");
+            // Enhanced logging for Windows debugging
+            var httpContext = Context.GetHttpContext();
+            var userAgent = httpContext?.Request.Headers["User-Agent"].ToString() ?? "Unknown";
+            var transport = Context.Features.Get<Microsoft.AspNetCore.Http.Connections.Features.IHttpTransportFeature>()?.TransportType.ToString() ?? "Unknown";
+            
+            Console.WriteLine($"✅ SignalR Connection Established:");
+            Console.WriteLine($"   User: {Context.UserIdentifier ?? "Anonymous"}");
+            Console.WriteLine($"   Connection ID: {Context.ConnectionId}");
+            Console.WriteLine($"   Transport: {transport}");
+            Console.WriteLine($"   User Agent: {userAgent}");
+            Console.WriteLine($"   Remote IP: {httpContext?.Connection?.RemoteIpAddress}");
+            
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            // Log when a user disconnects
+            // Enhanced logging for Windows debugging
             if (exception != null)
             {
-                Console.WriteLine($"User {Context.UserIdentifier} disconnected from SimulationHub with error: {exception.Message}");
+                Console.WriteLine($"❌ SignalR Disconnection with error:");
+                Console.WriteLine($"   User: {Context.UserIdentifier ?? "Anonymous"}");
+                Console.WriteLine($"   Connection ID: {Context.ConnectionId}");
+                Console.WriteLine($"   Error: {exception.Message}");
+                Console.WriteLine($"   Stack Trace: {exception.StackTrace}");
             }
             else
             {
-                Console.WriteLine($"User {Context.UserIdentifier} disconnected from SimulationHub");
+                Console.WriteLine($"✅ SignalR Normal Disconnection:");
+                Console.WriteLine($"   User: {Context.UserIdentifier ?? "Anonymous"}");
+                Console.WriteLine($"   Connection ID: {Context.ConnectionId}");
             }
             await base.OnDisconnectedAsync(exception);
         }

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   proxy:
     container_name: nginx_proxy
@@ -17,6 +15,9 @@ services:
       - app-network
     depends_on:
       - frontend
+    # Windows Docker compatibility
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   frontend:
     container_name: frontend_app
