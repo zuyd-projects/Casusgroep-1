@@ -11,14 +11,11 @@ const navItems = [
   { label: "Orders", href: "/dashboard/orders" },
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Voorraad Beheer", href: "/dashboard/voorraadBeheer" },
-  {
-    label: "Products",
-
+  { label: "Products", href: "/dashboard/products" },
   { label: "Plannings", href: "/dashboard/plannings" },
   { label: "Runner", href: "/dashboard/runner" },
-    {
+  {
     label: "Production Lines",
-
     children: [
       { label: "Production Line 1", href: "/dashboard/production-lines/1" },
       { label: "Production Line 2", href: "/dashboard/production-lines/2" },
@@ -122,14 +119,14 @@ export default function Sidebar() {
 
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/50 z-30"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`
           w-60 h-screen bg-gradient-to-b from-purple-600 to-pink-600 dark:from-purple-800 dark:to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative
           lg:block
@@ -143,9 +140,9 @@ export default function Sidebar() {
       </div>
       <nav className="space-y-2">
         {navItems.map((item) => (
-          <SidebarItem 
-            key={item.label} 
-            item={item} 
+          <SidebarItem
+            key={item.label}
+            item={item}
             pathname={pathname}
             onMobileMenuClose={() => setIsMobileMenuOpen(false)}
           />
