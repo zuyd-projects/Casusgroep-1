@@ -13,17 +13,5 @@ namespace ERPNumber1.Models
         [JsonIgnore]
         public Simulation? Simulation { get; set; }
 
-        // Default constructor for EF Core
-        public Round()
-        {
-        }
-
-        // Convenience constructor
-        public Round(Simulation? simulation, int roundNumber)
-        {
-            Simulation = simulation;
-            SimulationId = simulation?.Id ?? 0;
-            RoundNumber = roundNumber;
-        }
     }
 }

@@ -1,14 +1,16 @@
-﻿using ERPNumber1.Data;
-using ERPNumber1.Dtos.User;
+﻿using ERPNumber1.Attributes;
+using ERPNumber1.Data;
+using ERPNumber1.Dtos.Product;
 using ERPNumber1.Dtos.SupplierOrder;
+using ERPNumber1.Dtos.User;
+using ERPNumber1.Extensions;
 using ERPNumber1.Interfaces;
+using ERPNumber1.Mapper;
 using ERPNumber1.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ERPNumber1.Extensions;
-using ERPNumber1.Attributes;
 using System.Security.Claims;
 
 namespace ERPNumber1.Controllers
@@ -17,13 +19,16 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class SupplierOrderController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        
         private readonly IEventLogService _eventLogService;
+        private readonly ISupplierOrderRepository _supplierOrderRepo;
 
-        public SupplierOrderController(AppDbContext context, IEventLogService eventLogService)
+        public SupplierOrderController(IEventLogService eventLogService, ISupplierOrderRepository supplierOrderRepo)
         {
-            _context = context;
+            
             _eventLogService = eventLogService;
+            _supplierOrderRepo = supplierOrderRepo;
+            
         }
 
         // GET: api/SupplierOrder
@@ -31,7 +36,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("SupplierOrder", "Get All Supplier Orders")]
         public async Task<ActionResult<IEnumerable<SupplierOrder>>> GetSupplierOrders()
         {
-            return await _context.SupplierOrders.ToListAsync();
+               return await _supplierOrderRepo.GetAllAsync();
         }
 
         // GET: api/SupplierOrde/5
@@ -39,7 +44,7 @@ namespace ERPNumber1.Controllers
         [LogEvent("SupplierOrder", "Get Supplier Order by ID")]
         public async Task<ActionResult<SupplierOrder>> GetSupplierOrder(int id)
         {
-            var supplierOrder = await _context.SupplierOrders.FindAsync(id);
+            var supplierOrder = await _supplierOrderRepo.GetByIdAsync(id);
 
             if (supplierOrder == null)
             {
@@ -50,7 +55,7 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            return supplierOrder;
+            return Ok(supplierOrder.ToSupplierOrderDto());
         }
 
         // PUT: api/SupplierOrder/5
@@ -59,21 +64,14 @@ namespace ERPNumber1.Controllers
         public async Task<IActionResult> PutSupplierOrder(int id, UpdateSupplierOrderDto supplierOrderDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var supplierOrder = await _context.SupplierOrders.FindAsync(id);
+            var supplierOrder = await _supplierOrderRepo.UpdateAsync(id, supplierOrderDto.ToSupplierOrderFromUpdate());
             if (supplierOrder == null)
             {
                 return NotFound();
             }
 
-            supplierOrder.UserId = supplierOrderDto.UserId;
-            supplierOrder.Quantity = supplierOrderDto.Quantity;
-            supplierOrder.Status = supplierOrderDto.Status;
-            supplierOrder.round_number = supplierOrderDto.RoundNumber;
-            supplierOrder.OrderDate = supplierOrderDto.OrderDate;
-
             try
             {
-                await _context.SaveChangesAsync();
                 
                 await _eventLogService.LogEventAsync($"SupplierOrder_{id}", "Supplier Order Updated", 
                     "SupplierOrderController", "SupplierOrder", "Completed", 
@@ -86,7 +84,7 @@ namespace ERPNumber1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!SupplierOrderExists(id))
+                if (!await _supplierOrderRepo.SupplierOrderExistsAsync(id))
                 {
                     await _eventLogService.LogEventAsync($"SupplierOrder_{id}", "Supplier Order Update Failed", 
                         "SupplierOrderController", "SupplierOrder", "Failed", 
@@ -113,18 +111,9 @@ namespace ERPNumber1.Controllers
         public async Task<ActionResult<SupplierOrder>> PostSupplierOrder(CreateSupplierOrderDto supplierOrderDto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            var supplierOrder = new SupplierOrder
-            {
-                UserId = supplierOrderDto.UserId,
-                Quantity = supplierOrderDto.Quantity,
-                Status = supplierOrderDto.Status,
-                round_number = supplierOrderDto.RoundNumber,
-                OrderDate = supplierOrderDto.OrderDate
-            };
-            
-            _context.SupplierOrders.Add(supplierOrder);
-            await _context.SaveChangesAsync();
+
+            var supplierOrder = supplierOrderDto.ToSupplierOrderFromCreate();
+            await _supplierOrderRepo.CreateAsync(supplierOrder);
 
             await _eventLogService.LogEventAsync($"SupplierOrder_{supplierOrder.Id}", "Supplier Order Created", 
                 "SupplierOrderController", "SupplierOrder", "Completed", 
@@ -136,7 +125,7 @@ namespace ERPNumber1.Controllers
                     createdBy = userId
                 }), supplierOrder.Id.ToString(), userId: userId);
 
-            return CreatedAtAction("GetSupplierOrder", new { id = supplierOrder.Id }, supplierOrder);
+            return CreatedAtAction(nameof(GetSupplierOrder), new { id = supplierOrder.Id }, supplierOrder.ToSupplierOrderDto());
         }
 
         // DELETE: api/supplierOrder/5
@@ -144,8 +133,9 @@ namespace ERPNumber1.Controllers
         [LogEvent("SupplierOrder", "Delete Supplier Order")]
         public async Task<IActionResult> DeletesupplierOrder(int id)
         {
+            var supplierOrder = await _supplierOrderRepo.DeleteAsync(id);
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var supplierOrder = await _context.SupplierOrders.FindAsync(id);
+            
             
             if (supplierOrder == null)
             {
@@ -156,8 +146,6 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            _context.SupplierOrders.Remove(supplierOrder);
-            await _context.SaveChangesAsync();
 
             await _eventLogService.LogEventAsync($"SupplierOrder_{id}", "Supplier Order Deleted", 
                 "SupplierOrderController", "SupplierOrder", "Completed", 
@@ -172,9 +160,5 @@ namespace ERPNumber1.Controllers
             return NoContent();
         }
 
-        private bool SupplierOrderExists(int id)
-        {
-            return _context.SupplierOrders.Any(e => e.Id == id);
-        }
     }
 }

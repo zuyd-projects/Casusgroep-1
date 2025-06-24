@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Models;
+using ERPNumber1.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ERPNumber1.Controllers
 {
@@ -12,11 +14,13 @@ namespace ERPNumber1.Controllers
     {
         private readonly IEventLogService _eventLogService;
         private readonly ILogger<ProcessMiningController> _logger;
+        private readonly AppDbContext _context;
 
-        public ProcessMiningController(IEventLogService eventLogService, ILogger<ProcessMiningController> logger)
+        public ProcessMiningController(IEventLogService eventLogService, ILogger<ProcessMiningController> logger, AppDbContext context)
         {
             _eventLogService = eventLogService;
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -288,6 +292,51 @@ namespace ERPNumber1.Controllers
             {
                 _logger.LogError(ex, "Error logging event manually");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Clean up all database tables (Development only)
+        /// </summary>
+        [HttpPost("cleanup-database")]
+        public async Task<ActionResult> CleanupDatabase()
+        {
+            try
+            {
+                _logger.LogInformation("Starting database cleanup...");
+
+                // Clean up tables in the right order (respecting foreign key constraints)
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [EventLogs]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Deliveries]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Products]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [SupplierOrders]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Orders]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Inventories]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Statistics]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Rounds]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Simulations]");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Materials]");
+
+                // Reset identity columns if using SQL Server
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[EventLogs]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Deliveries]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Products]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[SupplierOrders]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Orders]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Inventories]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Statistics]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Rounds]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Simulations]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Materials]', RESEED, 0)");
+
+                _logger.LogInformation("Database cleanup completed successfully");
+
+                return Ok(new { message = "Database cleanup completed successfully. All tables have been cleared and identity columns reset." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during database cleanup");
+                return StatusCode(500, $"Database cleanup failed: {ex.Message}");
             }
         }
     }

@@ -18,7 +18,8 @@ namespace ERPNumber1.Data
         public DbSet<Delivery> Deliveries { get; set; }
         public DbSet<Statistics> Statistics { get; set; }
         public DbSet<SupplierOrder> SupplierOrders { get; set; }
-        public DbSet<EventLog> EventLogs { get; set; }    
+        public DbSet<EventLog> EventLogs { get; set; }
+        public DbSet<MissingBlocks> MissingBlocks { get; set; }    
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +42,14 @@ namespace ERPNumber1.Data
                 .HasOne(o => o.Deliveries)
                 .WithOne(d => d.Order)
                 .HasForeignKey<Delivery>(d => d.OrderId);
+
+            // Order - SupplierOrder (1-1)
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.SupplierOrder)
+                .WithOne(so => so.Order)
+                .HasForeignKey<SupplierOrder>(so => so.OrderId);
+
 
             // Order - Product (1-many)
             modelBuilder.Entity<Order>()
@@ -75,6 +84,13 @@ namespace ERPNumber1.Data
                 .HasForeignKey(u => u.OrderId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Order - MissingBlocks (1-many)
+            modelBuilder.Entity<MissingBlocks>()
+                .HasOne(mb => mb.Order)
+                .WithMany()
+                .HasForeignKey(mb => mb.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             List<IdentityRole> roles = new List<IdentityRole>
             {

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - staging
     paths:
       - 'proxy/**'
 
@@ -28,17 +29,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine config file and image tag suffix
+        id: config
+        run: |
+          if [ "${{ github.ref_name }}" = "staging" ]; then
+            echo "config_file=infra/configs/frontend-vm-staging.json" >> $GITHUB_OUTPUT
+            echo "tag_suffix=-staging" >> $GITHUB_OUTPUT
+          else
+            echo "config_file=infra/configs/frontend-vm.json" >> $GITHUB_OUTPUT
+            echo "tag_suffix=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push proxy Docker image
         id: build-proxy
         run: |
-          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/proxy:$(date +'%Y%m%d%H%M%S')
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/proxy${{ steps.config.outputs.tag_suffix }}:$(date +'%Y%m%d%H%M%S')
           docker build -t $IMAGE_TAG ./proxy
           docker push $IMAGE_TAG
           echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update JSON config file with new image tags
         run: |
-          CONFIG_FILE=infra/configs/frontend-vm.json
+          CONFIG_FILE=${{ steps.config.outputs.config_file }}
           PROXY_IMAGE=${{ steps.build-proxy.outputs.image }}
 
           git fetch origin config
@@ -53,7 +65,7 @@ jobs:
           git add $CONFIG_FILE
 
           if ! git diff --cached --quiet; then
-            git commit -m "Update proxy image"
+            git commit -m "Update proxy image for ${{ github.ref_name }} branch"
             git push origin HEAD:config
           else
             echo "No config changes detected."

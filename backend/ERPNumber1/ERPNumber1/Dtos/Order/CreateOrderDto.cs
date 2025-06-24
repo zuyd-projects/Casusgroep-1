@@ -8,6 +8,7 @@ namespace ERPNumber1.Dtos.Order
         public char MotorType { get; set; }
         public int Quantity { get; set; }
         public string? Signature { get; set; }
-        public DateTime OrderDate { get; set; }
+        public char? ProductionLine { get; set; }
+        public string? Status { get; set; }
     }
 }
