@@ -8,8 +8,7 @@ import StatusBadge from "@CASUSGROEP1/components/StatusBadge";
 import { api } from "@CASUSGROEP1/utils/api";
 
 export default function OrderDetail({ params }) {
-  const resolvedParams = use(params);
-  const orderId = resolvedParams.id;
+  const orderId = params.id;
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo");
 
