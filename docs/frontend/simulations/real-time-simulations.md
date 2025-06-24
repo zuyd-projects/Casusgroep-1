@@ -2,14 +2,14 @@
 
 ## Overview
 
-The ERP system includes a comprehensive real-time simulation feature that uses **SignalR** for WebSocket communication. This allows multiple users to see live updates when simulations are running, with new rounds created every 30 seconds (configurable). The system features an integrated header display that shows current simulation status, round information, and a live countdown timer.
+The ERP system includes a comprehensive real-time simulation feature that uses **SignalR** for WebSocket communication. This allows multiple users to see live updates when simulations are running, with new rounds created every 20 seconds (configurable). The system features an integrated header display that shows current simulation status, round information, and a live countdown timer.
 
 ## 🔄 How It Works
 
 1. **Start Simulation**: Click "Run" → Creates first round immediately → Timer starts for subsequent rounds
 2. **Real-Time Updates**: WebSocket pushes new round data to all connected clients  
 3. **Integrated Header Display**: Shows simulation ID, round number, countdown timer, connection status, and stop controls
-4. **Round Creation**: Every 30 seconds (configurable), new round is created and broadcast
+4. **Round Creation**: Every 20 seconds (configurable), new round is created and broadcast
 5. **Stop Simulation**: Available from header bar or simulations page, cancels timer and broadcasts stop event
 6. **Auto-Reconnection**: Robust connection handling with automatic reconnection and graceful fallbacks
 
@@ -102,7 +102,7 @@ The main dashboard includes simulation-related widgets:
 
 1. **Header Display** shows current round and timer
 2. **Timer Counts Down** in real-time (MM:SS format)
-3. **New Rounds** appear automatically every 30 seconds
+3. **New Rounds** appear automatically every 20 seconds
 4. **Connection Status** visible via Wi-Fi icon color
 
 ### Stopping a Simulation
@@ -126,7 +126,7 @@ The main dashboard includes simulation-related widgets:
 1. **Start Simulation**: Click "Run" → Creates first round immediately → Timer starts for subsequent rounds
 2. **Real-Time Updates**: WebSocket pushes new round data to all connected clients  
 3. **Integrated Header Display**: Shows simulation ID, round number, countdown timer, connection status, and stop controls
-4. **Round Creation**: Every 30 seconds (configurable), new round is created and broadcast
+4. **Round Creation**: Every 20 seconds (configurable), new round is created and broadcast
 5. **Stop Simulation**: Available from header bar or simulations page, cancels timer and broadcasts stop event
 6. **Auto-Reconnection**: Robust connection handling with automatic reconnection and graceful fallbacks
 
@@ -233,7 +233,7 @@ Authorization: Bearer {jwt-token}
     "id": 5,
     "roundNumber": 3
   },
-  "roundDuration": 30
+  "roundDuration": 20
 }
 ```
 
@@ -245,18 +245,18 @@ Broadcasted when a simulation begins:
 
 ```javascript
 connection.on('SimulationStarted', (data) => {
-  // data = { simulationId: 1, roundDuration: 30 }
+  // data = { simulationId: 1, roundDuration: 20 }
   console.log('Simulation started:', data);
 });
 ```
 
 ### NewRound
 
-Broadcasted every round interval (default 30 seconds):
+Broadcasted every round interval (default 20 seconds):
 
 ```javascript
 connection.on('NewRound', (data) => {
-  // data = { simulationId: 1, roundId: 5, roundNumber: 3, duration: 30 }
+  // data = { simulationId: 1, roundId: 5, roundNumber: 3, duration: 20 }
   console.log('New round started:', data);
   updateRoundDisplay(data);
 });
@@ -432,7 +432,7 @@ import { simulationService } from './simulationService';
 function SimulationDashboard() {
   const [currentRound, setCurrentRound] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(20);
 
   useEffect(() => {
     // Connect to SignalR
@@ -469,7 +469,7 @@ function SimulationDashboard() {
     if (!isRunning) return;
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev > 0 ? prev - 1 : 30);
+      setTimeLeft(prev => prev > 0 ? prev - 1 : 20);
     }, 1000);
 
     return () => clearInterval(timer);
@@ -504,7 +504,7 @@ function SimulationDashboard() {
           <div className="progress-bar">
             <div 
               className="progress" 
-              style={% raw %}{{ width: `${(timeLeft / 30) * 100}%` }}{% endraw %}
+              style={% raw %}{{ width: `${(timeLeft / 20) * 100}%` }}{% endraw %}
             />
           </div>
         </div>
@@ -525,7 +525,7 @@ function SimulationDashboard() {
 ```json
 {
   "Simulation": {
-    "RoundDurationSeconds": 30
+    "RoundDurationSeconds": 20
   }
 }
 ```

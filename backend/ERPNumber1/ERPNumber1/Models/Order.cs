@@ -15,6 +15,7 @@ namespace ERPNumber1.Models
         public string? Signature { get; set; }
         public char? ProductionLine { get; set; }
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public bool WasReturnedFromMissingBlocks { get; set; } = false;
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;
         [JsonIgnore]            

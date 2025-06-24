@@ -6,13 +6,39 @@ import { api } from '@CASUSGROEP1/utils/api';
 
 const SimulationContext = createContext();
 
+    const unsubscribeStarted = simulationService.onSimulationStarted((data) => {
+      console.log('🎮 Simulation started:', data.simulationId);
+      setCurrentSimulation(data.simulationId);
+      setIsRunning(true);
+      setRoundDuration(data.roundDuration || 20);
+      setRoundTimeLeft(data.roundDuration || 20);
+      
+      // Persist the simulation state (without round info initially)
+      persistSimulationState({
+        simulationId: data.simulationId,
+        roundDuration: data.roundDuration || 20
+      });
+    });
+
+    const unsubscribeStopped = simulationService.onSimulationStopped((data) => {
+      console.log('🎮 Simulation stopped:', data.simulationId);
+      // Clear all simulation state
+      setCurrentSimulation(null);
+      setCurrentRound(null);
+      setIsRunning(false);
+      setRoundTimeLeft(0);
+      
+      // Clear persisted state
+      clearPersistedState();
+    });
+
 export function SimulationProvider({ children }) {
   const [currentSimulation, setCurrentSimulation] = useState(null);
   const [currentRound, setCurrentRound] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [roundTimeLeft, setRoundTimeLeft] = useState(0);
-  const [roundDuration, setRoundDuration] = useState(30);
+  const [roundDuration, setRoundDuration] = useState(20);
   const [serverTimerActive, setServerTimerActive] = useState(false);
 
   // Persist simulation state to localStorage
@@ -68,7 +94,7 @@ export function SimulationProvider({ children }) {
         // Immediately persist this round info
         persistSimulationState({
           simulationId,
-          roundDuration: status.roundDuration || 30,
+          roundDuration: status.roundDuration || 20,
           currentRound: roundInfo
         });
       } else {
@@ -83,7 +109,7 @@ export function SimulationProvider({ children }) {
         }
       }
       
-      setRoundDuration(status.roundDuration || 30);
+      setRoundDuration(status.roundDuration || 20);
       
       // If simulation is running, start the timer and ensure we're in the SignalR group
       if (status.isRunning) {
@@ -97,8 +123,8 @@ export function SimulationProvider({ children }) {
           console.log(`⏳ Current round exists but timeLeft is 0, keeping existing timer until sync`);
         } else {
           // No current round, safe to set to default duration or 0
-          setRoundTimeLeft(status.roundDuration || 30);
-          console.log(`⏱️ Set timer to default duration: ${status.roundDuration || 30}s`);
+          setRoundTimeLeft(status.roundDuration || 20);
+          console.log(`⏱️ Set timer to default duration: ${status.roundDuration || 20}s`);
         }
         
         // Ensure we're connected to SignalR and joined to the simulation group
@@ -267,13 +293,13 @@ export function SimulationProvider({ children }) {
       console.log('🎮 Simulation started:', data.simulationId);
       setCurrentSimulation(data.simulationId);
       setIsRunning(true);
-      setRoundDuration(data.roundDuration || 30);
-      setRoundTimeLeft(data.roundDuration || 30);
+      setRoundDuration(data.roundDuration || 20);
+      setRoundTimeLeft(data.roundDuration || 20);
       
       // Persist the simulation state (without round info initially)
       persistSimulationState({
         simulationId: data.simulationId,
-        roundDuration: data.roundDuration || 30
+        roundDuration: data.roundDuration || 20
       });
     });
 
@@ -453,7 +479,7 @@ export function useSimulation() {
       isRunning: false,
       isConnected: false,
       roundTimeLeft: 0,
-      roundDuration: 30,
+      roundDuration: 20,
       runSimulation: async () => false,
       stopSimulation: async () => false,
       getSimulationStatus: async () => ({}),

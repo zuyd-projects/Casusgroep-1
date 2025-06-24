@@ -7,7 +7,7 @@ import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { api } from '@CASUSGROEP1/utils/api';
 import { orderStatuses } from '@CASUSGROEP1/utils/mockData';
-import { Plus, AlertCircle, PlayCircle, Hash, Calendar } from 'lucide-react';
+import { Plus, AlertCircle, PlayCircle, Hash, Calendar, CheckCircle } from 'lucide-react';
 import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
 export default function Orders() {
@@ -157,6 +157,23 @@ export default function Orders() {
       alert('Failed to create order. Please try again.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  // Handle order completion
+  const handleCompleteOrder = async (orderId) => {
+    try {
+      // Update order status to completed
+      await api.patch(`/api/Order/${orderId}/status`, { status: 'Completed' });
+      
+      // Refresh orders list
+      await fetchOrders();
+      
+      console.log('✅ Order completed successfully!');
+      
+    } catch (error) {
+      console.error('❌ Failed to complete order:', error);
+      alert('Failed to complete order. Please try again.');
     }
   };
 
@@ -406,12 +423,24 @@ export default function Orders() {
                       <StatusBadge status={order.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Link 
-                        href={`/dashboard/orders/${order.id}`}
-                        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        View
-                      </Link>
+                      <div className="flex items-center justify-end space-x-2">
+                        {order.status === 'Delivered' && (
+                          <button
+                            onClick={() => handleCompleteOrder(order.id)}
+                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 rounded-md transition-colors"
+                            title="Complete Order"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Complete
+                          </button>
+                        )}
+                        <Link 
+                          href={`/dashboard/orders/${order.id}`}
+                          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          View
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

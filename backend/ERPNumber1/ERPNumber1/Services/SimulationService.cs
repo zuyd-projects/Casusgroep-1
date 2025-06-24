@@ -26,7 +26,7 @@ namespace ERPNumber1.Services
 
         public int GetRoundDurationSeconds()
         {
-            return _configuration.GetValue<int>("Simulation:RoundDurationSeconds", 30);
+            return _configuration.GetValue<int>("Simulation:RoundDurationSeconds", 20);
         }
 
         public async Task<bool> StartSimulationAsync(int simulationId)
