@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { api } from '@CASUSGROEP1/utils/api';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
+import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
 const legoColors = ["Blauw", "Rood", "Grijs"];
 
@@ -15,6 +16,7 @@ const MotorBlockRequirements = {
 
 export default function SupplierPage() {
   const [orderRounds, setOrderRounds] = useState([]);
+  const [rounds, setRounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -99,19 +101,27 @@ export default function SupplierPage() {
       setLoading(true);
       setError(null);
       
-      // Fetch supplier orders and related order data
-      const [supplierOrders, orders] = await Promise.all([
+      // Fetch supplier orders, related order data, and rounds data
+      const [supplierOrders, orders, apiRounds] = await Promise.all([
         api.get('/api/SupplierOrder'),
-        api.get('/api/Order')
+        api.get('/api/Order'),
+        api.get('/api/Rounds')
       ]);
 
       console.log('📦 Fetched supplier orders:', supplierOrders.length, 'orders');
       console.log('📋 Fetched regular orders:', orders.length, 'orders');
+      console.log('🔄 Fetched rounds:', apiRounds.length, 'rounds');
+
+      // Store rounds data for lookup
+      setRounds(apiRounds);
 
       // Process supplier orders and calculate block requirements
       const processedOrders = supplierOrders.map(supplierOrder => {
         // Find the related order to get motor type
         const relatedOrder = orders.find(order => order.id === supplierOrder.orderId);
+        
+        // Find round data for this order
+        const roundData = apiRounds.find(round => round.id === relatedOrder?.roundId);
         
         let blockRequirements = { Blauw: 0, Rood: 0, Grijs: 0 };
         
@@ -136,7 +146,11 @@ export default function SupplierPage() {
           motorType: relatedOrder?.motorType || "Unknown",
           orderQuantity: relatedOrder?.quantity || 0,
           originalOrder: relatedOrder,
-          supplierOrderId: supplierOrder.id
+          supplierOrderId: supplierOrder.id,
+          originalOrderId: relatedOrder?.id || "Unknown",
+          originalOrderRound: relatedOrder?.roundNumber || "Unknown",
+          roundNumber: roundData?.roundNumber || null,
+          simulationId: roundData?.simulationId || null
         };
       });
 
@@ -190,16 +204,19 @@ export default function SupplierPage() {
       <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-6">
         <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Block Requirements per Motor Type</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Object.entries(MotorBlockRequirements).map(([motorType, requirements]) => (
-            <div key={motorType} className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-4">
-              <h4 className="font-medium text-zinc-900 dark:text-white mb-2">Motor {motorType}</h4>
-              <div className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                <p><span className="text-blue-600 dark:text-blue-400">{requirements.Blauw} Blue</span></p>
-                <p><span className="text-red-600 dark:text-red-400">{requirements.Rood} Red</span></p>
-                <p><span className="text-zinc-600 dark:text-zinc-400">{requirements.Grijs} Gray</span></p>
+          {Object.entries(MotorBlockRequirements).map(([motorType, requirements]) => {
+            const colors = getMotorTypeColors(motorType);
+            return (
+              <div key={motorType} className={`${colors.bg} rounded-lg p-4 border ${colors.border}`}>
+                <h4 className={`font-medium ${colors.text} mb-2`}>Motor {motorType}</h4>
+                <div className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  <p><span className="text-blue-600 dark:text-blue-400">{requirements.Blauw} Blue</span></p>
+                  <p><span className="text-red-600 dark:text-red-400">{requirements.Rood} Red</span></p>
+                  <p><span className="text-zinc-600 dark:text-zinc-400">{requirements.Grijs} Gray</span></p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -214,6 +231,12 @@ export default function SupplierPage() {
                 </th>
                 <th rowSpan={2} className="px-6 py-4 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Timestamp
+                </th>
+                <th rowSpan={2} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Order ID
+                </th>
+                <th rowSpan={2} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Simulation
                 </th>
                 <th rowSpan={2} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Round
@@ -259,7 +282,7 @@ export default function SupplierPage() {
             <tbody className="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
               {orderRounds.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+                  <td colSpan={12} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
                     <div className="flex flex-col items-center justify-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -292,12 +315,30 @@ export default function SupplierPage() {
                       {r.timestamp || "-"}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-zinc-100 dark:bg-zinc-700 font-medium text-sm text-zinc-900 dark:text-white">
-                        {r.round}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                        ORD-{r.originalOrderId}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      {r.simulationId ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Sim {r.simulationId}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">No Simulation</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {r.roundNumber ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                          Round {r.roundNumber}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">No Round</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMotorTypeColors(r.motorType).full}`}>
                         Motor {r.motorType}
                       </span>
                     </td>

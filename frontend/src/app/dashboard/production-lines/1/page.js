@@ -6,11 +6,13 @@ import { CheckCircle, AlertCircle, Play, Clock, Package, Users, Settings } from 
 import { api } from '@CASUSGROEP1/utils/api';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
+import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
 const ProductionLine1Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [rounds, setRounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
@@ -23,7 +25,14 @@ const ProductionLine1Dashboard = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const allOrders = await api.get('/api/Order');
+      // Fetch both orders and rounds data
+      const [allOrders, apiRounds] = await Promise.all([
+        api.get('/api/Order'),
+        api.get('/api/Rounds')
+      ]);
+      
+      // Store rounds data for lookup
+      setRounds(apiRounds);
       
       // Filter orders assigned to Production Line 1 and only show relevant statuses
       const productionLine1Orders = allOrders
@@ -44,17 +53,24 @@ const ProductionLine1Dashboard = () => {
           return isAssignedToLine1 && hasRelevantStatus;
         })
         .sort((a, b) => a.id - b.id) // FIFO ordering by order ID
-        .map(order => ({
-          id: order.id.toString(),
-          productName: `Motor ${order.motorType} - Assembly Unit`,
-          customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
-          quantity: order.quantity,
-          motorType: order.motorType,
-          status: order.productionStatus || order.status || 'In Queue',
-          orderDate: order.roundId || 1,
-          currentStep: 0,
-          originalOrder: order
-        }));
+        .map(order => {
+          // Find the round data for this order
+          const roundData = apiRounds.find(round => round.id === order.roundId);
+          
+          return {
+            id: order.id.toString(),
+            productName: `Motor ${order.motorType} - Assembly Unit`,
+            customer: order.appUserId ? `Customer ${order.appUserId}` : 'Unknown Customer',
+            quantity: order.quantity,
+            motorType: order.motorType,
+            status: order.productionStatus || order.status || 'In Queue',
+            orderDate: order.roundId || 1,
+            roundNumber: roundData?.roundNumber || null,
+            simulationId: roundData?.simulationId || null,
+            currentStep: 0,
+            originalOrder: order
+          };
+        });
         
       setOrders(productionLine1Orders);
       console.log(`🏭 Production Line 1: Loaded ${productionLine1Orders.length} orders`);
@@ -282,15 +298,31 @@ const ProductionLine1Dashboard = () => {
         <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Quantity</label>
         <p className="text-zinc-900 dark:text-white font-medium">{order.quantity}</p>
       </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Motor Type</label>
-        <p className="text-zinc-900 dark:text-white font-medium">{order.motorType}</p>
+      <div className={`p-3 rounded-lg ${getMotorTypeColors(order.motorType).bg}`}>
+        <label className={`text-sm font-medium ${getMotorTypeColors(order.motorType).text}`}>Motor Type</label>
+        <p className={`font-medium ${getMotorTypeColors(order.motorType).text}`}>{order.motorType}</p>
       </div>
       <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Round:</label>
-        <span className="px-2 py-1 text-xs rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-300 font-medium">
-          {order.orderDate}
-        </span>
+        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Simulation</label>
+        {order.simulationId ? (
+          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+            Sim {order.simulationId}
+          </span>
+        ) : (
+          <span className="text-zinc-400">No Simulation</span>
+        )}
+      </div>
+      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg col-span-2">
+        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Round</label>
+        <div className="mt-1">
+          {order.roundNumber ? (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+              Round {order.roundNumber}
+            </span>
+          ) : (
+            <span className="text-zinc-400">No Round</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -364,10 +396,19 @@ const ProductionLine1Dashboard = () => {
                             <h4 className="font-medium text-zinc-900 dark:text-white">Order #{order.id}</h4>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">{order.productName}</p>
                           </div>
-                          <div className="flex space-x-2">
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                              Round: {order.orderDate}
-                            </span>
+                          <div className="flex flex-col space-y-1">
+                            <div className="flex space-x-2">
+                              {order.simulationId && (
+                                <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                  Sim {order.simulationId}
+                                </span>
+                              )}
+                              {order.roundNumber && (
+                                <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                                  Round {order.roundNumber}
+                                </span>
+                              )}
+                            </div>
                             <StatusBadge status={order.status} />
                           </div>
                         </div>
