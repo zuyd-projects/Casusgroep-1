@@ -13,10 +13,11 @@ const navItems = [
   { label: "Voorraad Beheer", href: "/dashboard/voorraadBeheer" },
   {
     label: "Products",
-
+    href: "/dashboard/products",
+  },
   { label: "Plannings", href: "/dashboard/plannings" },
   { label: "Runner", href: "/dashboard/runner" },
-    {
+  {
     label: "Production Lines",
 
     children: [

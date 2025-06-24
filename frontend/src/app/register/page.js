@@ -170,6 +170,14 @@ export default function RegisterPage() {
                   <option value="User">User</option>
                   <option value="Admin">Admin</option>
                   <option value="Manager">Manager</option>
+                  <option value="Customer">Customer</option>
+                  <option value="AccountManager">Account Manager</option>
+                  <option value="Planner">Planner</option>
+                  <option value="SalesManager">Sales Manager</option>
+                  <option value="inventoryManagement">Inventory Mangement</option>
+                  <option value="Production">Production</option>
+                  <option value="Supplier">Supplier</option>
+                  <option value="Runner">Runner</option>
                 </select>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

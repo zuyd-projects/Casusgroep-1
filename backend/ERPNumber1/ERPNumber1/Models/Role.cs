@@ -2,13 +2,19 @@
 {
     public enum Role
     {
-        Customer,
+
+        User,
         Admin,
-        AccountManager ,
+        Manager,
+        Customer,
+        AccountManager,
         Planner,
         SalesManager,
         inventoryManagement,
         Production,
-        User
+        Supplier,
+        Runner,
+    
+    
     }
 }
