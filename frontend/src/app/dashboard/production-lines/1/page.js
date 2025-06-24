@@ -393,7 +393,7 @@ const ProductionLine1Dashboard = () => {
         type="module"
         strategy="afterInteractive"
       />
-      <div className="h-screen bg-zinc-50 dark:bg-zinc-900">
+      <div className="h-screen bg-black">
         <div className="p-6">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
