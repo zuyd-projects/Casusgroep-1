@@ -34,7 +34,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Rounds
         [HttpGet]
-        [LogEvent("Round", "Get All Rounds")]
         public async Task<ActionResult<IEnumerable<Round>>> GetRounds()
         {
             var rounds = await _roundRepo.GetAllAsync();

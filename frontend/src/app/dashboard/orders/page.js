@@ -7,13 +7,15 @@ import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { api } from '@CASUSGROEP1/utils/api';
 import { orderStatuses } from '@CASUSGROEP1/utils/mockData';
-import { Plus, AlertCircle, PlayCircle, Hash, Calendar } from 'lucide-react';
+import { Plus, AlertCircle, PlayCircle, Hash, Calendar, CheckCircle } from 'lucide-react';
+import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
 export default function Orders() {
   const [filteredStatus, setFilteredStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [rounds, setRounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -31,20 +33,35 @@ export default function Orders() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const apiOrders = await api.get('/api/Order');
+      // Fetch both orders and rounds data
+      const [apiOrders, apiRounds] = await Promise.all([
+        api.get('/api/Order'),
+        api.get('/api/Rounds')
+      ]);
+      
+      // Store rounds data for lookup
+      setRounds(apiRounds);
+      
       // Convert API orders to match display format
-      const formattedOrders = apiOrders.map(order => ({
-        id: order.id.toString(),
-        customer: `User ${order.appUserId}`,
-        date: new Date(order.orderDate).toLocaleDateString(),
-        amount: order.quantity * 100, // Calculate price (100 per unit)
-        status: order.status || 'Pending', // Use actual status from backend
-        motorType: order.motorType,
-        quantity: order.quantity,
-        signature: order.signature,
-        roundId: order.roundId,
-        originalOrder: order
-      }));
+      const formattedOrders = apiOrders.map(order => {
+        // Find the round data for this order
+        const roundData = apiRounds.find(round => round.id === order.roundId);
+        
+        return {
+          id: order.id.toString(),
+          customer: `User ${order.appUserId}`,
+          date: new Date(order.orderDate).toLocaleDateString(),
+          amount: order.quantity * 100, // Calculate price (100 per unit)
+          status: order.status || 'Pending', // Use actual status from backend
+          motorType: order.motorType,
+          quantity: order.quantity,
+          signature: order.signature,
+          roundId: order.roundId,
+          roundNumber: roundData?.roundNumber || null,
+          simulationId: roundData?.simulationId || null,
+          originalOrder: order
+        };
+      });
       setOrders(formattedOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -140,6 +157,23 @@ export default function Orders() {
       alert('Failed to create order. Please try again.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  // Handle order completion
+  const handleCompleteOrder = async (orderId) => {
+    try {
+      // Update order status to completed
+      await api.patch(`/api/Order/${orderId}/status`, { status: 'Completed' });
+      
+      // Refresh orders list
+      await fetchOrders();
+      
+      console.log('✅ Order completed successfully!');
+      
+    } catch (error) {
+      console.error('❌ Failed to complete order:', error);
+      alert('Failed to complete order. Please try again.');
     }
   };
 
@@ -340,6 +374,7 @@ export default function Orders() {
                   <th scope="col" className="px-6 py-3 text-left">Customer</th>
                   <th scope="col" className="px-6 py-3 text-left">Motor Type</th>
                   <th scope="col" className="px-6 py-3 text-left">Quantity</th>
+                  <th scope="col" className="px-6 py-3 text-left">Simulation</th>
                   <th scope="col" className="px-6 py-3 text-left">Round</th>
                   <th scope="col" className="px-6 py-3 text-left">Date</th>
                   <th scope="col" className="px-6 py-3 text-left">Amount</th>
@@ -354,7 +389,7 @@ export default function Orders() {
                     <td className="px-6 py-4 whitespace-nowrap">{order.customer}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {order.motorType ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-md">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motorType).full} rounded-md`}>
                           Motor {order.motorType}
                         </span>
                       ) : (
@@ -365,9 +400,18 @@ export default function Orders() {
                       {order.quantity || <span className="text-zinc-400">-</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.roundId ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-md">
-                          Round {order.roundId}
+                      {order.simulationId ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                          Sim {order.simulationId}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">No Simulation</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.roundNumber ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                          Round {order.roundNumber}
                         </span>
                       ) : (
                         <span className="text-zinc-400">No Round</span>
@@ -379,12 +423,24 @@ export default function Orders() {
                       <StatusBadge status={order.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Link 
-                        href={`/dashboard/orders/${order.id}`}
-                        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        View
-                      </Link>
+                      <div className="flex items-center justify-end space-x-2">
+                        {order.status === 'Delivered' && (
+                          <button
+                            onClick={() => handleCompleteOrder(order.id)}
+                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 rounded-md transition-colors"
+                            title="Complete Order"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Complete
+                          </button>
+                        )}
+                        <Link 
+                          href={`/dashboard/orders/${order.id}`}
+                          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          View
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

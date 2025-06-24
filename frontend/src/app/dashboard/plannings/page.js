@@ -7,9 +7,11 @@ import Card from "@CASUSGROEP1/components/Card";
 import StatusBadge from "@CASUSGROEP1/components/StatusBadge";
 import { PlayCircle, AlertCircle, Settings } from "lucide-react";
 import PlannerWarnings from "@CASUSGROEP1/components/PlannerWarnings";
+import { getMotorTypeColors } from "@CASUSGROEP1/utils/motorColors";
 
 export default function PlanningPage() {
   const [orders, setOrders] = useState([]);
+  const [rounds, setRounds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showCurrentRoundOnly, setShowCurrentRoundOnly] = useState(false);
@@ -30,7 +32,14 @@ export default function PlanningPage() {
     setMessage("");
 
     try {
-      const apiOrders = await api.get("/api/Order");
+      // Fetch both orders and rounds data
+      const [apiOrders, apiRounds] = await Promise.all([
+        api.get("/api/Order"),
+        api.get("/api/Rounds")
+      ]);
+
+      // Store rounds data for lookup
+      setRounds(apiRounds);
 
       // Transform API orders to match the planning table format
       const fetchedOrders = apiOrders.map((order) => {
@@ -40,6 +49,9 @@ export default function PlanningPage() {
           rood: (blockRequirements.Rood || 0) * order.quantity,
           grijs: (blockRequirements.Grijs || 0) * order.quantity,
         };
+
+        // Find the round data for this order
+        const roundData = apiRounds.find(round => round.id === order.roundId);
 
         return {
           id: order.id,
@@ -54,6 +66,8 @@ export default function PlanningPage() {
             : null,
           status: order.status || "Pending",
           roundId: order.roundId,
+          roundNumber: roundData?.roundNumber || null,
+          simulationId: roundData?.simulationId || null,
           customer: order.appUserId ? `Customer ${order.appUserId}` : "Unknown",
           originalOrder: order,
         };
@@ -343,6 +357,9 @@ export default function PlanningPage() {
                     Quantity
                   </th>
                   <th scope="col" className="px-6 py-3 text-left">
+                    Simulation
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
                     Round
                   </th>
                   <th scope="col" className="px-6 py-3 text-left">
@@ -373,7 +390,7 @@ export default function PlanningPage() {
                       {order.customer}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">
+                      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md`}>
                         Motor {order.motortype}
                       </span>
                     </td>
@@ -381,9 +398,18 @@ export default function PlanningPage() {
                       {order.aantal}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.roundId ? (
+                      {order.simulationId ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                          Sim {order.simulationId}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">No Simulation</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.roundNumber ? (
                         <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
-                          Round {order.roundId}
+                          Round {order.roundNumber}
                         </span>
                       ) : (
                         <span className="text-zinc-400">No Round</span>
@@ -399,18 +425,40 @@ export default function PlanningPage() {
                       {order.grijs}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={order.productielijn || ""}
-                        onChange={(e) =>
-                          updateProductionLine(order.id, e.target.value || null)
-                        }
-                        disabled={updating === order.id}
-                        className="text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                      >
-                        <option value="">Unassigned</option>
-                        <option value="1">Production Line 1</option>
-                        <option value="2">Production Line 2</option>
-                      </select>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updateProductionLine(order.id, "1")}
+                          disabled={updating === order.id}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50 ${
+                            order.productielijn === "1"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700"
+                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          Line 1
+                        </button>
+                        <button
+                          onClick={() => updateProductionLine(order.id, "2")}
+                          disabled={updating === order.id}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50 ${
+                            order.productielijn === "2"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-300 dark:border-purple-700"
+                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          Line 2
+                        </button>
+                        {order.productielijn && (
+                          <button
+                            onClick={() => updateProductionLine(order.id, null)}
+                            disabled={updating === order.id}
+                            className="px-2 py-1 text-xs font-medium rounded-md bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+                            title="Unassign from production line"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select

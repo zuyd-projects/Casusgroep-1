@@ -5,10 +5,12 @@ import { api } from '@CASUSGROEP1/utils/api';
 import OrderStatusManager from '@CASUSGROEP1/components/OrderStatusManager';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { Clock, AlertCircle, CheckCircle, Calendar, Package, User } from 'lucide-react';
+import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
 export default function AccountManagerDashboard() {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
+  const [rounds, setRounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
@@ -22,8 +24,15 @@ export default function AccountManagerDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch all orders first
-      const allOrdersResponse = await api.get('/api/Order');
+      // Fetch all orders and rounds data
+      const [allOrdersResponse, apiRounds] = await Promise.all([
+        api.get('/api/Order'),
+        api.get('/api/Rounds')
+      ]);
+      
+      // Store rounds data for lookup
+      setRounds(apiRounds);
+      
       setAllOrders(allOrdersResponse);
 
       // Try to fetch orders pending approval, but fall back to filtering if unauthorized
@@ -80,6 +89,15 @@ export default function AccountManagerDashboard() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getRoundInfo = (roundId) => {
+    if (!roundId || !rounds.length) return { roundNumber: null, simulationId: null };
+    const roundData = rounds.find(round => round.id === roundId);
+    return {
+      roundNumber: roundData?.roundNumber || null,
+      simulationId: roundData?.simulationId || null
+    };
   };
 
   if (loading) {
@@ -213,44 +231,55 @@ export default function AccountManagerDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4">
-                          <div>
-                            <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                              Order #{order.id}
-                            </h3>
-                            <div className="flex items-center space-x-4 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                              <span className="flex items-center">
-                                <Package className="h-4 w-4 mr-1" />
-                                Motor Type {order.motorType}
+                {pendingOrders.map((order) => {
+                  const { roundNumber, simulationId } = getRoundInfo(order.roundId);
+                  return (
+                    <div
+                      key={order.id}
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+                            Order #{order.id}
+                          </h3>
+                          <div className="flex items-center flex-wrap gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+                            <span className="flex items-center">
+                              <Package className="h-4 w-4 mr-1" />
+                              <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${getMotorTypeColors(order.motorType).full} rounded-md ml-1`}>
+                                Motor {order.motorType}
                               </span>
-                              <span className="flex items-center">
-                                <User className="h-4 w-4 mr-1" />
-                                Qty: {order.quantity}
+                            </span>
+                            <span className="flex items-center">
+                              <User className="h-4 w-4 mr-1" />
+                              Qty: {order.quantity}
+                            </span>
+                            <span className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              {formatDate(order.orderDate)}
+                            </span>
+                            {simulationId && (
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                                Sim {simulationId}
                               </span>
-                              <span className="flex items-center">
-                                <Calendar className="h-4 w-4 mr-1" />
-                                {formatDate(order.orderDate)}
+                            )}
+                            {roundNumber && (
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                                Round {roundNumber}
                               </span>
-                            </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <OrderStatusManager 
-                          order={order} 
-                          onStatusUpdate={handleStatusUpdate}
-                        />
+                        <div className="flex items-start ml-4">
+                          <OrderStatusManager 
+                            order={order} 
+                            onStatusUpdate={handleStatusUpdate}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -258,49 +287,55 @@ export default function AccountManagerDashboard() {
 
         {activeTab === 'all' && (
           <div className="space-y-3">
-            {allOrders.map((order) => (
-              <div
-                key={order.id}
-                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <div>
-                        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                          Order #{order.id}
-                        </h3>
-                        <div className="flex items-center space-x-4 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                          <span className="flex items-center">
-                            <Package className="h-4 w-4 mr-1" />
-                            Motor Type {order.motorType}
+            {allOrders.map((order) => {
+              const { roundNumber, simulationId } = getRoundInfo(order.roundId);
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+                        Order #{order.id}
+                      </h3>
+                      <div className="flex items-center flex-wrap gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+                        <span className="flex items-center">
+                          <Package className="h-4 w-4 mr-1" />
+                          <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${getMotorTypeColors(order.motorType).full} rounded-md ml-1`}>
+                            Motor {order.motorType}
                           </span>
-                          <span className="flex items-center">
-                            <User className="h-4 w-4 mr-1" />
-                            Qty: {order.quantity}
+                        </span>
+                        <span className="flex items-center">
+                          <User className="h-4 w-4 mr-1" />
+                          Qty: {order.quantity}
+                        </span>
+                        <span className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {formatDate(order.orderDate)}
+                        </span>
+                        {simulationId && (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                            Sim {simulationId}
                           </span>
-                          <span className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            {formatDate(order.orderDate)}
+                        )}
+                        {roundNumber && (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                            Round {roundNumber}
                           </span>
-                          {order.roundId && (
-                            <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
-                              Round {order.roundId}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <OrderStatusManager 
-                      order={order} 
-                      onStatusUpdate={handleStatusUpdate}
-                    />
+                    <div className="flex items-start ml-4">
+                      <OrderStatusManager 
+                        order={order} 
+                        onStatusUpdate={handleStatusUpdate}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
