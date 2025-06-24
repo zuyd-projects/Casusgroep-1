@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }) {
           <Sidebar />
 
           {/* Main content area */}
-          <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex flex-col flex-1 overflow-hidden lg:ml-0">
             {/* Header spans full width */}
             <Header />
 

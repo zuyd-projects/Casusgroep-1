@@ -1,5 +1,5 @@
 resource "azurerm_network_security_group" "backend" {
-  name                = "prod-backend-nsg"
+  name                = "${local.name_prefix}backend-nsg"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -13,12 +13,12 @@ resource "azurerm_network_security_group" "backend" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3306"
-    source_address_prefix      = "10.0.2.0/24" # Assuming the backend subnet is
-    destination_address_prefix = "10.0.3.0/24" # Assuming the database subnet is
+    source_address_prefix      = "${local.network_prefix}.2.0/24" # Assuming the backend subnet is
+    destination_address_prefix = "${local.network_prefix}.3.0/24" # Assuming the database subnet is
 
   }
 
   tags = {
-    environment = "production"
+    environment = var.environment
   }
 }

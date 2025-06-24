@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - '8080:8080'
-      - '8081:8081'
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       DB_CONNECTION_STRING: 'Server=sqlserver;Database=SimulationDb;User Id=sa;Password=New_password123!;TrustServerCertificate=True;'
@@ -27,7 +26,7 @@ services:
     ports:
       - '1433:1433'
     volumes:
-      - sqlserver_data:/var/opt/mssql
+      - sqlserver_data_backend:/var/opt/mssql
     healthcheck:
       test:
         [
@@ -41,7 +40,7 @@ services:
       - app-network
 
 volumes:
-  sqlserver_data:
+  sqlserver_data_backend:
 
 networks:
   app-network:

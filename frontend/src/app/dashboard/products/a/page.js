@@ -12,6 +12,12 @@ const ProductionLineDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
+  const [showMissingBlocksModal, setShowMissingBlocksModal] = useState(false);
+  const [missingBlocks, setMissingBlocks] = useState({
+    blue: 0,
+    red: 0,
+    gray: 0
+  });
   const modelViewerRef = useRef(null);
 
   // Fetch orders from API when component mounts
@@ -96,6 +102,9 @@ const ProductionLineDashboard = () => {
         console.warn('API status update not supported, updating locally:', err.message);
       });
       
+      // Log the order status before removing
+      console.log("Order completed:", selectedOrder.id, "Status:", 'Completed');
+
       // Update local state
       setOrders((prevOrders) =>
         prevOrders.filter((order) => order.id !== selectedOrder.id)
@@ -148,6 +157,65 @@ const ProductionLineDashboard = () => {
       setLastRemovedOrder(null);
     } catch (error) {
       console.error('Error restoring order:', error);
+    }
+  };
+
+  const handleReportMissingBlocks = async () => {
+    if (!selectedOrder) return;
+    
+    // Reset missing blocks state and show modal
+    setMissingBlocks({ blue: 0, red: 0, gray: 0 });
+    setShowMissingBlocksModal(true);
+  };
+
+  const handleSubmitMissingBlocks = async () => {
+    if (!selectedOrder) return;
+    
+    // Check if at least one block is missing
+    const totalMissing = missingBlocks.blue + missingBlocks.red + missingBlocks.gray;
+    if (totalMissing === 0) {
+      alert('Please specify at least one missing block.');
+      return;
+    }
+    
+    try {
+      // Create missing blocks request via API
+      const missingBlocksData = {
+        orderId: selectedOrder.id,
+        productionLine: 'A',
+        motorType: selectedOrder.unit,
+        quantity: selectedOrder.quantity,
+        blueBlocks: missingBlocks.blue,
+        redBlocks: missingBlocks.red,
+        grayBlocks: missingBlocks.gray
+      };
+
+      // Send to API (this will also update the order status to ProductionError automatically)
+      await api.post('/api/MissingBlocks', missingBlocksData);
+      
+      // Log the production error
+      console.log("Production Error reported for order:", selectedOrder.id, "Missing blocks reported");
+
+      // Update local state
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === selectedOrder.id
+            ? { ...order, status: 'ProductionError' }
+            : order
+        )
+      );
+      
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, status: 'ProductionError' } : prev
+      );
+      
+      // Close modal and show success message
+      setShowMissingBlocksModal(false);
+      alert(`Missing blocks reported for Order ${selectedOrder.id}. Sent to supplier for delivery.`);
+      
+    } catch (error) {
+      console.error('Error reporting missing blocks:', error);
+      alert('Failed to report missing blocks. Please try again.');
     }
   };
 
@@ -305,6 +373,15 @@ const ProductionLineDashboard = () => {
                         Deny Assembly
                       </button>
                     </div>
+                    <div className="mt-3">
+                      <button
+                        className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                        onClick={handleReportMissingBlocks}
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Report Missing Building Blocks
+                      </button>
+                    </div>
                   </>
                 )}
                 {selectedOrder.status === 'In Progress' && (
@@ -323,6 +400,15 @@ const ProductionLineDashboard = () => {
                         onClick={handleDenyAssembly}
                       >
                         Deny Assembly
+                      </button>
+                    </div>
+                    <div className="mt-3">
+                      <button
+                        className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                        onClick={handleReportMissingBlocks}
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Report Missing Building Blocks
                       </button>
                     </div>
                   </>
@@ -356,6 +442,82 @@ const ProductionLineDashboard = () => {
           >
             Restore Last Removed Order
           </button>
+        </div>
+      )}
+
+      {/* Missing Blocks Modal */}
+      {showMissingBlocksModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              Report Missing Building Blocks
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Order #{selectedOrder?.id} - Specify how many blocks are missing:
+            </p>
+            
+            <div className="space-y-4">
+              {/* Blue Blocks */}
+              <div>
+                <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                  Blue Blocks Missing
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={missingBlocks.blue}
+                  onChange={(e) => setMissingBlocks(prev => ({ ...prev, blue: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="0"
+                />
+              </div>
+              
+              {/* Red Blocks */}
+              <div>
+                <label className="block text-sm font-medium text-red-700 dark:text-red-300 mb-2">
+                  Red Blocks Missing
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={missingBlocks.red}
+                  onChange={(e) => setMissingBlocks(prev => ({ ...prev, red: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="0"
+                />
+              </div>
+              
+              {/* Gray Blocks */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Gray Blocks Missing
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={missingBlocks.gray}
+                  onChange={(e) => setMissingBlocks(prev => ({ ...prev, gray: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowMissingBlocksModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitMissingBlocks}
+                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+              >
+                Report Missing Blocks
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

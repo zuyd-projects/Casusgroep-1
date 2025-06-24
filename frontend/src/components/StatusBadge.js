@@ -22,6 +22,8 @@ export default function StatusBadge({ status }) {
         return "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400";
       case "cancelled":
         return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+      case "productionerror":
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
       // Legacy status support
       case "processing":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";

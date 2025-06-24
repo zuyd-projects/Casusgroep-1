@@ -368,6 +368,7 @@ export default function OrderDetail({ params }) {
                   Rejected by Account Manager
                 </option>
                 <option value="Delivered">Delivered</option>
+                <option value="ProductionError">Production Error</option> 
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
               </select>

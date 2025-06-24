@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@CASUSGROEP1/utils/api';
-import { AlertTriangle, Clock, TrendingDown, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingDown, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 
 export default function PlannerWarnings({ compact = false }) {
   const [predictions, setPredictions] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showWarnings, setShowWarnings] = useState(false); // Default to hidden
   const { currentRound, isRunning } = useSimulation();
 
   const fetchPredictions = async () => {
@@ -23,10 +24,6 @@ export default function PlannerWarnings({ compact = false }) {
 
   useEffect(() => {
     fetchPredictions();
-    
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchPredictions, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, []);
 
   // Refetch when round changes
@@ -154,43 +151,63 @@ export default function PlannerWarnings({ compact = false }) {
       </div>
 
       <div className="space-y-3">
-        <h4 className="font-semibold text-lg">Active Delivery Warnings</h4>
-        {predictions.warnings.map((warning, index) => (
-          <div key={index} className={`p-4 rounded-lg border ${getSeverityColor(warning.severity)}`}>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
-                {getSeverityIcon(warning.severity)}
-                <div>
-                  <div className="font-semibold">{warning.type}</div>
-                  <div className="text-sm opacity-75 mb-2">{warning.message}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                    <div>Last Activity: {warning.lastActivity}</div>
-                    <div>Order Age: {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} days`} | Expected: {warning.expectedDelivery.toFixed(1)} {warning.orderRoundAge > 0 ? 'rounds' : 'days'}</div>
-                    {warning.roundsDelay !== undefined && (
-                      <div className="text-red-600 font-medium">
-                        {warning.roundsDelay > 0 ? (
-                          <span>Rounds Overdue: {warning.roundsDelay} rounds past deadline (Expected by Round {warning.expectedDeliveryRound})</span>
-                        ) : (
-                          <span>Due Next Round: Must deliver by Round {warning.expectedDeliveryRound}</span>
+        <div 
+          className="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+          onClick={() => setShowWarnings(!showWarnings)}
+        >
+          <h4 className="font-semibold text-lg flex items-center space-x-2">
+            {showWarnings ? (
+              <ChevronDown className="h-5 w-5" />
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+            <span>Active Delivery Warnings</span>
+          </h4>
+          <span className="text-xl font-bold text-red-600 dark:text-red-200 animate-pulse">
+            {predictions.warnings.length} warning{predictions.warnings.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        
+        {showWarnings && (
+          <div className="space-y-3">
+            {predictions.warnings.map((warning, index) => (
+              <div key={index} className={`p-4 rounded-lg border ${getSeverityColor(warning.severity)}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    {getSeverityIcon(warning.severity)}
+                    <div>
+                      <div className="font-semibold">{warning.type}</div>
+                      <div className="text-sm opacity-75 mb-2">{warning.message}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <div>Last Activity: {warning.lastActivity}</div>
+                        <div>Order Age: {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} days`} | Expected: {warning.expectedDelivery.toFixed(1)} {warning.orderRoundAge > 0 ? 'rounds' : 'days'}</div>
+                        {warning.roundsDelay !== undefined && (
+                          <div className="text-red-600 font-medium">
+                            {warning.roundsDelay > 0 ? (
+                              <span>Rounds Overdue: {warning.roundsDelay} rounds past deadline (Expected by Round {warning.expectedDeliveryRound})</span>
+                            ) : (
+                              <span>Due Next Round: Must deliver by Round {warning.expectedDeliveryRound}</span>
+                            )}
+                          </div>
                         )}
+                        <div className="font-medium text-blue-600">Action: {warning.recommendedAction}</div>
                       </div>
-                    )}
-                    <div className="font-medium text-blue-600">Action: {warning.recommendedAction}</div>
+                    </div>
                   </div>
+                  <span className={`px-3 py-1 rounded text-sm font-medium ${
+                    warning.severity === 'High' 
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      : warning.severity === 'Medium'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                  }`}>
+                    {warning.severity}
+                  </span>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded text-sm font-medium ${
-                warning.severity === 'High' 
-                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                  : warning.severity === 'Medium'
-                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-              }`}>
-                {warning.severity}
-              </span>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

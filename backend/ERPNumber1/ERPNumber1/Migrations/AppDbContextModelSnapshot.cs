@@ -244,6 +244,63 @@ namespace ERPNumber1.Migrations
                     b.ToTable("Materials");
                 });
 
+            modelBuilder.Entity("ERPNumber1.Models.MissingBlocks", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlueBlocks")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GrayBlocks")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MotorType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductionLine")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RedBlocks")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("RunnerAttempted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RunnerAttemptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("MissingBlocks");
+                });
+
             modelBuilder.Entity("ERPNumber1.Models.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -279,6 +336,9 @@ namespace ERPNumber1.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<bool>("WasReturnedFromMissingBlocks")
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -618,6 +678,17 @@ namespace ERPNumber1.Migrations
                         .IsRequired();
 
                     b.Navigation("product");
+                });
+
+            modelBuilder.Entity("ERPNumber1.Models.MissingBlocks", b =>
+                {
+                    b.HasOne("ERPNumber1.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("ERPNumber1.Models.Order", b =>

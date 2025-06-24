@@ -274,7 +274,7 @@ This documentation should help developers understand and use the API effectively
 The ERP system includes a **real-time simulation system** using SignalR WebSockets for live updates during simulation runs.
 
 ### Key Features
-- **Live Round Updates**: New rounds created every 30 seconds (configurable)  
+- **Live Round Updates**: New rounds created every 20 seconds (configurable)  
 - **WebSocket Communication**: Real-time events via SignalR
 - **Multi-User Support**: All users see synchronized simulation state
 - **Header Status Display**: Current simulation and round info always visible
@@ -351,7 +351,7 @@ The orders interface now shows:
 ### API Workflow with Simulations
 
 ```bash
-# 1. Start a simulation (creates rounds every 30 seconds)
+# 1. Start a simulation (creates rounds every 20 seconds)
 POST /api/Simulations/1/run
 
 # 2. Create orders linked to current round

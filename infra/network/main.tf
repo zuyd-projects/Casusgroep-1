@@ -1,19 +1,23 @@
 resource "azurerm_virtual_network" "vnet" {
-  name                = "prod-simulatienetwerk"
+  name                = "${local.name_prefix}simulatienetwerk"
   location            = var.location
   resource_group_name = var.resource_group_name
-  address_space       = ["10.0.0.0/16"]
+  address_space       = local.address_space
 
   tags = {
-    environment = "production"
+    environment = var.environment
   }
 }
 
 resource "azurerm_public_ip" "public_ip" {
-  name                = "prod-public-ip"
+  name                = "${local.name_prefix}public-ip"
   location            = var.location
   resource_group_name = var.resource_group_name
   allocation_method   = "Static"
+
+  tags = {
+    environment = var.environment
+  }
 }
 
 output "vnet_name" {
