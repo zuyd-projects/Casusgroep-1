@@ -174,7 +174,7 @@ export default function RegisterPage() {
                   <option value="AccountManager">Account Manager</option>
                   <option value="Planner">Planner</option>
                   <option value="SalesManager">Sales Manager</option>
-                  <option value="inventoryManagement">Inventory Mangement</option>
+                  <option value="inventoryManagement">Inventory Management</option>
                   <option value="Production">Production</option>
                   <option value="Supplier">Supplier</option>
                   <option value="Runner">Runner</option>
