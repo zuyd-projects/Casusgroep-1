@@ -10,10 +10,15 @@ const navItems = [
   { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Orders", href: "/dashboard/orders" },
   { label: "Supplier", href: "/dashboard/supplier" },
+  { label: "Voorraad Beheer", href: "/dashboard/voorraadBeheer" },
+  {
+    label: "Products",
+
   { label: "Plannings", href: "/dashboard/plannings" },
   { label: "Runner", href: "/dashboard/runner" },
     {
     label: "Production Lines",
+
     children: [
       { label: "Production Line 1", href: "/dashboard/production-lines/1" },
       { label: "Production Line 2", href: "/dashboard/production-lines/2" },
