@@ -123,24 +123,24 @@ export default function DeliveryDashboard() {
 
     return (
       <div className="flex flex-col gap-2">
-        {canMarkDelivered && (
-          <button
-            onClick={() => handleDeliveryStatusUpdate(order.id, 'Delivered')}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-md transition-colors"
-          >
-            <Truck className="h-3 w-3 mr-1" />
-            Mark as Delivered
-          </button>
-        )}
-        {canMarkCompleted && (
-          <button
-            onClick={() => handleDeliveryStatusUpdate(order.id, 'Completed')}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 rounded-md transition-colors"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Mark as Completed
-          </button>
-        )}
+      {canMarkDelivered && (
+        <button
+        onClick={() => handleDeliveryStatusUpdate(order.id, 'Delivered')}
+        className="inline-flex items-center justify-center w-40 h-20 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-400 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-md transition-colors"
+        >
+        <Truck className="h-3 w-3 mr-1" />
+        Mark as Delivered
+        </button>
+      )}
+      {canMarkCompleted && (
+        <button
+        onClick={() => handleDeliveryStatusUpdate(order.id, 'Completed')}
+        className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 rounded-md transition-colors"
+        >
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Mark as Completed
+        </button>
+      )}
       </div>
     );
   };

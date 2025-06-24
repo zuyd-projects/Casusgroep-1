@@ -496,17 +496,11 @@ const ProductionLine2Dashboard = () => {
                       
                       <div className="flex space-x-3">
                         <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-800 transition-colors"
+                          className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
                           onClick={handleStartAssembly}
                         >
                           <Play className="w-4 h-4 mr-2" />
                           Start Assembly
-                        </button>
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                          onClick={handleDenyAssembly}
-                        >
-                          Remove from Line
                         </button>
                       </div>
                       <div className="mt-3">
@@ -532,12 +526,6 @@ const ProductionLine2Dashboard = () => {
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Send for Review
-                        </button>
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                          onClick={handleDenyAssembly}
-                        >
-                          Remove from Line
                         </button>
                       </div>
                       <div className="mt-3">
