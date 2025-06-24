@@ -19,7 +19,7 @@ const navItems = [
   { label: "Runner", href: "/dashboard/runner" },
   {
     label: "Production Lines",
-
+    href: "/dashboard/production-lines",
     children: [
       { label: "Production Line 1", href: "/dashboard/production-lines/1" },
       { label: "Production Line 2", href: "/dashboard/production-lines/2" },
