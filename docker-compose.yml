@@ -17,6 +17,9 @@ services:
       - app-network
     depends_on:
       - frontend
+    # Windows Docker compatibility
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   frontend:
     container_name: frontend_app

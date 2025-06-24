@@ -26,13 +26,24 @@ class SimulationService {
         return false;
       }
 
+      // Enhanced configuration for Windows Docker compatibility
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl('/simulationHub', {
           accessTokenFactory: () => token,
           skipNegotiation: false, // Allow negotiation to find best transport
-          transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling
+          transport: signalR.HttpTransportType.WebSockets | 
+                    signalR.HttpTransportType.ServerSentEvents | 
+                    signalR.HttpTransportType.LongPolling,
+          // Windows Docker compatibility headers
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          // Timeout configurations for Windows Docker
+          timeout: 60000, // 60 seconds
+          withCredentials: true
         })
-        .withAutomaticReconnect([0, 2000, 10000, 30000]) // More aggressive reconnection
+        .withAutomaticReconnect([0, 1000, 2000, 5000, 10000, 30000]) // More aggressive reconnection for Windows
         .configureLogging(signalR.LogLevel.Warning) // Reduced logging - only warnings and errors
         .build();
 
