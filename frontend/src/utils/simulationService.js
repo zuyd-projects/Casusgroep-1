@@ -31,20 +31,26 @@ class SimulationService {
         .withUrl('/simulationHub', {
           accessTokenFactory: () => token,
           skipNegotiation: false, // Allow negotiation to find best transport
-          transport: signalR.HttpTransportType.WebSockets | 
-                    signalR.HttpTransportType.ServerSentEvents | 
-                    signalR.HttpTransportType.LongPolling,
+          // Windows fix: Try transports in order, starting with more reliable ones for Windows
+          transport: signalR.HttpTransportType.ServerSentEvents | 
+                    signalR.HttpTransportType.LongPolling |
+                    signalR.HttpTransportType.WebSockets,
           // Windows Docker compatibility headers
           headers: {
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            'Connection': 'Upgrade',
+            'Upgrade': 'websocket'
           },
           // Timeout configurations for Windows Docker
-          timeout: 60000, // 60 seconds
-          withCredentials: true
+          timeout: 100000, // 100 seconds - increased for Windows
+          withCredentials: true,
+          // Additional Windows compatibility options
+          logMessageContent: true,
+          logger: signalR.LogLevel.Information
         })
         .withAutomaticReconnect([0, 1000, 2000, 5000, 10000, 30000]) // More aggressive reconnection for Windows
-        .configureLogging(signalR.LogLevel.Warning) // Reduced logging - only warnings and errors
+        .configureLogging(signalR.LogLevel.Information) // Increase logging to debug Windows issues
         .build();
 
       // Set up event handlers
@@ -87,14 +93,31 @@ class SimulationService {
 
       this.connection.onclose((error) => {
         if (error) {
-          console.warn('📡 Disconnected:', error.message);
+          console.error('📡 SignalR connection closed with error:', error);
+          console.error('Error details:', {
+            message: error.message,
+            transport: this.connection?.transport?.name,
+            connectionId: this.connection?.connectionId,
+            state: this.connection?.state
+          });
+        } else {
+          console.log('📡 SignalR connection closed normally');
         }
         this.listeners.onConnectionStateChanged.forEach(callback => 
           callback({ state: 'disconnected', error: error?.message }));
       });
 
+      // Add connection start with detailed error handling
+      console.log('🔄 Starting SignalR connection...');
       await this.connection.start();
-      console.log('📡 Connected via', this.connection.transport);
+      
+      console.log('✅ SignalR connected successfully!');
+      console.log('Connection details:', {
+        transport: this.connection.transport?.name || 'unknown',
+        connectionId: this.connection.connectionId || 'no-id',
+        state: this.connection.state,
+        baseUrl: this.connection.baseUrl
+      });
       
       this.listeners.onConnectionStateChanged.forEach(callback => 
         callback({ state: 'connected', reconnected: false }));
