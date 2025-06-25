@@ -82,6 +82,7 @@ export default function OrderStatusManager({ order, onStatusUpdate }) {
           className="text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         >
           <option value="Pending">Pending</option>
+          <option value="ToProduction">To Production</option>
           <option value="InProduction">In Production</option>
           <option value="AwaitingAccountManagerApproval">Awaiting Approval</option>
           <option value="ApprovedByAccountManager">Approved</option>

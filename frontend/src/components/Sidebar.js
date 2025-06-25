@@ -12,7 +12,6 @@ const navItems = [
   { label: "Voorraad Beheer", href: "/dashboard/voorraadBeheer" },
   { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Plannings", href: "/dashboard/plannings" },
-  { label: "Runner", href: "/dashboard/runner" },
   {
     label: "Production Lines",
     href: "/dashboard/production-lines",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@CASUSGROEP1/utils/api';
-import { AlertTriangle, Clock, TrendingDown, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingDown, CheckCircle, ChevronDown, ChevronRight, XCircle } from 'lucide-react';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 
 export default function PlannerWarnings({ compact = false }) {
@@ -66,7 +66,12 @@ export default function PlannerWarnings({ compact = false }) {
     );
   }
 
-  const getSeverityIcon = (severity) => {
+  const getSeverityIcon = (severity, warningType) => {
+    // Special icon for rejected orders
+    if (warningType === 'Rejected Order') {
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    }
+    
     switch (severity) {
       case 'High': return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'Medium': return <Clock className="h-4 w-4 text-yellow-500" />;
@@ -90,14 +95,14 @@ export default function PlannerWarnings({ compact = false }) {
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Delivery Warnings</span>
           <span className="text-xs text-gray-500">
-            {predictions.delayedOrders} delayed, {predictions.atRiskOrders} at risk
+            {predictions.delayedOrders} delayed, {predictions.atRiskOrders} at risk, {predictions.rejectedOrders || 0} rejected
           </span>
         </div>
         
         {highPriorityWarnings.slice(0, 3).map((warning, index) => (
           <div key={index} className={`p-2 rounded border ${getSeverityColor(warning.severity)}`}>
             <div className="flex items-center space-x-2">
-              {getSeverityIcon(warning.severity)}
+              {getSeverityIcon(warning.severity, warning.type)}
               <div className="text-xs">
                 <div className="font-medium">Order {warning.caseId}</div>
                 <div className="text-gray-600 dark:text-gray-400">
@@ -125,7 +130,7 @@ export default function PlannerWarnings({ compact = false }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <div className="text-2xl font-bold text-blue-600">{predictions.totalOngoingOrders}</div>
           <div className="text-sm text-blue-500">Ongoing Orders</div>
@@ -137,6 +142,10 @@ export default function PlannerWarnings({ compact = false }) {
         <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
           <div className="text-2xl font-bold text-yellow-600">{predictions.atRiskOrders}</div>
           <div className="text-sm text-yellow-500">At Risk Orders</div>
+        </div>
+        <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+          <div className="text-2xl font-bold text-orange-600">{predictions.rejectedOrders || 0}</div>
+          <div className="text-sm text-orange-500">Rejected Orders</div>
         </div>
         <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
           <div className="text-2xl font-bold text-purple-600">{predictions.roundBasedDelays || 0}</div>
@@ -174,7 +183,7 @@ export default function PlannerWarnings({ compact = false }) {
               <div key={index} className={`p-4 rounded-lg border ${getSeverityColor(warning.severity)}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    {getSeverityIcon(warning.severity)}
+                    {getSeverityIcon(warning.severity, warning.type)}
                     <div>
                       <div className="font-semibold">{warning.type}</div>
                       <div className="text-sm opacity-75 mb-2">{warning.message}</div>
