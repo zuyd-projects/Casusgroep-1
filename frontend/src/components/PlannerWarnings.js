@@ -14,6 +14,10 @@ export default function PlannerWarnings({ compact = false }) {
   const fetchPredictions = async () => {
     try {
       const response = await api.get('/api/ProcessMining/delivery-predictions');
+      console.log('🔍 Delivery predictions response:', response);
+      if (response.warnings && response.warnings.length > 0) {
+        console.log('🔍 First warning object:', response.warnings[0]);
+      }
       setPredictions(response);
     } catch (error) {
       console.error('Error fetching delivery predictions:', error);
@@ -106,12 +110,9 @@ export default function PlannerWarnings({ compact = false }) {
               <div className="text-xs">
                 <div className="font-medium">Order {warning.caseId}</div>
                 <div className="text-gray-600 dark:text-gray-400">
-                  {warning.roundsDelay !== undefined ? 
-                    (warning.roundsDelay > 0 ? 
-                      `${warning.roundsDelay} rounds overdue - Levertijd wordt later` :
-                      `Due by Round ${warning.expectedDeliveryRound} - Levertijd wordt later`
-                    ) :
-                    `Levertijd wordt later - ${warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} dagen`}`
+                  {warning.roundsDelay !== undefined && warning.roundsDelay > 0 ? 
+                    `${warning.roundsDelay} rounds overdue - Expected completion within 3 rounds` :
+                    `${warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds have passed` : `${warning.orderAge.toFixed(1)} days old`} - Expected completion within 3 rounds`
                   }
                 </div>
               </div>
@@ -130,14 +131,14 @@ export default function PlannerWarnings({ compact = false }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <div className="text-2xl font-bold text-blue-600">{predictions.totalOngoingOrders}</div>
           <div className="text-sm text-blue-500">Ongoing Orders</div>
         </div>
         <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
           <div className="text-2xl font-bold text-red-600">{predictions.delayedOrders}</div>
-          <div className="text-sm text-red-500">Delayed Orders</div>
+          <div className="text-sm text-red-500">Delayed Orders (3+ Rounds)</div>
         </div>
         <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
           <div className="text-2xl font-bold text-yellow-600">{predictions.atRiskOrders}</div>
@@ -147,15 +148,11 @@ export default function PlannerWarnings({ compact = false }) {
           <div className="text-2xl font-bold text-orange-600">{predictions.rejectedOrders || 0}</div>
           <div className="text-sm text-orange-500">Rejected Orders</div>
         </div>
-        <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-          <div className="text-2xl font-bold text-purple-600">{predictions.roundBasedDelays || 0}</div>
-          <div className="text-sm text-purple-500">3+ Rounds Delayed</div>
-        </div>
         <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
           <div className="text-2xl font-bold text-green-600">
-            {predictions.averageDeliveryTime ? predictions.averageDeliveryTime.toFixed(1) : 'N/A'}
+            {predictions.averageDeliveryRounds ? predictions.averageDeliveryRounds.toFixed(1) : '3.0'}
           </div>
-          <div className="text-sm text-green-500">Avg Delivery (days)</div>
+          <div className="text-sm text-green-500">Avg Delivery (rounds)</div>
         </div>
       </div>
 
@@ -189,14 +186,10 @@ export default function PlannerWarnings({ compact = false }) {
                       <div className="text-sm opacity-75 mb-2">{warning.message}</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                         <div>Last Activity: {warning.lastActivity}</div>
-                        <div>Order Age: {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds` : `${warning.orderAge.toFixed(1)} days`} | Expected: {warning.expectedDelivery.toFixed(1)} {warning.orderRoundAge > 0 ? 'rounds' : 'days'}</div>
-                        {warning.roundsDelay !== undefined && (
+                        <div>Order Age: {warning.orderRoundAge > 0 ? `${warning.orderRoundAge} rounds have passed` : `${warning.orderAge.toFixed(1)} days old`} | Expected: completion within {warning.expectedDelivery.toFixed(0)} rounds</div>
+                        {warning.roundsDelay !== undefined && warning.roundsDelay > 0 && (
                           <div className="text-red-600 font-medium">
-                            {warning.roundsDelay > 0 ? (
-                              <span>Rounds Overdue: {warning.roundsDelay} rounds past deadline (Expected by Round {warning.expectedDeliveryRound})</span>
-                            ) : (
-                              <span>Due Next Round: Must deliver by Round {warning.expectedDeliveryRound}</span>
-                            )}
+                            <span>Rounds Overdue: {warning.roundsDelay} rounds past expected completion (Expected by Round {warning.expectedDeliveryRound})</span>
                           </div>
                         )}
                         <div className="font-medium text-blue-600">Action: {warning.recommendedAction}</div>
