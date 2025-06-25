@@ -218,7 +218,7 @@ export function SimulationProvider({ children }) {
       // Clear invalid saved state
       localStorage.removeItem('simulationState');
     }
-  }, [getSimulationStatus]); // Remove unnecessary persistSimulationState dependency
+  }, [getSimulationStatus, persistSimulationState]);
 
   // Auto-connect to SignalR and restore simulation state when provider mounts
   useEffect(() => {
