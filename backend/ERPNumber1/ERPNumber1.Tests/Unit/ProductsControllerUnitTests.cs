@@ -16,6 +16,7 @@ public class ProductsControllerUnitTests : IDisposable
     private readonly AppDbContext _context;
     private readonly ProductsController _controller;
     private readonly Mock<IEventLogService> _mockEventLogService;
+    private readonly Mock<IProductRepository> _mockProductRepo;
 
     public ProductsControllerUnitTests()
     {
@@ -25,13 +26,15 @@ public class ProductsControllerUnitTests : IDisposable
 
         _context = new AppDbContext(options);
         _mockEventLogService = new Mock<IEventLogService>();
-        
+        _mockProductRepo = new Mock<IProductRepository>();
+
+
         // Setup mock to return completed tasks
         _mockEventLogService
             .Setup(x => x.LogEventAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
-        _controller = new ProductsController(_context, _mockEventLogService.Object);
+        _controller = new ProductsController(_mockEventLogService.Object,_mockProductRepo.Object);
     }
 
     [Fact]
