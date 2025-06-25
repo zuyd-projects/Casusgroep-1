@@ -34,7 +34,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Materials
         [HttpGet]
-        [LogEvent("Material", "Get All Materials")]
         public async Task<ActionResult<IEnumerable<Material>>> GetMaterials()
         {
             return await _materialRepo.GetAllAsync();

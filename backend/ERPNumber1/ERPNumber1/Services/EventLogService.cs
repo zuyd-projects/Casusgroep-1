@@ -12,6 +12,15 @@ namespace ERPNumber1.Services
         private readonly AppDbContext _context;
         private readonly ILogger<EventLogService> _logger;
 
+        // Anomaly detection configuration constants
+        private const int MIN_SAMPLES_FOR_ANOMALY_DETECTION = 5; // Need at least 5 samples for statistical validity
+        private const double MIN_DURATION_FOR_ANOMALY_DETECTION_MS = 1000; // Only consider activities > 1 second
+        private const double ANOMALY_DURATION_MULTIPLIER_THRESHOLD = 2.0; // Must be at least 2x average duration
+        private const double ANOMALY_MAX_DURATION_MULTIPLIER = 10.0; // Cap at 10x average to avoid false positives
+        private const double HIGH_SEVERITY_DURATION_RATIO = 10.0; // 10x longer = High severity
+        private const double MEDIUM_SEVERITY_DURATION_RATIO = 5.0; // 5x longer = Medium severity
+        private const double STANDARD_DEVIATION_MULTIPLIER = 4.0; // Use 4 standard deviations instead of 2
+
         public EventLogService(AppDbContext context, ILogger<EventLogService> logger)
         {
             _context = context;
@@ -222,7 +231,8 @@ namespace ERPNumber1.Services
         public async Task<object> DetectAnomaliesAsync(DateTime? startDate = null, DateTime? endDate = null, string? severity = null)
         {
             var events = await GetFilteredEventsAsync(startDate, endDate);
-            _logger.LogInformation("Analyzing {EventCount} events for anomalies", events.Count);
+            _logger.LogInformation("Analyzing {EventCount} events for anomalies using thresholds: MinSamples={MinSamples}, MinDuration={MinDuration}ms, StdDevMultiplier={StdDevMultiplier}, DurationMultiplier={DurationMultiplier}", 
+                events.Count, MIN_SAMPLES_FOR_ANOMALY_DETECTION, MIN_DURATION_FOR_ANOMALY_DETECTION_MS, STANDARD_DEVIATION_MULTIPLIER, ANOMALY_DURATION_MULTIPLIER_THRESHOLD);
             
             var anomalies = new List<object>();
 
@@ -230,33 +240,54 @@ namespace ERPNumber1.Services
             var avgDurations = events
                 .Where(e => e.DurationMs.HasValue && e.DurationMs.Value > 0)
                 .GroupBy(e => e.Activity)
+                .Where(g => g.Count() >= MIN_SAMPLES_FOR_ANOMALY_DETECTION) // Need at least 5 samples for statistical validity
                 .Select(g => new { 
                     Activity = g.Key, 
                     AvgDuration = g.Average(e => e.DurationMs!.Value),
-                    StdDev = Math.Sqrt(g.Average(e => Math.Pow(e.DurationMs!.Value - g.Average(x => x.DurationMs!.Value), 2)))
+                    StdDev = Math.Sqrt(g.Average(e => Math.Pow(e.DurationMs!.Value - g.Average(x => x.DurationMs!.Value), 2))),
+                    SampleCount = g.Count()
                 })
+                .Where(x => x.AvgDuration > MIN_DURATION_FOR_ANOMALY_DETECTION_MS) // Only consider activities that normally take more than 1 second
                 .ToList();
 
             foreach (var avg in avgDurations)
             {
+                // Use more lenient thresholds: 4 standard deviations or 5x the average duration, whichever is larger
+                var minThreshold = Math.Max(STANDARD_DEVIATION_MULTIPLIER * avg.StdDev, avg.AvgDuration * ANOMALY_DURATION_MULTIPLIER_THRESHOLD); // At least 2x average duration
+                var maxThreshold = avg.AvgDuration * ANOMALY_MAX_DURATION_MULTIPLIER; // Cap at 10x average to avoid false positives from outliers
+                var actualThreshold = Math.Min(minThreshold, maxThreshold);
+                
                 var outliers = events
                     .Where(e => e.Activity == avg.Activity && e.DurationMs.HasValue)
-                    .Where(e => Math.Abs(e.DurationMs!.Value - avg.AvgDuration) > 2 * avg.StdDev)
+                    .Where(e => Math.Abs(e.DurationMs!.Value - avg.AvgDuration) > actualThreshold)
                     .ToList();
 
                 foreach (var outlier in outliers)
                 {
-                    anomalies.Add(new
+                    // Only flag as anomaly if it's significantly longer (not shorter) and truly excessive
+                    if (outlier.DurationMs!.Value > avg.AvgDuration + actualThreshold)
                     {
-                        Type = "Duration Anomaly",
-                        Severity = outlier.DurationMs > avg.AvgDuration + 2 * avg.StdDev ? "High" : "Medium",
-                        CaseId = outlier.CaseId,
-                        Activity = outlier.Activity,
-                        ActualDuration = outlier.DurationMs,
-                        ExpectedDuration = avg.AvgDuration,
-                        Timestamp = outlier.Timestamp,
-                        Description = $"Activity '{outlier.Activity}' took {outlier.DurationMs}ms, expected ~{avg.AvgDuration:F0}ms"
-                    });
+                        var durationRatio = outlier.DurationMs.Value / avg.AvgDuration;
+                        
+                        // Determine severity based on configurable thresholds
+                        string anomalySeverity = durationRatio > HIGH_SEVERITY_DURATION_RATIO ? "High" 
+                                               : durationRatio > MEDIUM_SEVERITY_DURATION_RATIO ? "Medium" 
+                                               : "Low";
+                        
+                        anomalies.Add(new
+                        {
+                            Type = "Duration Anomaly",
+                            Severity = anomalySeverity,
+                            CaseId = outlier.CaseId,
+                            Activity = outlier.Activity,
+                            ActualDuration = outlier.DurationMs,
+                            ExpectedDuration = avg.AvgDuration,
+                            DurationRatio = durationRatio,
+                            Timestamp = outlier.Timestamp,
+                            SampleSize = avg.SampleCount,
+                            Description = $"Activity '{outlier.Activity}' took {outlier.DurationMs}ms ({durationRatio:F1}x longer than expected ~{avg.AvgDuration:F0}ms, based on {avg.SampleCount} samples)"
+                        });
+                    }
                 }
             }
 
@@ -413,17 +444,14 @@ namespace ERPNumber1.Services
             var predictions = new List<object>();
             var warnings = new List<object>();
 
-            // Check for orders that should actually be flagged as delayed
-            // Check orders in different stages: Pending, InProduction (3+ rounds), and ApprovedByAccountManager (4+ rounds)
+            // Check ALL orders (regardless of status) that are more than 3 rounds old
             var ordersWithRoundInfo = await _context.Orders
                 .Include(o => o.Round)
                 .ThenInclude(r => r!.Simulation)
-                .Where(o => o.Status == OrderStatus.Pending || 
-                           o.Status == OrderStatus.InProduction || 
-                           o.Status == OrderStatus.ApprovedByAccountManager)
+                .Where(o => o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled) // Only exclude completed orders
                 .ToListAsync();
 
-            _logger.LogInformation("Found {OrderCount} orders in Pending, InProduction, or ApprovedByAccountManager status for warning analysis", ordersWithRoundInfo.Count);
+            _logger.LogInformation("Found {OrderCount} non-completed orders for warning analysis", ordersWithRoundInfo.Count);
 
             // Get current round for each simulation
             var currentRounds = await _context.Rounds
@@ -431,66 +459,63 @@ namespace ERPNumber1.Services
                 .Select(g => new { SimulationId = g.Key, MaxRound = g.Max(r => r.RoundNumber) })
                 .ToListAsync();
 
-            // Check orders that should have been processed by now
+            // Check if 3 rounds are done and order doesn't have completed status - then it's delayed
+            const int DELAY_THRESHOLD = 3; // All orders should be completed within 3 rounds
+            
             foreach (var order in ordersWithRoundInfo)
             {
                 var currentRound = currentRounds.FirstOrDefault(cr => cr.SimulationId == order.Round?.SimulationId);
                 if (currentRound != null && order.Round != null)
                 {
-                    // Calculate rounds since order creation (add 1 because current round is inclusive)
-                    var roundsSinceCreation = (currentRound.MaxRound - order.Round.RoundNumber) + 1;
+                    // Calculate how many rounds have passed since order creation
+                    var roundsSinceCreation = currentRound.MaxRound - order.Round.RoundNumber;
+                    
+                    // Check if 3 rounds are done (completed) and order is not in completed status
+                    bool isDelayed = roundsSinceCreation >= DELAY_THRESHOLD && 
+                                   order.Status != OrderStatus.Delivered && 
+                                   order.Status != OrderStatus.Cancelled;
+                    
+                    // Check if order is at risk (2 rounds passed, not yet delayed but close)
+                    bool isAtRisk = roundsSinceCreation == (DELAY_THRESHOLD - 1) && 
+                                  order.Status != OrderStatus.Delivered && 
+                                  order.Status != OrderStatus.Cancelled;
                     
                     string warningType = "";
                     string severity = "";
                     string message = "";
                     string recommendedAction = "";
-                    int delayThreshold = 0;
                     
-                    // Different thresholds based on order status
-                    switch (order.Status)
+                    if (isDelayed)
                     {
-                        case OrderStatus.Pending:
-                            delayThreshold = 3; // Pending orders should move to production within 3 rounds
-                            if (roundsSinceCreation >= delayThreshold)
-                            {
-                                warningType = "Pending Order Delay";
-                                severity = roundsSinceCreation >= 5 ? "High" : "Medium";
-                                message = $"Order {order.Id} has been pending for {roundsSinceCreation} rounds since creation. Expected to start production within 3 rounds.";
-                                recommendedAction = roundsSinceCreation >= 5 
-                                    ? "Critical: Pending order is severely overdue - investigate approval bottlenecks immediately" 
-                                    : "Review pending order and expedite approval process";
-                            }
-                            break;
-                            
-                        case OrderStatus.InProduction:
-                            delayThreshold = 3; // Production should complete within 3 rounds
-                            if (roundsSinceCreation >= delayThreshold)
-                            {
-                                warningType = "Production Delay";
-                                severity = roundsSinceCreation >= 5 ? "High" : "Medium";
-                                message = $"Order {order.Id} has been in production for {roundsSinceCreation} rounds since creation. Expected to complete production within 3 rounds.";
-                                recommendedAction = roundsSinceCreation >= 5 
-                                    ? "Critical: Production is severely delayed - investigate production bottlenecks immediately" 
-                                    : "Monitor production progress and identify potential bottlenecks";
-                            }
-                            break;
-                            
-                        case OrderStatus.ApprovedByAccountManager:
-                            delayThreshold = 4; // Give 1 extra round buffer for approved orders awaiting delivery
-                            if (roundsSinceCreation >= delayThreshold)
-                            {
-                                warningType = "Delivery Delay";
-                                severity = roundsSinceCreation >= 6 ? "High" : "Medium";
-                                message = $"Order {order.Id} was approved for delivery but hasn't been delivered. Created {roundsSinceCreation} rounds ago, delivery team action required.";
-                                recommendedAction = roundsSinceCreation >= 6 
-                                    ? "Critical: Approved order is severely overdue for delivery - immediate action required" 
-                                    : "Schedule delivery for this approved order immediately";
-                            }
-                            break;
+                        // Order is delayed - 3+ rounds are done and order is not completed
+                        warningType = "Order Delayed";
+                        severity = roundsSinceCreation >= 6 ? "High" : "Medium";
+                        message = $"Order {order.Id} is delayed - {roundsSinceCreation} rounds have passed since creation (Round {order.Round.RoundNumber}), expected completion within {DELAY_THRESHOLD} rounds. Current status: {order.Status}";
+                        recommendedAction = roundsSinceCreation >= 6 
+                            ? "Critical: Order is severely overdue - investigate and expedite immediately" 
+                            : "Review order progress and identify bottlenecks to expedite completion";
+                    }
+                    else if (isAtRisk)
+                    {
+                        // Order is at risk - 2 rounds have passed, needs attention soon
+                        warningType = "Order At Risk";
+                        severity = "Medium";
+                        message = $"Order {order.Id} is at risk - {roundsSinceCreation} rounds have passed since creation (Round {order.Round.RoundNumber}), must complete by next round to avoid delay. Current status: {order.Status}";
+                        recommendedAction = "Monitor closely and expedite if needed to complete within expected timeframe";
                     }
                     
-                    // Add warning if delay threshold is exceeded
-                    if (roundsSinceCreation >= delayThreshold && !string.IsNullOrEmpty(warningType))
+                    // Special handling for rejected orders - always high priority regardless of rounds
+                    if (order.Status == OrderStatus.RejectedByAccountManager)
+                    {
+                        warningType = "Rejected Order";
+                        severity = "High";
+                        message = $"Order {order.Id} has been rejected by the account manager and requires immediate attention. Rejected {roundsSinceCreation} rounds ago.";
+                        recommendedAction = "Review rejection reason and determine next steps - contact customer, revise order, or cancel completely";
+                        isDelayed = true; // Always consider rejected orders as needing attention
+                    }
+
+                    // Add to warnings if it's delayed, at risk, or rejected
+                    if (isDelayed || isAtRisk || order.Status == OrderStatus.RejectedByAccountManager)
                     {
                         warnings.Add(new
                         {
@@ -500,125 +525,43 @@ namespace ERPNumber1.Services
                             Message = message,
                             OrderAge = (DateTime.UtcNow - order.OrderDate).TotalDays,
                             OrderRoundAge = roundsSinceCreation,
-                            ExpectedDelivery = (double)delayThreshold,
+                            ExpectedDelivery = (double)DELAY_THRESHOLD,
                             LastActivity = $"{order.Status} in Round {order.Round.RoundNumber}",
                             RecommendedAction = recommendedAction,
-                            RoundsDelay = roundsSinceCreation - delayThreshold,
+                            RoundsDelay = Math.Max(0, roundsSinceCreation - DELAY_THRESHOLD),
                             OrderRound = order.Round.RoundNumber,
                             CurrentRound = currentRound.MaxRound,
-                            ExpectedCompletionRound = order.Round.RoundNumber + delayThreshold,
+                            ExpectedDeliveryRound = order.Round.RoundNumber + DELAY_THRESHOLD,
                             SimulationId = order.Round.SimulationId,
                             OrderStatus = order.Status.ToString(),
-                            RoundsSinceCreation = roundsSinceCreation
+                            RoundsSinceCreation = roundsSinceCreation,
+                            IsDelayed = isDelayed,
+                            IsAtRisk = isAtRisk
                         });
                     }
                 }
             }
 
-            _logger.LogInformation("Generated {WarningCount} round-based warnings from {OrderCount} orders (Pending: {PendingCount}, InProduction: {ProductionCount}, Approved: {ApprovedCount})", 
+            _logger.LogInformation("Generated {WarningCount} warnings from {OrderCount} non-completed orders - checking if 3+ rounds have passed since creation", 
                 warnings.Count, 
-                ordersWithRoundInfo.Count,
-                ordersWithRoundInfo.Count(o => o.Status == OrderStatus.Pending),
-                ordersWithRoundInfo.Count(o => o.Status == OrderStatus.InProduction),
-                ordersWithRoundInfo.Count(o => o.Status == OrderStatus.ApprovedByAccountManager));
-
-            // Analyze ongoing orders from event logs - but be more selective about what constitutes "delayed"
-            var ongoingOrders = recentEvents
-                .Where(e => e.EventType.ToLower().Contains("order"))
-                .GroupBy(e => e.CaseId)
-                .Where(g => !g.Any(e => e.Activity.ToLower().Contains("delivered") || e.Activity.ToLower().Contains("completed")))
-                .Where(g => g.Any(e => e.Activity.ToLower().Contains("shipped") || e.Activity.ToLower().Contains("approved") || e.Activity.ToLower().Contains("quality"))) // Only check orders that have progressed to later stages
-                .ToList();
-
-            foreach (var order in ongoingOrders)
-            {
-                var orderStart = order.OrderBy(e => e.Timestamp).First();
-                var currentAge = (DateTime.UtcNow - orderStart.Timestamp).TotalDays;
-                var lastActivity = order.OrderByDescending(e => e.Timestamp).First();
-
-                // Predict delivery time based on historical data
-                var historicalOrders = recentEvents
-                    .Where(e => e.EventType.ToLower().Contains("order"))
-                    .GroupBy(e => e.CaseId)
-                    .Where(g => g.Any(e => e.Activity.ToLower().Contains("delivered")))
-                    .Select(g => new
-                    {
-                        CaseId = g.Key,
-                        Start = g.OrderBy(e => e.Timestamp).First().Timestamp,
-                        End = g.OrderByDescending(e => e.Timestamp).First().Timestamp
-                    })
-                    .Select(x => new
-                    {
-                        x.CaseId,
-                        DeliveryTime = (x.End - x.Start).TotalDays
-                    })
-                    .ToList();
-
-                // Use a more reasonable delivery time expectation (7 days) instead of potentially skewed historical average
-                var expectedDeliveryTime = historicalOrders.Any() ? Math.Max(historicalOrders.Average(x => x.DeliveryTime), 7.0) : 7.0;
-                var predictedDeliveryDate = orderStart.Timestamp.AddDays(expectedDeliveryTime);
-                
-                // Only flag as delayed if the order is significantly overdue (more than 150% of expected time)
-                var isDelayed = currentAge > expectedDeliveryTime * 1.5;
-
-                var prediction = new
-                {
-                    CaseId = order.Key,
-                    OrderStarted = orderStart.Timestamp,
-                    CurrentAge = currentAge,
-                    PredictedDeliveryDate = predictedDeliveryDate,
-                    EstimatedDeliveryTime = expectedDeliveryTime,
-                    LastActivity = lastActivity.Activity,
-                    LastActivityTime = lastActivity.Timestamp,
-                    Status = isDelayed ? "Delayed" : "On Track",
-                    DelayRisk = currentAge > expectedDeliveryTime * 1.3 ? "High" : currentAge > expectedDeliveryTime * 1.1 ? "Medium" : "Low"
-                };
-
-                predictions.Add(prediction);
-
-                // Add warnings for planners - but only for truly concerning cases
-                if (isDelayed || currentAge > expectedDeliveryTime * 1.2)
-                {
-                    warnings.Add(new
-                    {
-                        Type = isDelayed ? "Delivery Delayed" : "Delivery Risk",
-                        Severity = isDelayed ? "High" : "Medium",
-                        CaseId = order.Key,
-                        Message = isDelayed 
-                            ? $"Order {order.Key} is delayed by {currentAge - expectedDeliveryTime:F1} days. Immediate attention required." 
-                            : $"Order {order.Key} at risk of delay. Current age: {currentAge:F1} days, monitor closely.",
-                        OrderAge = currentAge,
-                        OrderRoundAge = 0, // Not available for event log based warnings
-                        ExpectedDelivery = expectedDeliveryTime,
-                        LastActivity = lastActivity.Activity,
-                        RecommendedAction = isDelayed 
-                            ? "Investigate bottlenecks and expedite this order immediately" 
-                            : "Monitor closely and consider expediting if no progress in 24 hours"
-                    });
-                }
-            }
+                ordersWithRoundInfo.Count);
 
             // Calculate actual ongoing orders that need attention
-            // Include Pending, InProduction, ApprovedByAccountManager, and Delivered orders
+            // Include all non-completed orders
             var actualOngoingOrders = await _context.Orders
-                .Where(o => o.Status == OrderStatus.Pending || 
-                           o.Status == OrderStatus.InProduction || 
-                           o.Status == OrderStatus.ApprovedByAccountManager || 
-                           o.Status == OrderStatus.Delivered)
+                .Where(o => o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled)
                 .CountAsync();
 
             return new
             {
-                TotalOngoingOrders = actualOngoingOrders, // Use actual count from Orders table
-                DelayedOrders = predictions.Count(p => ((dynamic)p).Status.ToString() == "Delayed") + warnings.Count(w => ((dynamic)w).Type.ToString().Contains("Delay")),
-                AtRiskOrders = predictions.Count(p => ((dynamic)p).DelayRisk.ToString() == "High"),
-                AverageDeliveryTime = CalculateAverageDeliveryTime(recentEvents),
+                TotalOngoingOrders = actualOngoingOrders,
+                DelayedOrders = warnings.Count(w => ((dynamic)w).Type.ToString() == "Order Delayed"),
+                AtRiskOrders = warnings.Count(w => ((dynamic)w).Type.ToString() == "Order At Risk"),
+                AverageDeliveryRounds = 3.0, // Fixed value since we expect orders to complete within 3 rounds
                 Predictions = predictions.OrderByDescending(p => ((dynamic)p).CurrentAge),
                 Warnings = warnings.OrderByDescending(w => ((dynamic)w).Severity == "High" ? 2 : ((dynamic)w).Severity == "Medium" ? 1 : 0),
-                RoundBasedDelays = warnings.Count(w => ((dynamic)w).Type.ToString().Contains("Delay")),
-                PendingDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Pending Order Delay"),
-                ProductionDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Production Delay"),
-                DeliveryDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Delivery Delay"),
+                RoundBasedDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Order Delayed"),
+                RejectedOrders = warnings.Count(w => ((dynamic)w).Type.ToString() == "Rejected Order"),
                 RoundBasedWarnings = warnings.Count
             };
         }

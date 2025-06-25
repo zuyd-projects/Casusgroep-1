@@ -49,6 +49,7 @@ namespace ERPNumber1.Repository
             existing.Quantity = updated.Quantity;
             existing.Status = updated.Status;
             existing.round_number = updated.round_number;
+            existing.DeliveryRound = updated.DeliveryRound;
             existing.IsRMA = updated.IsRMA;
             existing.OrderDate = updated.OrderDate;
 
