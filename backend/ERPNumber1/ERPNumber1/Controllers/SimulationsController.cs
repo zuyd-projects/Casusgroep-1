@@ -133,6 +133,17 @@ namespace ERPNumber1.Controllers
             return Ok(new { message = "Simulation stopped successfully", simulationId = id });
         }
 
+        [HttpGet("config")]
+        [LogEvent("Simulation", "Get Simulation Configuration")]
+        public IActionResult GetSimulationConfig()
+        {
+            return Ok(new
+            {
+                roundDurationSeconds = _simulationService.GetRoundDurationSeconds(),
+                maxRounds = _simulationService.GetMaxRounds()
+            });
+        }
+
         [HttpGet("{id}/status")]
         [LogEvent("Simulation", "Get Simulation Status")]
         public async Task<IActionResult> GetSimulationStatus(int id)
@@ -157,6 +168,7 @@ namespace ERPNumber1.Controllers
                     ? new { currentRound.Id, currentRound.RoundNumber }
                     : null,
                 roundDuration = _simulationService.GetRoundDurationSeconds(),
+                maxRounds = _simulationService.GetMaxRounds(),
                 timeLeft = remainingTime,
                 timestamp = DateTime.UtcNow.ToString("O")
             });
