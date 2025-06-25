@@ -67,7 +67,7 @@ class SimulationService {
       });
 
       this.connection.on('SimulationPaused', (data) => {
-        console.log('⏸️ Simulation paused after round 36');
+        console.log(`⏸️ Simulation paused after round ${data.finalRoundNumber}`);
         this.currentSimulation = null;
         this.listeners.onSimulationPaused.forEach(callback => callback(data));
       });
