@@ -42,7 +42,7 @@ download_file() {
 
   rm -f "$output"
 
-  log "Downloading $url..."
+  log "Downloading $full_url..."
   curl -fsSL "${headers[@]}" "${full_url}" -o "${output}"
 }
 
