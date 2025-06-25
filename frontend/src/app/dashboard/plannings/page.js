@@ -286,122 +286,226 @@ export default function PlanningPage() {
         </Card>
       )}
 
-      {/* Orders table */}
-      <Card>
-        {loading ? (
-          <div className="py-20 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-zinc-500 dark:text-zinc-400">
-              Loading orders...
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-              <thead className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Order ID
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Customer
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Motor Type
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Quantity
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Simulation
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Round
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Blue Blocks
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Red Blocks
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Gray Blocks
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Production Line
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.customer}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md`}>
-                        Motor {order.motortype}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.aantal}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.simulationId ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
-                          Sim {order.simulationId}
+      {/* Orders tables */}
+      <div className="space-y-6">
+        {/* Unassigned Orders Table */}
+        <Card title="📋 Unassigned Orders">
+          {loading ? (
+            <div className="py-20 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Loading orders...
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+                <thead className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Order ID
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Customer
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Motor Type
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Quantity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Simulation
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Round
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Blue Blocks
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Red Blocks
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Gray Blocks
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Assign to Production Line
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {filteredOrders.filter(order => !order.productielijn).map((order) => (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.customer}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md`}>
+                          Motor {order.motortype}
                         </span>
-                      ) : (
-                        <span className="text-zinc-400">No Simulation</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.roundNumber ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
-                          Round {order.roundNumber}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.aantal}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.simulationId ? (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                            Sim {order.simulationId}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">No Simulation</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.roundNumber ? (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                            Round {order.roundNumber}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">No Round</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.blauw}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.rood}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.grijs}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateProductionLine(order.id, "1")}
+                            disabled={updating === order.id}
+                            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                          >
+                            Line 1
+                          </button>
+                          <button
+                            onClick={() => updateProductionLine(order.id, "2")}
+                            disabled={updating === order.id}
+                            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                          >
+                            Line 2
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {filteredOrders.filter(order => !order.productielijn).length === 0 && (
+                <div className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+                  All orders have been assigned to production lines
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Assigned Orders Table */}
+        {filteredOrders.filter(order => order.productielijn).length > 0 && (
+          <Card title="🏭 Assigned Orders">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+                <thead className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Order ID
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Customer
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Motor Type
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Quantity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Simulation
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Round
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Blue Blocks
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Red Blocks
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Gray Blocks
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Production Line
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {filteredOrders.filter(order => order.productielijn).map((order) => (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.customer}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md`}>
+                          Motor {order.motortype}
                         </span>
-                      ) : (
-                        <span className="text-zinc-400">No Round</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.blauw}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.rood}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.grijs}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => updateProductionLine(order.id, "1")}
-                          disabled={updating === order.id}
-                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50 ${
-                            order.productielijn === "1"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700"
-                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          Line 1
-                        </button>
-                        <button
-                          onClick={() => updateProductionLine(order.id, "2")}
-                          disabled={updating === order.id}
-                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50 ${
-                            order.productielijn === "2"
-                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-300 dark:border-purple-700"
-                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          Line 2
-                        </button>
-                        {order.productielijn && (
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.aantal}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.simulationId ? (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                            Sim {order.simulationId}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">No Simulation</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.roundNumber ? (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                            Round {order.roundNumber}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">No Round</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.blauw}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.rood}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.grijs}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <span
+                            className={`px-3 py-1 text-xs font-medium rounded-md ${
+                              order.productielijn === "1"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700"
+                                : "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-300 dark:border-purple-700"
+                            }`}
+                          >
+                            Line {order.productielijn}
+                          </span>
                           <button
                             onClick={() => updateProductionLine(order.id, null)}
                             disabled={updating === order.id}
@@ -410,24 +514,26 @@ export default function PlanningPage() {
                           >
                             ✕
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredOrders.length === 0 && (
-              <div className="py-20 text-center text-zinc-500 dark:text-zinc-400">
-                {showCurrentRoundOnly && currentRound
-                  ? `No orders found for Round ${currentRound.number}`
-                  : "No orders found"}
-              </div>
-            )}
-          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         )}
-      </Card>
+      </div>
+
+      {filteredOrders.length === 0 && !loading && (
+        <Card>
+          <div className="py-20 text-center text-zinc-500 dark:text-zinc-400">
+            {showCurrentRoundOnly && currentRound
+              ? `No orders found for Round ${currentRound.number}`
+              : "No orders found"}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
