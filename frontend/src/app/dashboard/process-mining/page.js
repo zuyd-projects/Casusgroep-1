@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
 import { 
@@ -22,7 +22,11 @@ export default function ProcessMining() {
   const [loading, setLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('30'); // days
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    fetchData();
+  }, [selectedTimeRange]);
+
+  const fetchData = async () => {
     setLoading(true);
     try {
       const endDate = new Date();
@@ -45,11 +49,7 @@ export default function ProcessMining() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTimeRange]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  };
 
   const getSeverityColor = (severity) => {
     switch (severity) {

@@ -144,7 +144,7 @@ export default function Dashboard() {
       
       fetchUpdatedData();
     }
-  }, [currentRound, loading]);
+  }, [currentRound?.number, loading]);
 
   // Periodic refresh when simulation is running to catch new orders
   useEffect(() => {

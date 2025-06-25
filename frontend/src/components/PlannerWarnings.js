@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@CASUSGROEP1/utils/api';
 import { AlertTriangle, Clock, TrendingDown, CheckCircle, ChevronDown, ChevronRight, XCircle } from 'lucide-react';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
@@ -11,7 +11,7 @@ export default function PlannerWarnings({ compact = false }) {
   const [showWarnings, setShowWarnings] = useState(false); // Default to hidden
   const { currentRound, isRunning } = useSimulation();
 
-  const fetchPredictions = useCallback(async () => {
+  const fetchPredictions = async () => {
     try {
       const response = await api.get('/api/ProcessMining/delivery-predictions');
       console.log('🔍 Delivery predictions response:', response);
@@ -24,11 +24,11 @@ export default function PlannerWarnings({ compact = false }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchPredictions();
-  }, [fetchPredictions]);
+  }, []);
 
   // Refetch when round changes
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function PlannerWarnings({ compact = false }) {
       console.log('🔄 Round changed, refetching delivery predictions for round:', currentRound.number);
       fetchPredictions();
     }
-  }, [currentRound, fetchPredictions]); // Include fetchPredictions dependency
+  }, [currentRound?.number]); // Only trigger when round number changes
 
   // Also refetch when simulation starts/stops
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function PlannerWarnings({ compact = false }) {
       console.log('🔄 Simulation state changed, refetching delivery predictions. Running:', isRunning);
       fetchPredictions();
     }
-  }, [isRunning, fetchPredictions]);
+  }, [isRunning]);
 
   if (loading) {
     return (
