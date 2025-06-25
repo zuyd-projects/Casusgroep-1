@@ -28,9 +28,6 @@ namespace ERPNumber1.Hubs
         // Method for clients to request immediate timer sync after joining
         public async Task RequestTimerSync(string simulationId)
         {
-            // This will trigger an immediate timer update for this specific client
-            Console.WriteLine($"Timer sync requested for simulation {simulationId} by user {Context.UserIdentifier}");
-            
             // Send immediate timer update to this specific client
             var simulationService = Context.GetHttpContext()?.RequestServices.GetService<ISimulationService>();
             if (simulationService != null && await simulationService.IsSimulationRunningAsync(int.Parse(simulationId)))
@@ -45,48 +42,16 @@ namespace ERPNumber1.Hubs
                 };
                 
                 await Clients.Caller.SendAsync("TimerUpdate", response);
-                Console.WriteLine($"Sent immediate timer sync: {remainingTime}s remaining for simulation {simulationId} to user {Context.UserIdentifier}");
-            }
-            else
-            {
-                Console.WriteLine($"Could not send timer sync for simulation {simulationId} - simulation not running or service unavailable");
             }
         }
 
         public override async Task OnConnectedAsync()
         {
-            // Enhanced logging for Windows debugging
-            var httpContext = Context.GetHttpContext();
-            var userAgent = httpContext?.Request.Headers["User-Agent"].ToString() ?? "Unknown";
-            var transport = Context.Features.Get<Microsoft.AspNetCore.Http.Connections.Features.IHttpTransportFeature>()?.TransportType.ToString() ?? "Unknown";
-            
-            Console.WriteLine($"✅ SignalR Connection Established:");
-            Console.WriteLine($"   User: {Context.UserIdentifier ?? "Anonymous"}");
-            Console.WriteLine($"   Connection ID: {Context.ConnectionId}");
-            Console.WriteLine($"   Transport: {transport}");
-            Console.WriteLine($"   User Agent: {userAgent}");
-            Console.WriteLine($"   Remote IP: {httpContext?.Connection?.RemoteIpAddress}");
-            
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            // Enhanced logging for Windows debugging
-            if (exception != null)
-            {
-                Console.WriteLine($"❌ SignalR Disconnection with error:");
-                Console.WriteLine($"   User: {Context.UserIdentifier ?? "Anonymous"}");
-                Console.WriteLine($"   Connection ID: {Context.ConnectionId}");
-                Console.WriteLine($"   Error: {exception.Message}");
-                Console.WriteLine($"   Stack Trace: {exception.StackTrace}");
-            }
-            else
-            {
-                Console.WriteLine($"✅ SignalR Normal Disconnection:");
-                Console.WriteLine($"   User: {Context.UserIdentifier ?? "Anonymous"}");
-                Console.WriteLine($"   Connection ID: {Context.ConnectionId}");
-            }
             await base.OnDisconnectedAsync(exception);
         }
     }

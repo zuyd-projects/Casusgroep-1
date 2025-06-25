@@ -10,6 +10,16 @@ import { orderStatuses } from '@CASUSGROEP1/utils/mockData';
 import { Plus, AlertCircle, PlayCircle, Hash, Calendar, CheckCircle } from 'lucide-react';
 import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
+// Customer options
+const CUSTOMER_OPTIONS = [
+  'yes',
+  'maybe', 
+  'tomorrow',
+  'Take a break',
+  'empty',
+  'no'
+];
+
 export default function Orders() {
   const [filteredStatus, setFilteredStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,24 +29,25 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  const { currentRound, currentSimulation, isRunning } = useSimulation();
+  const { currentRound, currentSimulation, currentSimulationDetails, isRunning } = useSimulation();
 
   // Form state for new order
   const [newOrder, setNewOrder] = useState({
     motorType: 'A',
     quantity: 1,
     signature: '',
-    appUserId: '1' // This should come from auth context in real app
+    customer: 'yes' // Default to first customer option
   });
 
   // Fetch orders from API
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      // Fetch both orders and rounds data
-      const [apiOrders, apiRounds] = await Promise.all([
+      // Fetch orders, rounds, and simulations data
+      const [apiOrders, apiRounds, apiSimulations] = await Promise.all([
         api.get('/api/Order'),
-        api.get('/api/Rounds')
+        api.get('/api/Rounds'),
+        api.get('/api/Simulations')
       ]);
       
       // Store rounds data for lookup
@@ -46,10 +57,12 @@ export default function Orders() {
       const formattedOrders = apiOrders.map(order => {
         // Find the round data for this order
         const roundData = apiRounds.find(round => round.id === order.roundId);
+        // Find the simulation data for this round
+        const simulationData = roundData ? apiSimulations.find(sim => sim.id === roundData.simulationId) : null;
         
         return {
           id: order.id.toString(),
-          customer: `User ${order.appUserId}`,
+          customer: order.appUserId, // Use the actual customer name
           date: new Date(order.orderDate).toLocaleDateString(),
           amount: order.quantity * 100, // Calculate price (100 per unit)
           status: order.status || 'Pending', // Use actual status from backend
@@ -59,6 +72,7 @@ export default function Orders() {
           roundId: order.roundId,
           roundNumber: roundData?.roundNumber || null,
           simulationId: roundData?.simulationId || null,
+          simulationName: simulationData?.name || null,
           originalOrder: order
         };
       });
@@ -106,7 +120,7 @@ export default function Orders() {
       const orderData = {
         roundId: currentRound.id,
         deliveryId: null,
-        appUserId: newOrder.appUserId,
+        appUserId: newOrder.customer, // Use selected customer
         motorType: newOrder.motorType,
         quantity: parseInt(newOrder.quantity),
         signature: newOrder.signature || `order-${Date.now()}`,
@@ -127,10 +141,10 @@ export default function Orders() {
       // Add to local state
       const formattedOrder = {
         id: createdOrder.id.toString(),
-        customer: `User ${createdOrder.appUserId}`,
+        customer: createdOrder.appUserId, // Use the actual customer name
         date: new Date(createdOrder.orderDate).toLocaleDateString(),
         amount: createdOrder.quantity * 100,
-        status: 'processing',
+        status: 'Pending', // Show correct status
         motorType: createdOrder.motorType,
         quantity: createdOrder.quantity,
         signature: createdOrder.signature,
@@ -146,7 +160,7 @@ export default function Orders() {
         motorType: 'A',
         quantity: 1,
         signature: '',
-        appUserId: '1'
+        customer: 'yes'
       });
       setShowNewOrderForm(false);
       
@@ -213,7 +227,7 @@ export default function Orders() {
             <PlayCircle className="h-6 w-6 text-green-600" />
             <div>
               <h3 className="font-medium text-green-900 dark:text-green-100">
-                Simulation {currentSimulation} - Round {currentRound.number} Active
+                {currentSimulationDetails?.name || `Simulation ${currentSimulation}`} - Round {currentRound.number} Active
               </h3>
               <p className="text-sm text-green-700 dark:text-green-300">
                 You can create orders for this round. Orders will be linked to Round ID: {currentRound.id}
@@ -242,6 +256,24 @@ export default function Orders() {
         <Card title="Create New Order" className="border-blue-200 dark:border-blue-800">
           <form onSubmit={handleCreateOrder} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  Customer
+                </label>
+                <select
+                  value={newOrder.customer}
+                  onChange={(e) => setNewOrder(prev => ({ ...prev, customer: e.target.value }))}
+                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  {CUSTOMER_OPTIONS.map((customer) => (
+                    <option key={customer} value={customer}>
+                      {customer}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                   Motor Type
@@ -379,7 +411,6 @@ export default function Orders() {
                   <th scope="col" className="px-6 py-3 text-left">Date</th>
                   <th scope="col" className="px-6 py-3 text-left">Amount</th>
                   <th scope="col" className="px-6 py-3 text-left">Status</th>
-                  <th scope="col" className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -400,7 +431,11 @@ export default function Orders() {
                       {order.quantity || <span className="text-zinc-400">-</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.simulationId ? (
+                      {order.simulationName ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+                          {order.simulationName}
+                        </span>
+                      ) : order.simulationId ? (
                         <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
                           Sim {order.simulationId}
                         </span>
@@ -434,12 +469,6 @@ export default function Orders() {
                             Complete
                           </button>
                         )}
-                        <Link 
-                          href={`/dashboard/orders/${order.id}`}
-                          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          View
-                        </Link>
                       </div>
                     </td>
                   </tr>

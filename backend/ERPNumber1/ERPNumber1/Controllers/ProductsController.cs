@@ -34,7 +34,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Products
         [HttpGet]
-        [LogEvent("Product", "Get All Products")]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
             return await _productRepo.GetAllAsync();

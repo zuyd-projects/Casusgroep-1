@@ -29,7 +29,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks
         [HttpGet]
-        [LogEvent("MissingBlocks", "Get All Missing Blocks")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocks()
         {
             var missingBlocks = await _missingBlocksRepo.GetAllAsync();
@@ -39,7 +38,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/pending
         [HttpGet("pending")]
-        [LogEvent("MissingBlocks", "Get Pending Missing Blocks")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetPendingMissingBlocks()
         {
             var pendingMissingBlocks = await _missingBlocksRepo.GetPendingAsync();
@@ -49,7 +47,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/5
         [HttpGet("{id}")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks by ID")]
         public async Task<ActionResult<MissingBlocksDto>> GetMissingBlocks(int id)
         {
             var missingBlocks = await _missingBlocksRepo.GetByIdAsync(id);
@@ -68,7 +65,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/order/5
         [HttpGet("order/{orderId}")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks by Order ID")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocksByOrderId(int orderId)
         {
             var missingBlocks = await _missingBlocksRepo.GetByOrderIdAsync(orderId);
@@ -78,7 +74,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/runner
         [HttpGet("runner")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks for Runner")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocksForRunner()
         {
             var missingBlocks = await _missingBlocksRepo.GetForRunnerAsync();
@@ -88,7 +83,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/supplier
         [HttpGet("supplier")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks for Supplier")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocksForSupplier()
         {
             var missingBlocks = await _missingBlocksRepo.GetForSupplierAsync();
@@ -171,13 +165,13 @@ namespace ERPNumber1.Controllers
                     return NotFound();
                 }
 
-                // If resolving the missing blocks request, update the order status back to Pending
+                // If resolving the missing blocks request, update the order status back to ToProduction (ready for production)
                 if (missingBlocksDto.Status == "Resolved")
                 {
                     var order = await _orderRepo.GetByIdAsync(missingBlocks.OrderId);
                     if (order != null)
                     {
-                        order.Status = OrderStatus.Pending;
+                        order.Status = OrderStatus.ToProduction;  // Set to ToProduction so it goes back to production lines, not voorraadBeheer
                         order.WasReturnedFromMissingBlocks = true;  // Mark for prioritization
                         await _orderRepo.UpdateAysnc(missingBlocks.OrderId, order);
                     }

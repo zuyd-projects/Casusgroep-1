@@ -28,9 +28,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/Delivery
-        [RequireRole(Role.Admin)]
         [HttpGet]
-        [LogEvent("Delivery", "Get All Deliveries")]
         public async Task<ActionResult<IEnumerable<Delivery>>> GetDeliveries()
         {
             var deliveries = await _deliveryRepo.GetAllAsync();

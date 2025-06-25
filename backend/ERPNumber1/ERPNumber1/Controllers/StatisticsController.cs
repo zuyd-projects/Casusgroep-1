@@ -31,7 +31,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Statistics
         [HttpGet]
-        [LogEvent("Statistics", "Get All Statistics")]
         public async Task<ActionResult<IEnumerable<Statistics>>> GetStatistics()
         {
             return await _statisticsRepository.GetAllAsync();
