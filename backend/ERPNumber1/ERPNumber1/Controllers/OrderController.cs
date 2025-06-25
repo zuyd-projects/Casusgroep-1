@@ -94,21 +94,13 @@ namespace ERPNumber1.Controllers
             Console.WriteLine($"🛍️ Creating order: MotorType={orderDto.MotorType}, Quantity={orderDto.Quantity}, RoundId={orderDto.RoundId}");
 
             var orderModel = orderDto.ToOrderFromCreate();
+            // Set initial status to Pending (waiting for voorraadBeheer approval)
+            orderModel.Status = OrderStatus.Pending;
             var createdOrder = await _orderRepo.CreateAsync(orderModel);
 
-            Console.WriteLine($"✅ Order created with ID: {createdOrder.Id}");
+            Console.WriteLine($"✅ Order created with ID: {createdOrder.Id} - Status: Pending (awaiting voorraadBeheer approval)");
 
-            // Calculate required blocks based on motor type and create supplier order
-            try
-            {
-                await CreateSupplierOrderForMotorType(createdOrder, userId);
-                Console.WriteLine($"✅ Supplier order creation completed for Order ID: {createdOrder.Id}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Failed to create supplier order for Order ID: {createdOrder.Id}, Error: {ex.Message}");
-                // Continue with order creation even if supplier order fails
-            }
+            // Don't create supplier order immediately - wait for voorraadBeheer approval
 
             // Log the successful order creation
             await _eventLogService.LogOrderEventAsync(createdOrder.Id, "Order Created", "OrderController", "Completed", 
@@ -117,7 +109,9 @@ namespace ERPNumber1.Controllers
                     quantity = createdOrder.Quantity,
                     orderDate = createdOrder.OrderDate,
                     signature = createdOrder.Signature,
-                    roundId = createdOrder.RoundId
+                    roundId = createdOrder.RoundId,
+                    status = "Pending",
+                    note = "Order created and sent to voorraadBeheer for approval"
                 }, userId);
 
             return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, createdOrder.ToOrderDto());
@@ -444,6 +438,167 @@ namespace ERPNumber1.Controllers
             catch (Exception ex)
             {
                 return BadRequest($"Error updating order status: {ex.Message}");
+            }
+        }
+
+        // POST: api/Order/{id}/approve-voorraad
+        [HttpPost("{id}/approve-voorraad")]
+        [LogEvent("Order", "Approve Order by VoorraadBeheer")]
+        public async Task<IActionResult> ApproveOrderByVoorraadBeheer(int id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Order Approval Failed", "OrderController", "Failed", 
+                        new { reason = "Order not found" }, userId);
+                    return NotFound();
+                }
+
+                if (order.Status != OrderStatus.Pending)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Order Approval Failed", "OrderController", "Failed", 
+                        new { reason = $"Order status is {order.Status}, expected Pending" }, userId);
+                    return BadRequest($"Order cannot be approved. Current status: {order.Status}");
+                }
+
+                // Update order status to ApprovedByVoorraadbeheer
+                order.Status = OrderStatus.ApprovedByVoorraadbeheer;
+                await _orderRepo.UpdateAysnc(id, order);
+
+                Console.WriteLine($"✅ Order {id} approved by voorraadBeheer - Status: ApprovedByVoorraadbeheer");
+
+                // Create supplier order after approval
+                try
+                {
+                    await CreateSupplierOrderForMotorType(order, userId);
+                    Console.WriteLine($"✅ Supplier order creation completed for approved Order ID: {order.Id}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Failed to create supplier order for approved Order ID: {order.Id}, Error: {ex.Message}");
+                    // Continue with approval even if supplier order fails
+                }
+
+                // Log successful approval
+                await _eventLogService.LogOrderEventAsync(id, "Order Approved by VoorraadBeheer", "OrderController", "Completed", 
+                    new { 
+                        previousStatus = "Pending",
+                        newStatus = "ApprovedByVoorraadbeheer",
+                        approvedBy = "VoorraadBeheer",
+                        supplierOrderCreated = true
+                    }, userId);
+
+                return Ok(new { message = "Order approved and sent to supplier and planning", status = "ApprovedByVoorraadBeheer" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error approving order {id}: {ex.Message}");
+                await _eventLogService.LogOrderEventAsync(id, "Order Approval Failed", "OrderController", "Failed", 
+                    new { error = ex.Message }, userId);
+                return StatusCode(500, "Internal server error during order approval");
+            }
+        }
+
+        // POST: api/Order/{id}/reject-voorraad
+        [HttpPost("{id}/reject-voorraad")]
+        [LogEvent("Order", "Reject Order by VoorraadBeheer")]
+        public async Task<IActionResult> RejectOrderByVoorraadBeheer(int id, [FromBody] RejectOrderDto rejectDto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Order Rejection Failed", "OrderController", "Failed", 
+                        new { reason = "Order not found" }, userId);
+                    return NotFound();
+                }
+
+                if (order.Status != OrderStatus.Pending)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Order Rejection Failed", "OrderController", "Failed", 
+                        new { reason = $"Order status is {order.Status}, expected Pending" }, userId);
+                    return BadRequest($"Order cannot be rejected. Current status: {order.Status}");
+                }
+
+                // Update order status to RejectedByVoorraadbeheer
+                order.Status = OrderStatus.RejectedByVoorraadbeheer;
+                await _orderRepo.UpdateAysnc(id, order);
+
+                Console.WriteLine($"❌ Order {id} rejected by voorraadBeheer - Reason: {rejectDto?.Reason ?? "No reason provided"}");
+
+                // Log successful rejection
+                await _eventLogService.LogOrderEventAsync(id, "Order Rejected by VoorraadBeheer", "OrderController", "Completed", 
+                    new { 
+                        previousStatus = "Pending",
+                        newStatus = "RejectedByVoorraadbeheer",
+                        rejectedBy = "VoorraadBeheer",
+                        reason = rejectDto?.Reason ?? "No reason provided"
+                    }, userId);
+
+                return Ok(new { message = "Order rejected", status = "RejectedByVoorraadBeheer", reason = rejectDto?.Reason });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error rejecting order {id}: {ex.Message}");
+                await _eventLogService.LogOrderEventAsync(id, "Order Rejection Failed", "OrderController", "Failed", 
+                    new { error = ex.Message }, userId);
+                return StatusCode(500, "Internal server error during order rejection");
+            }
+        }
+
+        // POST: api/Order/{id}/start-production
+        [HttpPost("{id}/start-production")]
+        [LogEvent("Order", "Start Production for Order")]
+        public async Task<IActionResult> StartProductionForOrder(int id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Start Production Failed", "OrderController", "Failed", 
+                        new { reason = "Order not found" }, userId);
+                    return NotFound();
+                }
+
+                if (order.Status != OrderStatus.ApprovedByVoorraadbeheer)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Start Production Failed", "OrderController", "Failed", 
+                        new { reason = $"Order status is {order.Status}, expected ApprovedByVoorraadbeheer" }, userId);
+                    return BadRequest($"Order cannot start production. Current status: {order.Status}. Expected: ApprovedByVoorraadbeheer");
+                }
+
+                // Update order status to InProduction
+                order.Status = OrderStatus.InProduction;
+                await _orderRepo.UpdateAysnc(id, order);
+
+                Console.WriteLine($"🏭 Order {id} production started - Status: InProduction");
+
+                // Log successful production start
+                await _eventLogService.LogOrderEventAsync(id, "Production Started", "OrderController", "Completed", 
+                    new { 
+                        previousStatus = "ApprovedByVoorraadbeheer",
+                        newStatus = "InProduction",
+                        startedBy = "ProductionLine"
+                    }, userId);
+
+                return Ok(new { message = "Production started for order", status = "InProduction" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error starting production for order {id}: {ex.Message}");
+                await _eventLogService.LogOrderEventAsync(id, "Start Production Failed", "OrderController", "Failed", 
+                    new { error = ex.Message }, userId);
+                return StatusCode(500, "Internal server error during production start");
             }
         }
     }
