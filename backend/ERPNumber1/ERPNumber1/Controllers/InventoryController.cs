@@ -17,7 +17,7 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class InventoryController : ControllerBase
     {
-        
+        public Role[] AllowedRoles => [Role.Admin,Role.inventoryManagement];
         private readonly IEventLogService _eventLogService;
         private readonly IInventoryRepository _inventoryRepo;
 

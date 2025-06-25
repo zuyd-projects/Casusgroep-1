@@ -18,7 +18,7 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class StatisticsController : ControllerBase
     {
-       
+        public Role[] AllowedRoles => [Role.Admin,Role.Planner];
         private readonly IEventLogService _eventLogService;
         private readonly IStatisticsRepository _statisticsRepository;
 

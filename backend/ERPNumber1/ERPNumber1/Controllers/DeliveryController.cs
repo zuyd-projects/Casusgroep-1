@@ -16,7 +16,7 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class DeliveryController : ControllerBase, IRequireRole
     {
-        public Role[] AllowedRoles => [Role.Admin];
+        public Role[] AllowedRoles => [Role.Admin,Role.Runner];
 
         private readonly IEventLogService _eventLogService;
         private readonly IDeliveryRepository _deliveryRepo;

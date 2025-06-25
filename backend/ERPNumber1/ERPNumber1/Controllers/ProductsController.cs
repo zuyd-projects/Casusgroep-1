@@ -1,19 +1,11 @@
 ﻿using ERPNumber1.Attributes;
-using ERPNumber1.Data;
-using ERPNumber1.Dtos.Order;
 using ERPNumber1.Dtos.Product;
-using ERPNumber1.Extensions;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Mapper;
 using ERPNumber1.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace ERPNumber1.Controllers
 {
@@ -21,7 +13,7 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        //private readonly AppDbContext _context;
+        public Role[] AllowedRoles => [Role.Admin];
         private readonly IEventLogService _eventLogService;
         private readonly IProductRepository _productRepo;
 

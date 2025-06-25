@@ -21,7 +21,6 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class RoundsController : ControllerBase
     {
-        //private readonly AppDbContext _context;
         private readonly IEventLogService _eventLogService;
         private readonly IRoundRepository _roundRepo;
 

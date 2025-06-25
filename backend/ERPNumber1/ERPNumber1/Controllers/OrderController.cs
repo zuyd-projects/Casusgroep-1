@@ -17,6 +17,7 @@ namespace ERPNumber1.Controllers
     [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
+        public Role[] AllowedRoles => [Role.Admin,Role.AccountManager];
         private readonly IOrderRepository _orderRepo;
         private readonly IEventLogService _eventLogService;
         private readonly ISupplierOrderRepository _supplierOrderRepo;
@@ -37,6 +38,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/Order
+        [RequireRole(Role.Planner,Role.Customer,Role.Production,Role.Supplier)]
         [HttpGet]
         [LogEvent("Order", "Get All Orders")]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
@@ -85,6 +87,7 @@ namespace ERPNumber1.Controllers
         }
 
         // POST: api/Order
+        [RequireRole(Role.User,Role.Production,Role.AccountManager,Role.Runner)]
         [HttpPost]
         [LogEvent("Order", "Create Order", logRequest: true)]
         public async Task<ActionResult<Order>> PostOrder(CreateOrderDto orderDto)
@@ -326,7 +329,7 @@ namespace ERPNumber1.Controllers
         // PATCH: api/Order/5/approve
         [HttpPatch("{id}/approve")]
         [LogEvent("Order", "Approve Order")]
-        [RequireRole(Role.User)]
+        [RequireRole(Role.User,Role.Production,Role.AccountManager)]
         public async Task<IActionResult> ApproveOrder(int id)
         {
             try
@@ -404,6 +407,7 @@ namespace ERPNumber1.Controllers
         }
 
         // PATCH: api/Order/5/status
+        [RequireRole(Role.Planner,Role.Runner)]
         [HttpPatch("{id}/status")]
         [LogEvent("Order", "Update Order Status")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusDto statusDto)

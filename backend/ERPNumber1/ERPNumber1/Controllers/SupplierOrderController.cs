@@ -7,6 +7,7 @@ using ERPNumber1.Extensions;
 using ERPNumber1.Interfaces;
 using ERPNumber1.Mapper;
 using ERPNumber1.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class SupplierOrderController : ControllerBase
     {
-        
+        public Role[] AllowedRoles => [Role.Admin,Role.inventoryManagement];
         private readonly IEventLogService _eventLogService;
         private readonly ISupplierOrderRepository _supplierOrderRepo;
 
@@ -32,6 +33,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/SupplierOrder
+        [RequireRole(Role.Supplier)]
         [HttpGet]
         [LogEvent("SupplierOrder", "Get All Supplier Orders")]
         public async Task<ActionResult<IEnumerable<SupplierOrder>>> GetSupplierOrders()
@@ -40,6 +42,7 @@ namespace ERPNumber1.Controllers
         }
 
         // GET: api/SupplierOrde/5
+        [RequireRole(Role.Supplier)]
         [HttpGet("{id}")]
         [LogEvent("SupplierOrder", "Get Supplier Order by ID")]
         public async Task<ActionResult<SupplierOrder>> GetSupplierOrder(int id)
