@@ -150,7 +150,6 @@ class SimulationService {
     }
 
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
-      console.log(`📡 Joining simulation: ${simulationId}`);
       await this.connection.invoke('JoinSimulationGroup', simulationId.toString());
       this.currentSimulation = simulationId;
       
@@ -164,13 +163,11 @@ class SimulationService {
             try {
               await this.connection.invoke('RequestTimerSync', simulationId.toString());
             } catch (retryError) {
-              console.warn('Timer sync failed:', retryError.message);
+              // Silent fallback
             }
           }, 100);
         }
       }
-    } else {
-      console.error('❌ Failed to join simulation - connection not established');
     }
   }
 

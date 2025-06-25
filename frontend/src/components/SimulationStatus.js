@@ -75,6 +75,13 @@ export default function SimulationStatus() {
 
   // Debug logging - only log significant state changes
   useEffect(() => {
+    console.log('🎮 SimulationStatus - State update:', {
+      currentSimulation,
+      isRunning,
+      currentRound: currentRound?.number,
+      isConnected
+    });
+    
     if (isRunning && currentSimulation) {
       console.log('🎮 Simulation active:', {
         simulation: currentSimulation,
@@ -85,6 +92,12 @@ export default function SimulationStatus() {
   }, [currentSimulation, currentRound?.number, isRunning, isConnected]);
 
   if (!isRunning || !currentSimulation) {
+    console.log('🎮 SimulationStatus - Not showing active UI:', {
+      isRunning,
+      currentSimulation,
+      reason: !isRunning ? 'not running' : 'no current simulation'
+    });
+    
     return (
       <div className="flex items-center space-x-2 text-sm text-zinc-500 dark:text-zinc-400">
         <div className="flex items-center space-x-1">
@@ -100,6 +113,14 @@ export default function SimulationStatus() {
       </div>
     );
   }
+
+  console.log('🎮 SimulationStatus - Showing active simulation UI:', {
+    currentSimulation,
+    currentRound: currentRound?.number,
+    isRunning,
+    isConnected,
+    localTimeLeft
+  });
 
   return (
     <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm">

@@ -7,32 +7,6 @@ import { useToast } from '@CASUSGROEP1/contexts/ToastContext';
 
 const SimulationContext = createContext();
 
-    const unsubscribeStarted = simulationService.onSimulationStarted((data) => {
-      console.log('🎮 Simulation started:', data.simulationId);
-      setCurrentSimulation(data.simulationId);
-      setIsRunning(true);
-      setRoundDuration(data.roundDuration || 20);
-      setRoundTimeLeft(data.roundDuration || 20);
-      
-      // Persist the simulation state (without round info initially)
-      persistSimulationState({
-        simulationId: data.simulationId,
-        roundDuration: data.roundDuration || 20
-      });
-    });
-
-    const unsubscribeStopped = simulationService.onSimulationStopped((data) => {
-      console.log('🎮 Simulation stopped:', data.simulationId);
-      // Clear all simulation state
-      setCurrentSimulation(null);
-      setCurrentRound(null);
-      setIsRunning(false);
-      setRoundTimeLeft(0);
-      
-      // Clear persisted state
-      clearPersistedState();
-    });
-
 export function SimulationProvider({ children }) {
   const { showInfo } = useToast();
   
@@ -141,7 +115,7 @@ export function SimulationProvider({ children }) {
       console.error('❌ Failed to get simulation status:', error);
       throw error;
     }
-  }, []);
+  }, [persistSimulationState]);
 
   // Restore simulation state from localStorage and server
   const restoreSimulationState = useCallback(async () => {
@@ -244,7 +218,7 @@ export function SimulationProvider({ children }) {
       // Clear invalid saved state
       localStorage.removeItem('simulationState');
     }
-  }, [getSimulationStatus]);
+  }, [getSimulationStatus, persistSimulationState]);
 
   // Auto-connect to SignalR and restore simulation state when provider mounts
   useEffect(() => {
@@ -265,7 +239,7 @@ export function SimulationProvider({ children }) {
       }
     };
     autoConnectAndRestore();
-  }, []);
+  }, [restoreSimulationState]);
 
   // Timer for countdown - now only used as fallback
   useEffect(() => {
@@ -390,22 +364,31 @@ export function SimulationProvider({ children }) {
       unsubscribeConnection();
       unsubscribeTimerUpdate();
     };
-  }, [roundDuration, persistSimulationState, clearPersistedState, restoreSimulationState, currentSimulation]);
+  }, [roundDuration, persistSimulationState, clearPersistedState, restoreSimulationState, currentSimulation, currentRound, showInfo]);
 
   const runSimulation = useCallback(async (simulationId) => {
     try {
       console.log(`🎮 Starting simulation ${simulationId}`);
-      await api.post(`/api/Simulations/${simulationId}/run`);
       
       // Set initial state immediately to show UI feedback
+      console.log('🔄 Setting initial state for immediate UI feedback');
       setCurrentSimulation(simulationId);
       setIsRunning(true);
       setRoundTimeLeft(roundDuration);
       
+      // Make the API call
+      console.log('📡 Making API call to start simulation');
+      await api.post(`/api/Simulations/${simulationId}/run`);
+      console.log('✅ API call successful');
+      
       // Join the SignalR group for this simulation, but don't request timer sync
       // since we'll get the SimulationStarted event with the correct timing
       if (simulationService.isConnected()) {
+        console.log('🔌 Joining SignalR group');
         await simulationService.joinSimulation(simulationId, { skipTimerSync: true });
+        console.log('✅ Joined SignalR group');
+      } else {
+        console.warn('⚠️ SignalR not connected when trying to join simulation group');
       }
       
       // Persist the simulation state
@@ -414,9 +397,14 @@ export function SimulationProvider({ children }) {
         roundDuration
       });
       
+      console.log('🎮 Simulation start sequence completed');
       return true;
     } catch (error) {
       console.error('❌ Failed to run simulation:', error);
+      // Reset state on failure
+      setCurrentSimulation(null);
+      setIsRunning(false);
+      setRoundTimeLeft(0);
       throw error;
     }
   }, [roundDuration, persistSimulationState]);
