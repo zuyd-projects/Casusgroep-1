@@ -244,6 +244,7 @@ export default function SupplierPage() {
           geleverdInPeriode: supplierOrder.deliveryRound || supplierOrder.roundNumber + 1,
           motorType: relatedOrder?.motorType || "Unknown",
           orderQuantity: relatedOrder?.quantity || 0,
+          productionLine: relatedOrder?.productionLine || null,
           originalOrder: relatedOrder,
           supplierOrderId: supplierOrder.id,
           originalOrderId: relatedOrder?.id || "Unknown",
@@ -463,6 +464,9 @@ export default function SupplierPage() {
                 <th rowSpan={2} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Qty
                 </th>
+                <th rowSpan={2} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Production Line
+                </th>
                 <th colSpan={3} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800">
                   Required Blocks
                 </th>
@@ -495,7 +499,7 @@ export default function SupplierPage() {
             <tbody className="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
               {orderRounds.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+                  <td colSpan={12} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
                     <div className="flex flex-col items-center justify-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -559,6 +563,22 @@ export default function SupplierPage() {
                       <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-700 font-bold text-lg text-zinc-900 dark:text-white">
                         {r.orderQuantity}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {r.productionLine ? (
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          r.productionLine === '1' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : r.productionLine === '2'
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                          <Package className="w-4 h-4 mr-1" />
+                          Line {r.productionLine}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 text-sm">Not Assigned</span>
+                      )}
                     </td>
                     {legoColors.map((color) => (
                       <td key={color} className="px-6 py-4 text-center">
