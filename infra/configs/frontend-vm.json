@@ -6,8 +6,8 @@
     },
     {
       "name": "proxy",
-      "image": "ghcr.io/zuyd-projects/proxy:20250624120756"
+      "image": "ghcr.io/zuyd-projects/proxy:20250625124617"
     }
   ],
-  "lastUpdated": "2025-06-24T12:20:27Z"
+  "lastUpdated": "2025-06-25T12:46:28Z"
 }
