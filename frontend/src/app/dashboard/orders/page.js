@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
@@ -40,7 +40,7 @@ export default function Orders() {
   });
 
   // Fetch orders from API
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       // Fetch orders, rounds, and simulations data
@@ -83,11 +83,11 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   // Refetch orders when round changes
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function Orders() {
       console.log('🔄 Round changed, refetching orders for round:', currentRound.number);
       fetchOrders();
     }
-  }, [currentRound?.number]); // Only trigger when round number changes
+  }, [currentRound, fetchOrders]); // Include currentRound dependency
 
   // Also refetch when simulation starts/stops
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function Orders() {
       console.log('🔄 Simulation state changed, refetching orders. Running:', isRunning);
       fetchOrders();
     }
-  }, [isRunning]);
+  }, [isRunning, fetchOrders]);
 
   // Handle new order creation
   const handleCreateOrder = async (e) => {

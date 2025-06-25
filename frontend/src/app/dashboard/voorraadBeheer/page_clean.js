@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "@CASUSGROEP1/utils/api";
 import { useSimulation } from "@CASUSGROEP1/contexts/SimulationContext";
 import Link from "next/link";
@@ -46,16 +46,16 @@ export default function VoorraadBeheerPage() {
   // Fetch inventory data from API
   useEffect(() => {
     fetchInventoryData();
-  }, []);
+  }, [fetchInventoryData]);
 
   // Refetch when round changes
   useEffect(() => {
     if (currentRound) {
       fetchInventoryData();
     }
-  }, [currentRound?.number]);
+  }, [currentRound, fetchInventoryData]);
 
-  const fetchInventoryData = async () => {
+  const fetchInventoryData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -131,7 +131,7 @@ export default function VoorraadBeheerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Manual refresh function
   const handleManualRefresh = async () => {

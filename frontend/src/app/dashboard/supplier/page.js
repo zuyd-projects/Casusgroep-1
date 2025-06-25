@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from '@CASUSGROEP1/utils/api';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
@@ -159,7 +159,7 @@ export default function SupplierPage() {
   // Fetch supplier orders from API
   useEffect(() => {
     fetchSupplierOrders();
-  }, []);
+  }, [fetchSupplierOrders]);
 
   // Refetch when round changes (indicating new orders might be created)
   useEffect(() => {
@@ -167,9 +167,9 @@ export default function SupplierPage() {
       console.log('🔄 Round changed, refetching supplier orders for round:', currentRound.number);
       fetchSupplierOrders();
     }
-  }, [currentRound?.number]); // Only trigger when round number changes
+  }, [currentRound, fetchSupplierOrders]); // Include fetchSupplierOrders dependency
 
-  const fetchSupplierOrders = async () => {
+  const fetchSupplierOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -261,7 +261,7 @@ export default function SupplierPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   if (loading) {
     return (
