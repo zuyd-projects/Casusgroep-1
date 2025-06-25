@@ -29,7 +29,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/Inventory
         [HttpGet]
-        [LogEvent("Inventory", "Get All Inventories")]
         public async Task<ActionResult<IEnumerable<Inventory>>> GetInventories()
         {
             var inventories = await _inventoryRepo.GetAllAsync();

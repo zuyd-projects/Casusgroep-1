@@ -29,7 +29,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks
         [HttpGet]
-        [LogEvent("MissingBlocks", "Get All Missing Blocks")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocks()
         {
             var missingBlocks = await _missingBlocksRepo.GetAllAsync();

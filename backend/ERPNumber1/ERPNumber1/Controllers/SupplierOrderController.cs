@@ -33,7 +33,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/SupplierOrder
         [HttpGet]
-        [LogEvent("SupplierOrder", "Get All Supplier Orders")]
         public async Task<ActionResult<IEnumerable<SupplierOrder>>> GetSupplierOrders()
         {
                return await _supplierOrderRepo.GetAllAsync();

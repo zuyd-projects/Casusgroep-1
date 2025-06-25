@@ -48,7 +48,6 @@ namespace ERPNumber1.Controllers
         // GET: api/Order/pending-approval
         [HttpGet("pending-approval")]
         [LogEvent("Order", "Get Orders Pending Approval")]
-        [RequireRole(Role.User)]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersPendingApproval()
         {
             try
@@ -221,7 +220,21 @@ namespace ERPNumber1.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var order = await _orderRepo.UpdateAysnc(id, orderDto.ToOrderFromUpdate());
+            // Get the current order to track status changes
+            var currentOrder = await _orderRepo.GetByIdAsync(id);
+            if (currentOrder == null)
+            {
+                await _eventLogService.LogOrderEventAsync(id, "Order Update Failed", "OrderController", "Failed", 
+                    new { reason = "Order not found" });
+                return NotFound();
+            }
+
+            // Track the old status for logging
+            var oldStatus = currentOrder.Status;
+            var newOrderData = orderDto.ToOrderFromUpdate();
+            var newStatus = newOrderData.Status;
+
+            var order = await _orderRepo.UpdateAysnc(id, newOrderData);
             if (order == null)
             {
                 await _eventLogService.LogOrderEventAsync(id, "Order Update Failed", "OrderController", "Failed", 
@@ -229,18 +242,23 @@ namespace ERPNumber1.Controllers
                 return NotFound();
             }
 
-            
-
             try
             {
-                //await _context.SaveChangesAsync();
-                
                 // Log successful update
                 await _eventLogService.LogOrderEventAsync(id, "Order Updated", "OrderController", "Completed", 
                     new { 
                         motorType = order.MotorType,
-                        quantity = order.Quantity
+                        quantity = order.Quantity,
+                        oldStatus = oldStatus.ToString(),
+                        newStatus = newStatus.ToString(),
+                        statusChanged = oldStatus != newStatus
                     }, userId);
+
+                // If status changed, log the specific status change
+                if (oldStatus != newStatus)
+                {
+                    await LogOrderStatusChange(id, oldStatus, newStatus, "OrderController", userId);
+                }
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -299,6 +317,38 @@ namespace ERPNumber1.Controllers
             return Task.CompletedTask;
         }
 
+        // Helper method to log order status changes consistently
+        private async Task LogOrderStatusChange(int orderId, OrderStatus oldStatus, OrderStatus newStatus, string resource, string? userId = null)
+        {
+            try
+            {
+                await _eventLogService.LogEventAsync(
+                    caseId: $"Order-{orderId}",
+                    activity: $"Order Status Changed from {oldStatus} to {newStatus}",
+                    resource: resource,
+                    eventType: "Order",
+                    status: "Completed",
+                    additionalData: System.Text.Json.JsonSerializer.Serialize(new 
+                    { 
+                        OrderId = orderId, 
+                        OldStatus = oldStatus.ToString(), 
+                        NewStatus = newStatus.ToString(),
+                        ChangeTimestamp = DateTime.UtcNow,
+                        ChangedBy = userId ?? "System"
+                    }),
+                    entityId: orderId.ToString(),
+                    userId: userId
+                );
+
+                Console.WriteLine($"📝 Status change logged for Order {orderId}: {oldStatus} → {newStatus}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Failed to log status change for Order {orderId}: {ex.Message}");
+                // Don't throw - logging should not break the main process
+            }
+        }
+
         // GET: api/Order/round-delays
         [HttpGet("round-delays")]
         [LogEvent("Order", "Check Round Delays")]
@@ -319,7 +369,6 @@ namespace ERPNumber1.Controllers
         // PATCH: api/Order/5/approve
         [HttpPatch("{id}/approve")]
         [LogEvent("Order", "Approve Order")]
-        [RequireRole(Role.User)]
         public async Task<IActionResult> ApproveOrder(int id)
         {
             try
@@ -330,6 +379,7 @@ namespace ERPNumber1.Controllers
                     return NotFound($"Order with ID {id} not found.");
                 }
 
+                var oldStatus = order.Status;
                 order.Status = OrderStatus.ApprovedByAccountManager;
                 var updatedOrder = await _orderRepo.UpdateAysnc(id, order);
 
@@ -338,15 +388,8 @@ namespace ERPNumber1.Controllers
                     return BadRequest("Failed to approve order.");
                 }
 
-                await _eventLogService.LogEventAsync(
-                    caseId: $"Order-{id}",
-                    activity: "Order Approved by Account Manager",
-                    resource: User.Identity?.Name ?? "System",
-                    eventType: "Order",
-                    entityId: id.ToString(),
-                    status: "Completed",
-                    additionalData: $"{{\"OrderId\": {id}, \"ApprovedBy\": \"{User.Identity?.Name}\"}}"
-                );
+                // Log the status change using the centralized method
+                await LogOrderStatusChange(id, oldStatus, OrderStatus.ApprovedByAccountManager, "OrderController", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
                 return Ok(updatedOrder.ToOrderDto());
             }
@@ -359,7 +402,6 @@ namespace ERPNumber1.Controllers
         // PATCH: api/Order/5/reject
         [HttpPatch("{id}/reject")]
         [LogEvent("Order", "Reject Order")]
-        [RequireRole(Role.User)]
         public async Task<IActionResult> RejectOrder(int id)
         {
             try
@@ -370,6 +412,7 @@ namespace ERPNumber1.Controllers
                     return NotFound($"Order with ID {id} not found.");
                 }
 
+                var oldStatus = order.Status;
                 order.Status = OrderStatus.RejectedByAccountManager;
                 var updatedOrder = await _orderRepo.UpdateAysnc(id, order);
 
@@ -378,15 +421,8 @@ namespace ERPNumber1.Controllers
                     return BadRequest("Failed to reject order.");
                 }
 
-                await _eventLogService.LogEventAsync(
-                    caseId: $"Order-{id}",
-                    activity: "Order Rejected by Account Manager",
-                    resource: User.Identity?.Name ?? "System",
-                    eventType: "Order",
-                    entityId: id.ToString(),
-                    status: "Completed",
-                    additionalData: $"{{\"OrderId\": {id}, \"RejectedBy\": \"{User.Identity?.Name}\"}}"
-                );
+                // Log the status change using the centralized method
+                await LogOrderStatusChange(id, oldStatus, OrderStatus.RejectedByAccountManager, "OrderController", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
                 return Ok(updatedOrder.ToOrderDto());
             }
@@ -423,15 +459,8 @@ namespace ERPNumber1.Controllers
                     return BadRequest("Failed to update order status.");
                 }
 
-                await _eventLogService.LogEventAsync(
-                    caseId: $"Order-{id}",
-                    activity: $"Order Status Changed from {oldStatus} to {newStatus}",
-                    resource: User.Identity?.Name ?? "System",
-                    eventType: "Order",
-                    entityId: id.ToString(),
-                    status: "Completed",
-                    additionalData: $"{{\"OrderId\": {id}, \"OldStatus\": \"{oldStatus}\", \"NewStatus\": \"{newStatus}\"}}"
-                );
+                // Use the centralized status change logging method
+                await LogOrderStatusChange(id, oldStatus, newStatus, User.Identity?.Name ?? "System", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
                 return Ok(updatedOrder.ToOrderDto());
             }
@@ -466,10 +495,14 @@ namespace ERPNumber1.Controllers
                 }
 
                 // Update order status to ApprovedByVoorraadbeheer
+                var oldStatus = order.Status;
                 order.Status = OrderStatus.ApprovedByVoorraadbeheer;
                 await _orderRepo.UpdateAysnc(id, order);
 
                 Console.WriteLine($"✅ Order {id} approved by voorraadBeheer - Status: ApprovedByVoorraadbeheer");
+
+                // Log the status change using the centralized method
+                await LogOrderStatusChange(id, oldStatus, OrderStatus.ApprovedByVoorraadbeheer, "OrderController", userId);
 
                 // Create supplier order after approval
                 try
@@ -487,7 +520,7 @@ namespace ERPNumber1.Controllers
                 await _eventLogService.LogOrderEventAsync(id, "Order Approved by VoorraadBeheer", "OrderController", "Completed", 
                     new { 
                         previousStatus = "Pending",
-                        newStatus = "ApprovedByVoorraadbeheer",
+                        newStatus = "ApprovedByVoorraadBeheer",
                         approvedBy = "VoorraadBeheer",
                         supplierOrderCreated = true
                     }, userId);
@@ -528,16 +561,20 @@ namespace ERPNumber1.Controllers
                 }
 
                 // Update order status to RejectedByVoorraadbeheer
+                var oldStatus = order.Status;
                 order.Status = OrderStatus.RejectedByVoorraadbeheer;
                 await _orderRepo.UpdateAysnc(id, order);
 
                 Console.WriteLine($"❌ Order {id} rejected by voorraadBeheer - Reason: {rejectDto?.Reason ?? "No reason provided"}");
 
+                // Log the status change using the centralized method
+                await LogOrderStatusChange(id, oldStatus, OrderStatus.RejectedByVoorraadbeheer, "OrderController", userId);
+
                 // Log successful rejection
                 await _eventLogService.LogOrderEventAsync(id, "Order Rejected by VoorraadBeheer", "OrderController", "Completed", 
                     new { 
                         previousStatus = "Pending",
-                        newStatus = "RejectedByVoorraadbeheer",
+                        newStatus = "RejectedByVoorraadBeheer",
                         rejectedBy = "VoorraadBeheer",
                         reason = rejectDto?.Reason ?? "No reason provided"
                     }, userId);
@@ -578,10 +615,14 @@ namespace ERPNumber1.Controllers
                 }
 
                 // Update order status to InProduction
+                var oldStatus = order.Status;
                 order.Status = OrderStatus.InProduction;
                 await _orderRepo.UpdateAysnc(id, order);
 
                 Console.WriteLine($"🏭 Order {id} production started - Status: InProduction");
+
+                // Log the status change using the centralized method
+                await LogOrderStatusChange(id, oldStatus, OrderStatus.InProduction, "OrderController", userId);
 
                 // Log successful production start
                 await _eventLogService.LogOrderEventAsync(id, "Production Started", "OrderController", "Completed", 
@@ -599,6 +640,62 @@ namespace ERPNumber1.Controllers
                 await _eventLogService.LogOrderEventAsync(id, "Start Production Failed", "OrderController", "Failed", 
                     new { error = ex.Message }, userId);
                 return StatusCode(500, "Internal server error during production start");
+            }
+        }
+
+        // POST: api/Order/{id}/complete
+        [HttpPost("{id}/complete")]
+        [LogEvent("Order", "Complete Order")]
+        public async Task<IActionResult> CompleteOrder(int id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            try
+            {
+                var order = await _orderRepo.GetByIdAsync(id);
+                if (order == null)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Order Completion Failed", "OrderController", "Failed", 
+                        new { reason = "Order not found" }, userId);
+                    return NotFound();
+                }
+
+                if (order.Status != OrderStatus.InProduction)
+                {
+                    await _eventLogService.LogOrderEventAsync(id, "Order Completion Failed", "OrderController", "Failed", 
+                        new { reason = $"Order status is {order.Status}, expected InProduction" }, userId);
+                    return BadRequest($"Order cannot be completed. Current status: {order.Status}. Expected: InProduction");
+                }
+
+                // Update order status to Completed
+                var oldStatus = order.Status;
+                order.Status = OrderStatus.Completed;
+                await _orderRepo.UpdateAysnc(id, order);
+
+                Console.WriteLine($"✅ Order {id} completed - Status: Completed");
+
+                // Log the status change using the centralized method
+                await LogOrderStatusChange(id, oldStatus, OrderStatus.Completed, "OrderController", userId);
+
+                // Log successful order completion
+                await _eventLogService.LogOrderEventAsync(id, "Order Completed", "OrderController", "Completed", 
+                    new { 
+                        previousStatus = "InProduction",
+                        newStatus = "Completed",
+                        completedBy = "ProductionLine",
+                        motorType = order.MotorType,
+                        quantity = order.Quantity,
+                        completionDate = DateTime.UtcNow
+                    }, userId);
+
+                return Ok(new { message = "Order completed successfully", status = "Completed" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error completing order {id}: {ex.Message}");
+                await _eventLogService.LogOrderEventAsync(id, "Order Completion Failed", "OrderController", "Failed", 
+                    new { error = ex.Message }, userId);
+                return StatusCode(500, "Internal server error during order completion");
             }
         }
     }
