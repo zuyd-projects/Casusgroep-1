@@ -12,6 +12,7 @@ namespace ERPNumber1.Controllers
     [Authorize]
     public class ProcessMiningController : ControllerBase
     {
+        public Role[] AllowedRoles => [Role.Admin,Role.Planner];
         private readonly IEventLogService _eventLogService;
         private readonly ILogger<ProcessMiningController> _logger;
         private readonly AppDbContext _context;

@@ -21,7 +21,7 @@ namespace ERPNumber1.Controllers
     [ApiController]
     public class MaterialsController : ControllerBase
     {
-        
+        public Role[] AllowedRoles => [Role.Admin];
         private readonly IEventLogService _eventLogService;
         private readonly IMaterialRepository _materialRepo;
 

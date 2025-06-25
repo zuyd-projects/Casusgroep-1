@@ -6,9 +6,10 @@
         Admin,
         AccountManager ,
         Planner,
-        SalesManager,
         inventoryManagement,
         Production,
-        User
+        User,
+        Supplier,
+        Runner
     }
 }
