@@ -142,7 +142,7 @@ export default function AdminPage() {
       {/* Quick Links */}
       <Card title="Quick Navigation">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link
+          <a
             href="/dashboard/process-mining"
             className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
@@ -155,7 +155,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-          </Link>
+          </a>
 
           <Link
             href="/dashboard/orders"
@@ -172,7 +172,7 @@ export default function AdminPage() {
             </div>
           </Link>
 
-          <Link
+          <a
             href="/dashboard"
             className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
@@ -185,7 +185,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-          </Link>
+          </a>
         </div>
       </Card>
 

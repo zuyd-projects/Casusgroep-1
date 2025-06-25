@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@CASUSGROEP1/utils/api";
 import { useSimulation } from "@CASUSGROEP1/contexts/SimulationContext";
 import Card from "@CASUSGROEP1/components/Card";
@@ -8,13 +8,6 @@ import StatusBadge from "@CASUSGROEP1/components/StatusBadge";
 import { PlayCircle, AlertCircle, Settings } from "lucide-react";
 import PlannerWarnings from "@CASUSGROEP1/components/PlannerWarnings";
 import { getMotorTypeColors } from "@CASUSGROEP1/utils/motorColors";
-
-// Motor type to block requirements mapping (same as backend)
-const MotorBlockRequirements = {
-  A: { Blauw: 3, Rood: 4, Grijs: 2 },
-  B: { Blauw: 2, Rood: 2, Grijs: 4 },
-  C: { Blauw: 3, Rood: 3, Grijs: 2 },
-};
 
 export default function PlanningPage() {
   const [orders, setOrders] = useState([]);
@@ -34,8 +27,15 @@ export default function PlanningPage() {
 
   const { currentRound, currentSimulation, isRunning } = useSimulation();
 
+  // Motor type to block requirements mapping (same as backend)
+  const MotorBlockRequirements = {
+    A: { Blauw: 3, Rood: 4, Grijs: 2 },
+    B: { Blauw: 2, Rood: 2, Grijs: 4 },
+    C: { Blauw: 3, Rood: 3, Grijs: 2 },
+  };
+
   // Fetch real orders from API
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = async () => {
     setLoading(true);
     setMessage("");
 
@@ -89,12 +89,12 @@ export default function PlanningPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   // Load orders on component mount
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+  }, []);
 
   // Refetch orders when round changes
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function PlanningPage() {
       );
       fetchOrders();
     }
-  }, [currentRound, fetchOrders]);
+  }, [currentRound?.number]);
 
   // Update production line assignment
   const updateProductionLine = async (orderId, productionLine) => {
