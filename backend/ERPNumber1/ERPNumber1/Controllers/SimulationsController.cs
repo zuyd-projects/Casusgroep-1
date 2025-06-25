@@ -31,7 +31,6 @@ namespace ERPNumber1.Controllers
         }
 
         [HttpGet]
-        [LogEvent("Simulation", "Get All Simulations")]
         public async Task<ActionResult<IEnumerable<SimulationDto>>> GetSimulations()
         {
             var simulations = await _simulationRepo.GetAllAsync();
