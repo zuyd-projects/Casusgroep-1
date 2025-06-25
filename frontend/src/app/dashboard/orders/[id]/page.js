@@ -164,7 +164,7 @@ export default function OrderDetail({ params }) {
       <div className="flex flex-col items-center justify-center h-full py-20">
         <h2 className="text-2xl font-bold mb-4">Order Not Found</h2>
         <p className="text-zinc-500 dark:text-zinc-400 mb-6">
-          The order you're looking for doesn't exist or has been deleted.
+          The order you&apos;re looking for doesn&apos;t exist or has been deleted.
         </p>
         <Link
           href={backNav.href}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Script from 'next/script';
 import { CheckCircle, AlertCircle, Play, Clock, Package, Users, Settings } from 'lucide-react';
 import { api } from '@CASUSGROEP1/utils/api';
@@ -35,7 +35,7 @@ const ProductionLine1Dashboard = () => {
   const { currentRound, currentSimulation, isRunning } = useSimulation();
 
   // Fetch orders assigned to Production Line 1
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       // Fetch both orders and rounds data
@@ -113,11 +113,11 @@ const ProductionLine1Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedOrder]);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   // Refetch orders when round changes
   useEffect(() => {
@@ -128,7 +128,7 @@ const ProductionLine1Dashboard = () => {
       );
       fetchOrders();
     }
-  }, [currentRound?.number]);
+  }, [currentRound, fetchOrders]);
 
   const getStatusColor = (status) => {
     switch (status) {
