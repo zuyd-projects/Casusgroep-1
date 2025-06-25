@@ -8,6 +8,13 @@ import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
+// Motor type to block requirements mapping (same as backend)
+const MotorBlockRequirements = {
+  'A': { Blauw: 3, Rood: 4, Grijs: 2 },
+  'B': { Blauw: 2, Rood: 2, Grijs: 4 },
+  'C': { Blauw: 3, Rood: 3, Grijs: 2 }
+};
+
 const ProductionLine1Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -325,44 +332,77 @@ const ProductionLine1Dashboard = () => {
     );
   };
 
-  const renderOrderDetails = (order) => (
-    <div className="grid grid-cols-2 gap-4 mb-6">
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Customer</label>
-        <p className="text-zinc-900 dark:text-white font-medium">{order.customer}</p>
-      </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Quantity</label>
-        <p className="text-zinc-900 dark:text-white font-medium">{order.quantity}</p>
-      </div>
-      <div className={`p-3 rounded-lg ${getMotorTypeColors(order.motorType).bg}`}>
-        <label className={`text-sm font-medium ${getMotorTypeColors(order.motorType).text}`}>Motor Type</label>
-        <p className={`font-medium ${getMotorTypeColors(order.motorType).text}`}>{order.motorType}</p>
-      </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Simulation</label>
-        {order.simulationId ? (
-          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
-            Sim {order.simulationId}
-          </span>
-        ) : (
-          <span className="text-zinc-400">No Simulation</span>
-        )}
-      </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg col-span-2">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Round</label>
-        <div className="mt-1">
-          {order.roundNumber ? (
-            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
-              Round {order.roundNumber}
+  const renderOrderDetails = (order) => {
+    // Calculate block requirements based on motor type and quantity
+    const blockRequirements = MotorBlockRequirements[order.motorType] 
+      ? {
+          Blauw: MotorBlockRequirements[order.motorType].Blauw * order.quantity,
+          Rood: MotorBlockRequirements[order.motorType].Rood * order.quantity,
+          Grijs: MotorBlockRequirements[order.motorType].Grijs * order.quantity
+        }
+      : { Blauw: 0, Rood: 0, Grijs: 0 };
+
+    return (
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Customer</label>
+          <p className="text-zinc-900 dark:text-white font-medium">{order.customer}</p>
+        </div>
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Quantity</label>
+          <p className="text-zinc-900 dark:text-white font-medium">{order.quantity}</p>
+        </div>
+        <div className={`p-3 rounded-lg ${getMotorTypeColors(order.motorType).bg}`}>
+          <label className={`text-sm font-medium ${getMotorTypeColors(order.motorType).text}`}>Motor Type</label>
+          <p className={`font-medium ${getMotorTypeColors(order.motorType).text}`}>{order.motorType}</p>
+        </div>
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Simulation</label>
+          {order.simulationId ? (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
+              Sim {order.simulationId}
             </span>
           ) : (
-            <span className="text-zinc-400">No Round</span>
+            <span className="text-zinc-400">No Simulation</span>
           )}
         </div>
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg col-span-2">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Round</label>
+          <div className="mt-1">
+            {order.roundNumber ? (
+              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
+                Round {order.roundNumber}
+              </span>
+            ) : (
+              <span className="text-zinc-400">No Round</span>
+            )}
+          </div>
+        </div>
+        
+        {/* Block Requirements Section */}
+        <div className="col-span-2 bg-gradient-to-r from-blue-50 to-red-50 dark:from-blue-900/20 dark:to-red-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400 mb-3 block">Required Building Blocks</label>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg">
+              <div className="text-blue-700 dark:text-blue-300 font-bold text-2xl">{blockRequirements.Blauw}</div>
+              <div className="text-blue-600 dark:text-blue-400 text-sm font-medium">Blue Blocks</div>
+            </div>
+            <div className="text-center bg-red-100 dark:bg-red-900/50 p-3 rounded-lg">
+              <div className="text-red-700 dark:text-red-300 font-bold text-2xl">{blockRequirements.Rood}</div>
+              <div className="text-red-600 dark:text-red-400 text-sm font-medium">Red Blocks</div>
+            </div>
+            <div className="text-center bg-zinc-200 dark:bg-zinc-700 p-3 rounded-lg">
+              <div className="text-zinc-700 dark:text-zinc-300 font-bold text-2xl">{blockRequirements.Grijs}</div>
+              <div className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">Gray Blocks</div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 text-center">
+            Total blocks needed: {blockRequirements.Blauw + blockRequirements.Rood + blockRequirements.Grijs}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Handle starting production for orders approved by VoorraadBeheer
   const handleStartProduction = async (orderId) => {
@@ -527,6 +567,15 @@ const ProductionLine1Dashboard = () => {
                         >
                           <Play className="w-4 h-4 mr-2" />
                           {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
+                        </button>
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                          onClick={handleReportMissingBlocks}
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Report Missing Building Blocks
                         </button>
                       </div>
                     </>

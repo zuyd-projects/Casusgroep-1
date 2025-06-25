@@ -134,7 +134,7 @@ export default function SupplierPage() {
             console.log(`✅ Order ${id} delivered and scheduled for delivery in Round ${currentRound.number}`);
           }
 
-          // Update the main order status to Pending
+          // Update the main order status to ApprovedByVoorraadbeheer (ready for production)
           const orderUpdateData = {
             roundId: relatedOrder.roundId || 1,
             deliveryId: relatedOrder.deliveryId,
@@ -143,12 +143,12 @@ export default function SupplierPage() {
             quantity: relatedOrder.quantity,
             signature: relatedOrder.signature,
             productionLine: relatedOrder.productionLine,
-            status: 'Pending',  // Set to Pending when delivered
+            status: 'ApprovedByVoorraadbeheer',  // Set to ApprovedByVoorraadbeheer when delivered by supplier (ready for production)
             wasReturnedFromMissingBlocks: false
           };
           
           await api.put(`/api/Order/${relatedOrder.id}`, orderUpdateData);
-          console.log(`✅ Order ${relatedOrder.id} status updated to Pending after delivery`);
+          console.log(`✅ Order ${relatedOrder.id} status updated to ApprovedByVoorraadbeheer (ready for production) after delivery`);
         }
       } catch (error) {
         console.error('Error updating order status or delivery round:', error);
