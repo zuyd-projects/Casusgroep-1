@@ -445,16 +445,17 @@ namespace ERPNumber1.Services
             var warnings = new List<object>();
 
             // Check for orders that should actually be flagged as delayed
-            // Check orders in different stages: Pending, InProduction (3+ rounds), and ApprovedByAccountManager (4+ rounds)
+            // Check orders in different stages: Pending, InProduction (3+ rounds), ApprovedByAccountManager (4+ rounds), and RejectedByAccountManager
             var ordersWithRoundInfo = await _context.Orders
                 .Include(o => o.Round)
                 .ThenInclude(r => r!.Simulation)
                 .Where(o => o.Status == OrderStatus.Pending || 
                            o.Status == OrderStatus.InProduction || 
-                           o.Status == OrderStatus.ApprovedByAccountManager)
+                           o.Status == OrderStatus.ApprovedByAccountManager ||
+                           o.Status == OrderStatus.RejectedByAccountManager)
                 .ToListAsync();
 
-            _logger.LogInformation("Found {OrderCount} orders in Pending, InProduction, or ApprovedByAccountManager status for warning analysis", ordersWithRoundInfo.Count);
+            _logger.LogInformation("Found {OrderCount} orders in Pending, InProduction, ApprovedByAccountManager, or RejectedByAccountManager status for warning analysis", ordersWithRoundInfo.Count);
 
             // Get current round for each simulation
             var currentRounds = await _context.Rounds
@@ -518,10 +519,19 @@ namespace ERPNumber1.Services
                                     : "Schedule delivery for this approved order immediately";
                             }
                             break;
+                            
+                        case OrderStatus.RejectedByAccountManager:
+                            // Always include rejected orders as warnings regardless of round count - they need immediate attention
+                            delayThreshold = 0; // No threshold - rejected orders should always appear as warnings
+                            warningType = "Rejected Order";
+                            severity = "High"; // Always high priority since these orders need immediate action
+                            message = $"Order {order.Id} has been rejected by the account manager and requires immediate attention. Rejected {roundsSinceCreation} rounds ago.";
+                            recommendedAction = "Review rejection reason and determine next steps - contact customer, revise order, or cancel completely";
+                            break;
                     }
                     
-                    // Add warning if delay threshold is exceeded
-                    if (roundsSinceCreation >= delayThreshold && !string.IsNullOrEmpty(warningType))
+                    // Add warning if delay threshold is exceeded OR if it's a rejected order (which always needs attention)
+                    if ((roundsSinceCreation >= delayThreshold || order.Status == OrderStatus.RejectedByAccountManager) && !string.IsNullOrEmpty(warningType))
                     {
                         warnings.Add(new
                         {
@@ -546,12 +556,13 @@ namespace ERPNumber1.Services
                 }
             }
 
-            _logger.LogInformation("Generated {WarningCount} round-based warnings from {OrderCount} orders (Pending: {PendingCount}, InProduction: {ProductionCount}, Approved: {ApprovedCount})", 
+            _logger.LogInformation("Generated {WarningCount} round-based warnings from {OrderCount} orders (Pending: {PendingCount}, InProduction: {ProductionCount}, Approved: {ApprovedCount}, Rejected: {RejectedCount})", 
                 warnings.Count, 
                 ordersWithRoundInfo.Count,
                 ordersWithRoundInfo.Count(o => o.Status == OrderStatus.Pending),
                 ordersWithRoundInfo.Count(o => o.Status == OrderStatus.InProduction),
-                ordersWithRoundInfo.Count(o => o.Status == OrderStatus.ApprovedByAccountManager));
+                ordersWithRoundInfo.Count(o => o.Status == OrderStatus.ApprovedByAccountManager),
+                ordersWithRoundInfo.Count(o => o.Status == OrderStatus.RejectedByAccountManager));
 
             // Analyze ongoing orders from event logs - but be more selective about what constitutes "delayed"
             var ongoingOrders = recentEvents
@@ -630,12 +641,13 @@ namespace ERPNumber1.Services
             }
 
             // Calculate actual ongoing orders that need attention
-            // Include Pending, InProduction, ApprovedByAccountManager, and Delivered orders
+            // Include Pending, InProduction, ApprovedByAccountManager, Delivered, and RejectedByAccountManager orders
             var actualOngoingOrders = await _context.Orders
                 .Where(o => o.Status == OrderStatus.Pending || 
                            o.Status == OrderStatus.InProduction || 
                            o.Status == OrderStatus.ApprovedByAccountManager || 
-                           o.Status == OrderStatus.Delivered)
+                           o.Status == OrderStatus.Delivered ||
+                           o.Status == OrderStatus.RejectedByAccountManager)
                 .CountAsync();
 
             return new
@@ -650,6 +662,7 @@ namespace ERPNumber1.Services
                 PendingDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Pending Order Delay"),
                 ProductionDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Production Delay"),
                 DeliveryDelays = warnings.Count(w => ((dynamic)w).Type.ToString() == "Delivery Delay"),
+                RejectedOrders = warnings.Count(w => ((dynamic)w).Type.ToString() == "Rejected Order"),
                 RoundBasedWarnings = warnings.Count
             };
         }
