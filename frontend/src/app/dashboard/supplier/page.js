@@ -156,13 +156,6 @@ export default function SupplierPage() {
     }
   };
 
-  // Update note
-  const handleNoteChange = (id, value) => {
-    setOrderRounds((prev) =>
-      prev.map((order) => (order.id === id ? { ...order, note: value } : order))
-    );
-  };
-
   // Fetch supplier orders from API
   useEffect(() => {
     fetchSupplierOrders();
@@ -249,7 +242,6 @@ export default function SupplierPage() {
           bestelling: blockRequirements,
           geleverdVinkje: supplierOrder.status === "Delivered",
           geleverdInPeriode: supplierOrder.deliveryRound || supplierOrder.roundNumber + 1,
-          note: "",
           motorType: relatedOrder?.motorType || "Unknown",
           orderQuantity: relatedOrder?.quantity || 0,
           originalOrder: relatedOrder,
@@ -480,9 +472,6 @@ export default function SupplierPage() {
                 <th rowSpan={2} className="px-6 py-4 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Delivery Round
                 </th>
-                <th rowSpan={2} className="px-6 py-4 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Note
-                </th>
               </tr>
               <tr>
                 {legoColors.map((color) => (
@@ -642,44 +631,6 @@ export default function SupplierPage() {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
                         Round {r.geleverdInPeriode ? r.geleverdInPeriode : "-"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <button
-                        className="inline-flex items-center px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 shadow-sm text-xs leading-5 font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 transition-all duration-150"
-                        onClick={() => {
-                          const newNote = window.prompt(
-                            "Add note",
-                            r.note || ""
-                          );
-                          if (newNote !== null) {
-                            handleNoteChange(r.id, newNote);
-                          }
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                          />
-                        </svg>
-                        {r.note ? "Edit" : "Note"}
-                      </button>
-                      {r.note && (
-                        <div
-                          className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 max-w-xs truncate"
-                          title={r.note}
-                        >
-                          {r.note}
-                        </div>
-                      )}
                     </td>
                   </tr>
                 ))
