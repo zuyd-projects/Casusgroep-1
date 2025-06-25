@@ -21,23 +21,29 @@ export default function SupplierPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [missingBlocksRequests, setMissingBlocksRequests] = useState([]);
+  const [savedRounds, setSavedRounds] = useState(new Set()); // Track saved rounds
 
   // Use simulation context to detect when new orders might be created
   const { currentRound, isRunning } = useSimulation();
 
   // Update supplier order status via API
-  const updateSupplierOrderStatus = async (supplierOrderId, delivered, orderData) => {
+  const updateSupplierOrderStatus = async (supplierOrderId, delivered, orderData, deliveryRound = null) => {
     try {
       // Get the current supplier order to preserve existing data
       const updateData = {
-        appUserId: orderData.appUserId || "system",
-        orderId: orderData.orderId,
-        quantity: orderData.quantity,
-        status: delivered ? "Delivered" : "Pending",
-        roundNumber: orderData.roundNumber,
-        isRMA: orderData.isRMA || false,
-        orderDate: orderData.orderDate
+        AppUserId: orderData.appUserId || null,
+        OrderId: orderData.orderId,
+        Quantity: orderData.quantity,
+        Status: delivered ? "Delivered" : "Pending",
+        RoundNumber: orderData.roundNumber,
+        IsRMA: orderData.isRMA || false,
+        OrderDate: orderData.orderDate
       };
+      
+      // Add delivery round if provided
+      if (deliveryRound !== null) {
+        updateData.DeliveryRound = deliveryRound;
+      }
       
       await api.put(`/api/SupplierOrder/${supplierOrderId}`, updateData);
     } catch (error) {
@@ -71,16 +77,27 @@ export default function SupplierPage() {
     }
   };
 
-  // Toggle geleverdVinkje
+  // Toggle geleverdVinkje (only allow marking as delivered, not unmarking)
   const handleToggleGeleverd = async (id) => {
     const order = orderRounds.find(o => o.id === id);
-    const newDeliveredStatus = !order.geleverdVinkje;
+    
+    // Prevent unmarking if already delivered
+    if (order.geleverdVinkje) {
+      return; // Do nothing if already delivered
+    }
+    
+    const newDeliveredStatus = true; // Always mark as delivered when clicked
     
     // Update locally first for immediate UI feedback
     setOrderRounds((prev) =>
       prev.map((order) =>
         order.id === id
-          ? { ...order, geleverdVinkje: newDeliveredStatus }
+          ? { 
+              ...order, 
+              geleverdVinkje: newDeliveredStatus,
+              // If marking as delivered and we have a current round, set the delivery round
+              geleverdInPeriode: newDeliveredStatus && currentRound ? currentRound.number : order.geleverdInPeriode
+            }
           : order
       )
     );
@@ -89,20 +106,36 @@ export default function SupplierPage() {
     if (order?.supplierOrderId && order?.originalOrder) {
       const relatedOrder = order.originalOrder;
       
-      // Update supplier order status
-      await updateSupplierOrderStatus(order.supplierOrderId, newDeliveredStatus, {
-        appUserId: relatedOrder.appUserId || "system",
-        orderId: relatedOrder.id,
-        quantity: Object.values(order.bestelling).reduce((sum, count) => sum + count, 0),
-        roundNumber: order.round,
-        isRMA: false,
-        orderDate: new Date(relatedOrder.orderDate).toISOString()
-      });
+      try {
+        // First, let's get the current supplier order data to ensure we have all fields correct
+        const currentSupplierOrder = await api.get(`/api/SupplierOrder/${order.supplierOrderId}`);
+        
+        // Update supplier order status with delivery round in a single call
+        await updateSupplierOrderStatus(
+          order.supplierOrderId, 
+          newDeliveredStatus, 
+          {
+            appUserId: currentSupplierOrder.appUserId,
+            orderId: currentSupplierOrder.orderId,
+            quantity: currentSupplierOrder.quantity, // Use supplier order quantity
+            roundNumber: currentSupplierOrder.roundNumber, // Use supplier order round number
+            isRMA: currentSupplierOrder.isRMA,
+            orderDate: currentSupplierOrder.orderDate // Use supplier order date
+          },
+          // Include delivery round when marking as delivered
+          newDeliveredStatus && currentRound ? currentRound.number : null
+        );
 
-      // If marking as delivered, also update the main order status to Pending
-      if (newDeliveredStatus && relatedOrder.id) {
-        try {
-          const updateData = {
+        // If marking as delivered, also update the main order status to Pending
+        if (newDeliveredStatus && relatedOrder.id) {
+          // Mark the order as saved for this round
+          if (currentRound) {
+            setSavedRounds(prev => new Set([...prev, `${id}-${currentRound.number}`]));
+            console.log(`✅ Order ${id} delivered and scheduled for delivery in Round ${currentRound.number}`);
+          }
+
+          // Update the main order status to Pending
+          const orderUpdateData = {
             roundId: relatedOrder.roundId || 1,
             deliveryId: relatedOrder.deliveryId,
             appUserId: relatedOrder.appUserId,
@@ -114,11 +147,11 @@ export default function SupplierPage() {
             wasReturnedFromMissingBlocks: false
           };
           
-          await api.put(`/api/Order/${relatedOrder.id}`, updateData);
+          await api.put(`/api/Order/${relatedOrder.id}`, orderUpdateData);
           console.log(`✅ Order ${relatedOrder.id} status updated to Pending after delivery`);
-        } catch (error) {
-          console.error('Error updating main order status:', error);
         }
+      } catch (error) {
+        console.error('Error updating order status or delivery round:', error);
       }
     }
   };
@@ -341,27 +374,27 @@ export default function SupplierPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMotorTypeColors(request.motorType).full}`}>
-                          Motor {request.motorType}
+                        <span className={`inline-flex items-center justify-center h-12 w-12 rounded-full font-bold text-lg ${getMotorTypeColors(request.motorType).full}`}>
+                          {request.motorType}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-100 dark:bg-red-900/50 font-medium text-xs text-red-900 dark:text-red-200">
+                        <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 font-bold text-lg text-red-900 dark:text-red-200">
                           {request.quantity}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium text-sm">
+                        <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-lg">
                           {request.missingBlocks.blue}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-medium text-sm">
+                        <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold text-lg">
                           {request.missingBlocks.red}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium text-sm">
+                        <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-lg">
                           {request.missingBlocks.gray}
                         </span>
                       </td>
@@ -473,7 +506,7 @@ export default function SupplierPage() {
             <tbody className="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
               {orderRounds.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+                  <td colSpan={11} className="py-12 text-center text-zinc-500 dark:text-zinc-400">
                     <div className="flex flex-col items-center justify-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -506,14 +539,14 @@ export default function SupplierPage() {
                       {r.timestamp || "-"}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                        ORD-{r.originalOrderId}
+                      <span className="inline-flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                        {r.originalOrderId}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       {r.simulationId ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          Sim {r.simulationId}
+                        <span className="inline-flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          {r.simulationId}
                         </span>
                       ) : (
                         <span className="text-zinc-400">No Simulation</span>
@@ -521,27 +554,27 @@ export default function SupplierPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       {r.roundNumber ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                          Round {r.roundNumber}
+                        <span className="inline-flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                          {r.roundNumber}
                         </span>
                       ) : (
                         <span className="text-zinc-400">No Round</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMotorTypeColors(r.motorType).full}`}>
-                        Motor {r.motorType}
+                      <span className={`inline-flex items-center justify-center h-12 w-12 rounded-full font-bold text-lg ${getMotorTypeColors(r.motorType).full}`}>
+                        {r.motorType}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-zinc-100 dark:bg-zinc-700 font-medium text-xs text-zinc-900 dark:text-white">
+                      <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-700 font-bold text-lg text-zinc-900 dark:text-white">
                         {r.orderQuantity}
                       </span>
                     </td>
                     {legoColors.map((color) => (
                       <td key={color} className="px-6 py-4 text-center">
                         <span
-                          className={`inline-flex items-center justify-center h-8 w-8 rounded-full font-medium text-sm ${
+                          className={`inline-flex items-center justify-center h-12 w-12 rounded-full font-bold text-lg ${
                             color === "Blauw"
                               ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
                               : color === "Rood"
@@ -558,15 +591,20 @@ export default function SupplierPage() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleToggleGeleverd(r.id)}
-                        className="focus:outline-none transition-transform hover:scale-110 duration-150"
+                        className={`focus:outline-none transition-all duration-150 ${
+                          r.geleverdVinkje 
+                            ? "cursor-not-allowed opacity-75" 
+                            : "hover:scale-110 cursor-pointer"
+                        }`}
+                        disabled={r.geleverdVinkje}
                         title={
                           r.geleverdVinkje
-                            ? "Delivery received"
-                            : "Not yet delivered"
+                            ? "Delivery completed - Cannot be undone"
+                            : "Click to mark as delivered"
                         }
                       >
                         {r.geleverdVinkje ? (
-                          <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                          <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400 border-2 border-green-300 dark:border-green-600">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-5 w-5"
@@ -581,7 +619,7 @@ export default function SupplierPage() {
                             </svg>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400">
+                          <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-800/70">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-5 w-5"

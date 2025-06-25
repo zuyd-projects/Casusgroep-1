@@ -7,6 +7,7 @@ import { Play, Square, Clock, Wifi, WifiOff, Timer, Hash } from 'lucide-react';
 export default function SimulationStatus() {
   const {
     currentSimulation,
+    currentSimulationDetails,
     currentRound,
     isRunning,
     isConnected,
@@ -115,7 +116,7 @@ export default function SimulationStatus() {
       <div className="flex items-center space-x-1 bg-blue-100 dark:bg-blue-800/50 px-2 py-1 rounded">
         <Play className="h-3 w-3 text-blue-600" />
         <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-          Sim #{currentSimulation}
+          {currentSimulationDetails?.name || `Sim #${currentSimulation}`}
         </span>
       </div>
 

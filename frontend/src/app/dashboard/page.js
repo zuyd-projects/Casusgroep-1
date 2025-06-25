@@ -59,10 +59,10 @@ export default function Dashboard() {
         // Process orders data
         const formattedOrders = ordersRes.map(order => ({
           id: order.id.toString(),
-          customer: `User ${order.appUserId}`,
+          customer: order.appUserId, // Use the actual customer name
           date: new Date(order.orderDate).toLocaleDateString(),
           amount: order.quantity * 100, // Calculate price (100 per unit)
-          status: 'processing', // Default status
+          status: order.status || 'Pending', // Use actual status from backend
           motorType: order.motorType,
           quantity: order.quantity,
           signature: order.signature,
@@ -112,10 +112,10 @@ export default function Dashboard() {
           
           const formattedOrders = ordersRes.map(order => ({
             id: order.id.toString(),
-            customer: `User ${order.appUserId}`,
+            customer: order.appUserId, // Use the actual customer name
             date: new Date(order.orderDate).toLocaleDateString(),
             amount: order.quantity * 100,
-            status: 'processing',
+            status: order.status || 'Pending', // Use actual status from backend
             motorType: order.motorType,
             quantity: order.quantity,
             signature: order.signature,
@@ -145,6 +145,55 @@ export default function Dashboard() {
       fetchUpdatedData();
     }
   }, [currentRound?.number, loading]);
+
+  // Periodic refresh when simulation is running to catch new orders
+  useEffect(() => {
+    if (!isRunning || loading) return;
+
+    const interval = setInterval(async () => {
+      console.log('🔄 Periodic dashboard refresh for running simulation');
+      try {
+        const [predictionsRes, ordersRes] = await Promise.all([
+          api.get('/api/ProcessMining/delivery-predictions'),
+          api.get('/api/Order')
+        ]);
+
+        setDeliveryPredictions(predictionsRes);
+        
+        const formattedOrders = ordersRes.map(order => ({
+          id: order.id.toString(),
+          customer: order.appUserId, // Use the actual customer name
+          date: new Date(order.orderDate).toLocaleDateString(),
+          amount: order.quantity * 100,
+          status: order.status || 'Pending', // Use actual status from backend
+          motorType: order.motorType,
+          quantity: order.quantity,
+          signature: order.signature,
+          roundId: order.roundId,
+          originalOrder: order
+        }));
+        
+        setRecentOrders(formattedOrders.slice(-5).reverse());
+        
+        // Update stats
+        const totalOrders = ordersRes.length;
+        const totalRevenue = ordersRes.reduce((sum, order) => sum + (order.quantity * 100), 0);
+        const uniqueUsers = new Set(ordersRes.map(order => order.appUserId)).size;
+        const pendingOrders = predictionsRes?.delayedOrders || 0;
+        
+        setDashboardStats({
+          totalOrders,
+          pendingOrders,
+          totalRevenue,
+          activeCustomers: uniqueUsers
+        });
+      } catch (error) {
+        console.error('Error during periodic dashboard refresh:', error);
+      }
+    }, 5000); // Refresh every 5 seconds when simulation is running
+
+    return () => clearInterval(interval);
+  }, [isRunning, loading]);
 
   if (loading) {
     return (

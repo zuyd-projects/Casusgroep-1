@@ -44,8 +44,9 @@ const ProductionLine1Dashboard = () => {
           const prodLine = order.productionLine ? order.productionLine.toString() : null;
           const isAssignedToLine1 = prodLine === '1';
           
-          // Only show orders that are pending, in production, or rejected (hide awaiting approval)
+          // Only show orders that are approved by voorraadBeheer, in production, or other relevant statuses
           const relevantStatuses = [
+            'ApprovedByVoorraadbeheer', // Orders approved by voorraadBeheer and ready for production
             'Pending',  // Include pending orders (returned from missing blocks)
             'InProduction', 
             'In Progress',
@@ -85,6 +86,18 @@ const ProductionLine1Dashboard = () => {
         });
         
       setOrders(productionLine1Orders);
+      
+      // Preserve selected order by finding the updated version
+      if (selectedOrder) {
+        const updatedSelectedOrder = productionLine1Orders.find(order => order.id === selectedOrder.id);
+        if (updatedSelectedOrder) {
+          setSelectedOrder(updatedSelectedOrder);
+        } else {
+          // Order might no longer be in the list (e.g., completed/removed), clear selection
+          setSelectedOrder(null);
+        }
+      }
+      
       console.log(`🏭 Production Line 1: Loaded ${productionLine1Orders.length} orders`);
     } catch (error) {
       console.error('Failed to fetch Production Line 1 orders:', error);
@@ -124,6 +137,8 @@ const ProductionLine1Dashboard = () => {
     if (!selectedOrder) return;
     
     try {
+      console.log(`🏭 Starting assembly for order ${selectedOrder.id}, current status: ${selectedOrder.status}`);
+      
       // Update status in the API
       await api.patch(`/api/Order/${selectedOrder.id}/status`, { 
         status: 'InProduction' 
@@ -131,17 +146,19 @@ const ProductionLine1Dashboard = () => {
         console.warn('API status update not supported, updating locally:', err.message);
       });
       
-      // Update local state
+      // Update local state - use consistent status name
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === selectedOrder.id
-            ? { ...order, status: 'In Progress' }
+            ? { ...order, status: 'InProduction' }
             : order
         )
       );
       setSelectedOrder((prev) =>
-        prev ? { ...prev, status: 'In Progress' } : prev
+        prev ? { ...prev, status: 'InProduction' } : prev
       );
+      
+      console.log(`✅ Assembly started for order ${selectedOrder.id}, new status: InProduction`);
     } catch (error) {
       console.error('Error updating order status:', error);
     }
@@ -155,44 +172,6 @@ const ProductionLine1Dashboard = () => {
       await updateOrderStatus(selectedOrder.id, 'AwaitingAccountManagerApproval');
     } catch (error) {
       console.error('Error sending order for review:', error);
-    }
-  };
-
-  const handleDenyAssembly = async () => {
-    if (!selectedOrder) return;
-    
-    try {
-      // Get the current order to preserve other properties
-      const currentOrder = orders.find(order => order.id === selectedOrder.id);
-      if (!currentOrder) {
-        console.error(`❌ Order ${selectedOrder.id} not found`);
-        return;
-      }
-
-      // Update via API with all required fields, removing production line assignment
-      const updateData = {
-        roundId: currentOrder.originalOrder.roundId || 1,
-        deliveryId: currentOrder.originalOrder.deliveryId,
-        appUserId: currentOrder.originalOrder.appUserId,
-        motorType: currentOrder.originalOrder.motorType,
-        quantity: currentOrder.originalOrder.quantity,
-        signature: currentOrder.originalOrder.signature,
-        productionLine: null,
-        status: currentOrder.originalOrder.status
-      };
-      
-      await api.put(`/api/Order/${selectedOrder.id}`, updateData);
-      
-      // Update local state
-      setOrders((prevOrders) => {
-        const filtered = prevOrders.filter((order) => order.id !== selectedOrder.id);
-        setLastRemovedOrder(selectedOrder);
-        return filtered;
-      });
-      setSelectedOrder(null);
-      console.log(`✅ Order ${selectedOrder.id} removed from production line`);
-    } catch (error) {
-      console.error('❌ Error removing order from production line:', error);
     }
   };
 
@@ -316,7 +295,6 @@ const ProductionLine1Dashboard = () => {
       
     } catch (error) {
       console.error('Error reporting missing blocks:', error);
-      alert('Failed to report missing blocks. Please try again.');
     }
   };
 
@@ -385,6 +363,35 @@ const ProductionLine1Dashboard = () => {
       </div>
     </div>
   );
+
+  // Handle starting production for orders approved by VoorraadBeheer
+  const handleStartProduction = async (orderId) => {
+    try {
+      setUpdating(orderId);
+      
+      // Call the new API endpoint to start production
+      await api.post(`/api/Order/${orderId}/start-production`);
+      
+      // Update local state to reflect the status change
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId ? { ...order, status: 'InProduction' } : order
+        )
+      );
+      
+      // Update selected order if it's the one being changed
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, status: 'InProduction' }));
+      }
+      
+      console.log(`✅ Production started for order ${orderId}`);
+    } catch (error) {
+      console.error('❌ Failed to start production:', error);
+      alert('Failed to start production. Please try again.');
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   return (
     <>
@@ -508,6 +515,23 @@ const ProductionLine1Dashboard = () => {
                   </div>
                   
                   {/* Conditional rendering based on status */}
+                  {selectedOrder.status === 'ApprovedByVoorraadbeheer' && (
+                    <>
+                      {renderOrderDetails(selectedOrder)}
+                      
+                      <div className="flex space-x-3">
+                        <button
+                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                          onClick={() => handleStartProduction(selectedOrder.id)}
+                          disabled={updating === selectedOrder.id}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  
                   {(selectedOrder.status === 'In Queue' || selectedOrder.status === 'Pending') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
@@ -533,7 +557,7 @@ const ProductionLine1Dashboard = () => {
                     </>
                   )}
                   
-                  {(selectedOrder.status === 'In Progress' || selectedOrder.status === 'InProduction') && (
+                  {(selectedOrder.status === 'In Production' || selectedOrder.status === 'InProduction') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
