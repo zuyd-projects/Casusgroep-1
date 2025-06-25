@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { api } from "@CASUSGROEP1/utils/api";
 import { useSimulation } from "@CASUSGROEP1/contexts/SimulationContext";
 import Card from "@CASUSGROEP1/components/Card";
-import StatusBadge from "@CASUSGROEP1/components/StatusBadge";
 import { PlayCircle, AlertCircle, Settings } from "lucide-react";
 import PlannerWarnings from "@CASUSGROEP1/components/PlannerWarnings";
 import { getMotorTypeColors } from "@CASUSGROEP1/utils/motorColors";
@@ -124,7 +123,6 @@ export default function PlanningPage() {
         quantity: currentOrder.originalOrder.quantity,
         signature: currentOrder.originalOrder.signature,
         productionLine: productionLineChar,
-        status: currentOrder.originalOrder.status,
       };
 
       await api.put(`/api/Order/${orderId}`, updateData);
@@ -147,48 +145,6 @@ export default function PlanningPage() {
     }
   };
 
-  const updateOrderStatus = async (orderId, newStatus) => {
-    setUpdating(orderId);
-    try {
-      // Get the current order to preserve other properties
-      const currentOrder = orders.find((order) => order.id === orderId);
-      if (!currentOrder) {
-        setMessage(`❌ Order ${orderId} not found`);
-        return;
-      }
-
-      // Update via API with all required fields
-      const updateData = {
-        roundId: currentOrder.originalOrder.roundId || 1,
-        deliveryId: currentOrder.originalOrder.deliveryId,
-        appUserId: currentOrder.originalOrder.appUserId,
-        motorType: currentOrder.originalOrder.motorType,
-        quantity: currentOrder.originalOrder.quantity,
-        signature: currentOrder.originalOrder.signature,
-        productionLine: currentOrder.productielijn
-          ? currentOrder.productielijn.charAt(0)
-          : null,
-        status: newStatus,
-      };
-
-      await api.put(`/api/Order/${orderId}`, updateData);
-
-      // Update local state
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-
-      setMessage(`✅ Status updated for order ${orderId}`);
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      setMessage(`❌ Failed to update status for order ${orderId}`);
-    } finally {
-      setUpdating(null);
-    }
-  };
-
   // Filter orders based on round selection
   const filteredOrders =
     showCurrentRoundOnly && currentRound
@@ -203,7 +159,7 @@ export default function PlanningPage() {
             Production Planning
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Assign orders to production lines and manage their status
+            Assign orders to production lines
           </p>
         </div>
 
@@ -374,9 +330,6 @@ export default function PlanningPage() {
                   <th scope="col" className="px-6 py-3 text-left">
                     Production Line
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Status
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -459,31 +412,6 @@ export default function PlanningPage() {
                           </button>
                         )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={order.status}
-                        onChange={(e) =>
-                          updateOrderStatus(order.id, e.target.value)
-                        }
-                        disabled={updating === order.id}
-                        className="text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="InProduction">In Production</option>
-                        <option value="Completed">Completed</option>
-                        <option value="AwaitingAccountManagerApproval">
-                          Awaiting Approval
-                        </option>
-                        <option value="ApprovedByAccountManager">
-                          Approved
-                        </option>
-                        <option value="RejectedByAccountManager">
-                          Rejected
-                        </option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
                     </td>
                   </tr>
                 ))}
