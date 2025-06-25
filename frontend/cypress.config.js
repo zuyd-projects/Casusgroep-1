@@ -9,3 +9,4 @@ module.exports = defineConfig({
     specPattern: "src/components/test/**/*.cy.{js,jsx,ts,tsx}",
   },
 });
+
