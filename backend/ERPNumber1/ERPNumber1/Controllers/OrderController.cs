@@ -607,11 +607,11 @@ namespace ERPNumber1.Controllers
                     return NotFound();
                 }
 
-                if (order.Status != OrderStatus.ApprovedByVoorraadbeheer)
+                if (order.Status != OrderStatus.ApprovedByVoorraadbeheer && order.Status != OrderStatus.ToProduction)
                 {
                     await _eventLogService.LogOrderEventAsync(id, "Start Production Failed", "OrderController", "Failed", 
-                        new { reason = $"Order status is {order.Status}, expected ApprovedByVoorraadbeheer" }, userId);
-                    return BadRequest($"Order cannot start production. Current status: {order.Status}. Expected: ApprovedByVoorraadbeheer");
+                        new { reason = $"Order status is {order.Status}, expected ApprovedByVoorraadbeheer or ToProduction" }, userId);
+                    return BadRequest($"Order cannot start production. Current status: {order.Status}. Expected: ApprovedByVoorraadbeheer or ToProduction");
                 }
 
                 // Update order status to InProduction
@@ -627,7 +627,7 @@ namespace ERPNumber1.Controllers
                 // Log successful production start
                 await _eventLogService.LogOrderEventAsync(id, "Production Started", "OrderController", "Completed", 
                     new { 
-                        previousStatus = "ApprovedByVoorraadbeheer",
+                        previousStatus = oldStatus.ToString(),
                         newStatus = "InProduction",
                         startedBy = "ProductionLine"
                     }, userId);

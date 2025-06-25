@@ -51,9 +51,10 @@ const ProductionLine1Dashboard = () => {
           const prodLine = order.productionLine ? order.productionLine.toString() : null;
           const isAssignedToLine1 = prodLine === '1';
           
-          // Only show orders that are approved by voorraadBeheer, in production, or other relevant statuses
+          // Only show orders that are assigned to production line and ready for production
           const relevantStatuses = [
             'ApprovedByVoorraadbeheer', // Orders approved by voorraadBeheer and ready for production
+            'ToProduction', // Orders assigned to production line and ready to start
             'Pending',  // Include pending orders (returned from missing blocks)
             'InProduction', 
             'In Progress',
@@ -132,8 +133,9 @@ const ProductionLine1Dashboard = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending': return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20';
+      case 'ToProduction': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
       case 'InProduction': 
-      case 'In Progress': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
+      case 'In Progress': return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20';
       case 'In Queue': return 'text-zinc-600 bg-zinc-100 dark:text-zinc-400 dark:bg-zinc-900/20';
       case 'Completed': return 'text-violet-600 bg-violet-100 dark:text-violet-400 dark:bg-violet-900/20';
       default: return 'text-zinc-600 bg-zinc-100 dark:text-zinc-400 dark:bg-zinc-800';
@@ -555,7 +557,7 @@ const ProductionLine1Dashboard = () => {
                   </div>
                   
                   {/* Conditional rendering based on status */}
-                  {selectedOrder.status === 'ApprovedByVoorraadbeheer' && (
+                  {(selectedOrder.status === 'ApprovedByVoorraadbeheer' || selectedOrder.status === 'ToProduction') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
                       

@@ -18,6 +18,7 @@ const MotorBlockRequirements = {
 export default function VoorraadBeheerPage() {
   const [inventoryData, setInventoryData] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
+  const [rejectedOrders, setRejectedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentRound, isRunning } = useSimulation();
@@ -56,6 +57,10 @@ export default function VoorraadBeheerPage() {
       ]);
 
       setPendingOrders(pendingOrdersData);
+      
+      // Filter and set rejected orders
+      const rejectedOrdersData = orders.filter(order => order.status === "RejectedByVoorraadbeheer");
+      setRejectedOrders(rejectedOrdersData);
 
       // Process supplier orders to calculate current inventory
       const inventoryItems = supplierOrders.map((supplierOrder) => {
@@ -155,6 +160,48 @@ export default function VoorraadBeheerPage() {
       showErrorMessage(
         "❌ Rejection Failed",
         `Failed to reject order ${orderId}. ${error.response?.data?.message || error.message}`
+      );
+    }
+  };
+
+  // Handle order deletion - safety mechanism for bad orders
+  const handleDeleteOrder = async (orderId) => {
+    const isConfirmed = window.confirm(
+      `⚠️ WAARSCHUWING: Ben je er zeker van dat je order ${orderId} permanent wilt verwijderen uit de database?\n\n` +
+      `Dit kan alleen gebruikt worden in noodgevallen wanneer er iets echt mis is gegaan.\n\n` +
+      `Deze actie kan NIET ongedaan gemaakt worden!`
+    );
+    
+    if (!isConfirmed) {
+      return;
+    }
+
+    // Double confirmation for safety
+    const isDoubleConfirmed = window.confirm(
+      `🔥 LAATSTE WAARSCHUWING: Order ${orderId} wordt permanent verwijderd!\n\n` +
+      `Klik OK om te bevestigen of Cancel om te annuleren.`
+    );
+    
+    if (!isDoubleConfirmed) {
+      return;
+    }
+
+    try {
+      console.log(`🗑️ Deleting order ${orderId} from database`);
+      await api.delete(`/api/Order/${orderId}`);
+      
+      showSuccessMessage(
+        "🗑️ Order Deleted!",
+        `Order ${orderId} has been permanently deleted from the database.`
+      );
+      
+      // Refresh data to remove the deleted order
+      await fetchInventoryData();
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      showErrorMessage(
+        "❌ Deletion Failed",
+        `Failed to delete order ${orderId}. ${error.response?.data?.message || error.message}`
       );
     }
   };
@@ -337,6 +384,27 @@ export default function VoorraadBeheerPage() {
                             />
                           </svg>
                           Afwijzen
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOrder(order.id)}
+                          className="px-4 py-2 bg-gray-700 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 border-2 border-red-300"
+                          title="⚠️ NOODGEVAL: Verwijder order permanent uit database"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -532,6 +600,77 @@ export default function VoorraadBeheerPage() {
             </table>
           </div>
         </div>
+
+        {/* Rejected Orders Section */}
+        {rejectedOrders.length > 0 && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg mt-6">
+            <div className="bg-red-100 dark:bg-red-900/50 py-4 px-6 border-b border-red-200 dark:border-red-700">
+              <h3 className="text-xl font-bold text-red-800 dark:text-red-200">
+                ❌ Afgewezen Orders
+              </h3>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                Deze orders zijn afgewezen door VoorraadBeheer
+              </p>
+            </div>
+            <div className="overflow-x-auto p-4">
+              <table className="w-full border-separate border-spacing-0">
+                <thead className="bg-red-50 dark:bg-red-900/30">
+                  <tr className="border-b-2 border-red-200 dark:border-red-700">
+                    <th className="px-6 py-4 text-left text-sm font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">
+                      Order ID
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">
+                      Motor Type
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">
+                      Order Date
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-zinc-900">
+                  {rejectedOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors duration-150"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        #{order.id}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getMotorTypeColors(order.motorType).full}`}>
+                          Motor {order.motorType}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-zinc-900 dark:text-zinc-100">
+                        {order.quantity} stuks
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-zinc-900 dark:text-zinc-100">
+                        Customer {order.appUserId}
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                        {new Date(order.orderDate).toLocaleDateString('nl-NL')}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          Afgewezen
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

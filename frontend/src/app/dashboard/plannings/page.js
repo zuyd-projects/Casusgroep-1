@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { api } from "@CASUSGROEP1/utils/api";
 import { useSimulation } from "@CASUSGROEP1/contexts/SimulationContext";
 import Card from "@CASUSGROEP1/components/Card";
+import StatusBadge from "@CASUSGROEP1/components/StatusBadge";
 import { PlayCircle, AlertCircle, Settings } from "lucide-react";
 import PlannerWarnings from "@CASUSGROEP1/components/PlannerWarnings";
 import { getMotorTypeColors } from "@CASUSGROEP1/utils/motorColors";
@@ -15,6 +16,14 @@ export default function PlanningPage() {
   const [message, setMessage] = useState("");
   const [showCurrentRoundOnly, setShowCurrentRoundOnly] = useState(false);
   const [updating, setUpdating] = useState(null); // Track which order is being updated
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "all",
+    motorType: "all",
+    productionLine: "all"
+  });
 
   const { currentRound, currentSimulation, isRunning } = useSimulation();
 
@@ -102,17 +111,24 @@ export default function PlanningPage() {
   const updateProductionLine = async (orderId, productionLine) => {
     setUpdating(orderId);
     try {
-      // Convert string to char for backend (null/empty for unassigned)
-      const productionLineChar = productionLine
-        ? productionLine.charAt(0)
-        : null;
-
       // Get the current order to preserve other properties
       const currentOrder = orders.find((order) => order.id === orderId);
       if (!currentOrder) {
         setMessage(`❌ Order ${orderId} not found`);
         return;
       }
+
+      // Check if order is rejected by voorraad beheer
+      if (currentOrder.status === "RejectedByVoorraadbeheer" && productionLine) {
+        setMessage(`❌ Cannot assign rejected order ${orderId} to production line. Order has been rejected by voorraad beheer.`);
+        setUpdating(null);
+        return;
+      }
+
+      // Convert string to char for backend (null/empty for unassigned)
+      const productionLineChar = productionLine
+        ? productionLine.charAt(0)
+        : null;
 
       // Update via API with all required fields
       const updateData = {
@@ -123,6 +139,7 @@ export default function PlanningPage() {
         quantity: currentOrder.originalOrder.quantity,
         signature: currentOrder.originalOrder.signature,
         productionLine: productionLineChar,
+        status: productionLine ? 'ToProduction' : currentOrder.originalOrder.status, // Set to ToProduction when assigning to production line
       };
 
       await api.put(`/api/Order/${orderId}`, updateData);
@@ -145,11 +162,56 @@ export default function PlanningPage() {
     }
   };
 
-  // Filter orders based on round selection
-  const filteredOrders =
+  // Apply table filters to orders
+  const applyTableFilters = (ordersList) => {
+    return ordersList.filter((order) => {
+      // Search filter (order ID or customer)
+      if (filters.search && !(`#${order.id}`.toLowerCase().includes(filters.search.toLowerCase()) || 
+          order.customer.toLowerCase().includes(filters.search.toLowerCase()))) {
+        return false;
+      }
+      
+      // Status filter
+      if (filters.status !== "all" && order.status !== filters.status) {
+        return false;
+      }
+      
+      // Motor type filter
+      if (filters.motorType !== "all" && order.motortype !== filters.motorType) {
+        return false;
+      }
+      
+      // Production line filter
+      if (filters.productionLine !== "all") {
+        if (filters.productionLine === "unassigned" && order.productielijn) {
+          return false;
+        }
+        if (filters.productionLine !== "unassigned" && order.productielijn !== filters.productionLine) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  // Filter orders based on round selection and split into regular and rejected orders
+  const allFilteredOrders =
     showCurrentRoundOnly && currentRound
       ? orders.filter((order) => order.roundId === currentRound.id)
       : orders;
+
+  // Apply additional filters
+  const baseFilteredOrders = applyTableFilters(allFilteredOrders);
+
+  // Separate regular orders from rejected orders
+  const filteredOrders = baseFilteredOrders.filter(
+    (order) => order.status !== "RejectedByVoorraadbeheer"
+  );
+  
+  const rejectedOrders = baseFilteredOrders.filter(
+    (order) => order.status === "RejectedByVoorraadbeheer"
+  );
 
   return (
     <div className="space-y-6">
@@ -223,12 +285,12 @@ export default function PlanningPage() {
         </Card>
 
       {/* Planning Statistics */}
-      {filteredOrders.length > 0 && (
+      {baseFilteredOrders.length > 0 && (
         <Card title="📊 Planning Overview">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-zinc-900 dark:text-white">
-                {filteredOrders.length}
+                {baseFilteredOrders.length}
               </div>
               <div className="text-sm text-zinc-500 dark:text-zinc-400">
                 {showCurrentRoundOnly ? "Current Round Orders" : "Total Orders"}
@@ -236,7 +298,7 @@ export default function PlanningPage() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {filteredOrders.filter((o) => o.productielijn === "1").length}
+                {filteredOrders.filter((o) => o.productielijn === "1" && !["AwaitingAccountManagerApproval", "ApprovedByAccountManager", "RejectedByAccountManager", "Delivered", "Completed"].includes(o.status)).length}
               </div>
               <div className="text-sm text-zinc-500 dark:text-zinc-400">
                 Production Line 1
@@ -244,7 +306,7 @@ export default function PlanningPage() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {filteredOrders.filter((o) => o.productielijn === "2").length}
+                {filteredOrders.filter((o) => o.productielijn === "2" && !["AwaitingAccountManagerApproval", "ApprovedByAccountManager", "RejectedByAccountManager", "Delivered", "Completed"].includes(o.status)).length}
               </div>
               <div className="text-sm text-zinc-500 dark:text-zinc-400">
                 Production Line 2
@@ -252,10 +314,18 @@ export default function PlanningPage() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-600">
-                {filteredOrders.filter((o) => !o.productielijn).length}
+                {filteredOrders.filter((o) => !o.productielijn && o.status !== "RejectedByVoorraadbeheer").length}
               </div>
               <div className="text-sm text-zinc-500 dark:text-zinc-400">
                 Unassigned
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {rejectedOrders.length}
+              </div>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                Rejected Orders
               </div>
             </div>
           </div>
@@ -321,16 +391,10 @@ export default function PlanningPage() {
                       Round
                     </th>
                     <th scope="col" className="px-6 py-3 text-left">
-                      Blue Blocks
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Red Blocks
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Gray Blocks
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
                       Assign to Production Line
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Status
                     </th>
                   </tr>
                 </thead>
@@ -371,15 +435,6 @@ export default function PlanningPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {order.blauw}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.rood}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.grijs}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
                           <button
                             onClick={() => updateProductionLine(order.id, "1")}
@@ -396,6 +451,9 @@ export default function PlanningPage() {
                             Line 2
                           </button>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={order.status} />
                       </td>
                     </tr>
                   ))}
@@ -437,21 +495,15 @@ export default function PlanningPage() {
                       Round
                     </th>
                     <th scope="col" className="px-6 py-3 text-left">
-                      Blue Blocks
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Red Blocks
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Gray Blocks
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
                       Production Line
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      Status
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {filteredOrders.filter(order => order.productielijn).map((order) => (
+                  {filteredOrders.filter(order => order.productielijn).sort((a, b) => b.id - a.id).map((order) => (
                     <tr
                       key={order.id}
                       className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
@@ -487,15 +539,6 @@ export default function PlanningPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {order.blauw}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.rood}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.grijs}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
                           <span
                             className={`px-3 py-1 text-xs font-medium rounded-md ${
@@ -508,13 +551,16 @@ export default function PlanningPage() {
                           </span>
                           <button
                             onClick={() => updateProductionLine(order.id, null)}
-                            disabled={updating === order.id}
-                            className="px-2 py-1 text-xs font-medium rounded-md bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
-                            title="Unassign from production line"
+                            disabled={updating === order.id || order.status === "InProduction" || order.status === "ApprovedByAccountManager" || order.status === "AwaitingAccountManagerApproval" || order.status === "Delivered" || order.status === "Completed"}
+                            className="px-2 py-1 text-xs font-medium rounded-md bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={order.status === "InProduction" || order.status === "ApprovedByAccountManager" || order.status === "AwaitingAccountManagerApproval" || order.status === "Delivered" || order.status === "Completed" ? "Cannot unassign when order is in production, awaiting/approved by account manager, delivered, or completed" : "Unassign from production line"}
                           >
                             ✕
                           </button>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={order.status} />
                       </td>
                     </tr>
                   ))}
@@ -525,12 +571,92 @@ export default function PlanningPage() {
         )}
       </div>
 
-      {filteredOrders.length === 0 && !loading && (
-        <Card>
-          <div className="py-20 text-center text-zinc-500 dark:text-zinc-400">
-            {showCurrentRoundOnly && currentRound
-              ? `No orders found for Round ${currentRound.number}`
-              : "No orders found"}
+      {/* Rejected Orders table */}
+      {rejectedOrders.length > 0 && (
+        <Card 
+          title="🚫 Rejected Orders" 
+          className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+        >
+          <div className="mb-4">
+            <p className="text-sm text-red-700 dark:text-red-300">
+              These orders have been rejected by Voorraad Beheer and cannot be assigned to production lines. 
+              They are excluded from planning but kept for record-keeping purposes.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-red-200 dark:divide-red-800">
+              <thead className="text-xs uppercase tracking-wider text-red-600 dark:text-red-400">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Order ID
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Customer
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Motor Type
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Quantity
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Simulation
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Round
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-red-200 dark:divide-red-800">
+                {rejectedOrders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="bg-red-100 dark:bg-red-900/30 hover:bg-red-150 dark:hover:bg-red-900/40"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
+                      #{order.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
+                      {order.customer}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md opacity-75`}>
+                        Motor {order.motortype}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
+                      {order.aantal}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.simulationId ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md opacity-75">
+                          Sim {order.simulationId}
+                        </span>
+                      ) : (
+                        <span className="text-red-400 dark:text-red-500">No Simulation</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.roundNumber ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md opacity-75">
+                          Round {order.roundNumber}
+                        </span>
+                      ) : (
+                        <span className="text-red-400 dark:text-red-500">No Round</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-red-200 text-red-800 dark:bg-red-800/50 dark:text-red-200 border border-red-300 dark:border-red-700 rounded-md">
+                        🚫 Rejected by Voorraad Beheer
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Card>
       )}

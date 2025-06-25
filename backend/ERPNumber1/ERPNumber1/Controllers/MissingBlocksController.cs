@@ -165,13 +165,13 @@ namespace ERPNumber1.Controllers
                     return NotFound();
                 }
 
-                // If resolving the missing blocks request, update the order status back to Pending
+                // If resolving the missing blocks request, update the order status back to ToProduction (ready for production)
                 if (missingBlocksDto.Status == "Resolved")
                 {
                     var order = await _orderRepo.GetByIdAsync(missingBlocks.OrderId);
                     if (order != null)
                     {
-                        order.Status = OrderStatus.Pending;
+                        order.Status = OrderStatus.ToProduction;  // Set to ToProduction so it goes back to production lines, not voorraadBeheer
                         order.WasReturnedFromMissingBlocks = true;  // Mark for prioritization
                         await _orderRepo.UpdateAysnc(missingBlocks.OrderId, order);
                     }
