@@ -52,7 +52,7 @@ resource "azurerm_linux_virtual_machine" "backend" {
     version   = "latest"
   }
 
-  computer_name      = "backend-vm"
+  computer_name      = "backend-vm${var.environment == "prod" ? "" : "-${var.environment}"}"
   provision_vm_agent = true
 
   custom_data = var.cloud_init

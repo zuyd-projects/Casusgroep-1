@@ -57,7 +57,7 @@ resource "azurerm_linux_virtual_machine" "frontend" {
     version   = "latest"
   }
 
-  computer_name      = "frontend-vm"
+  computer_name      = "frontend-vm${var.environment == "prod" ? "" : "-${var.environment}"}"
   provision_vm_agent = true
 
   custom_data = var.cloud_init

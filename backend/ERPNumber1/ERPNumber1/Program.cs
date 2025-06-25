@@ -23,7 +23,10 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:3000",
                 "http://localhost:3001",
-                "http://localhost:3002"
+                "http://localhost:3002",
+                "http://localhost:80",
+                "http://127.0.0.1:80",
+                "http://host.docker.internal:80" // Windows Docker compatibility
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -98,12 +101,19 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEventLogService, EventLogService>();
 builder.Services.AddSingleton<ISimulationService, SimulationService>();
 
-// SignalR
+// SignalR with Windows Docker optimizations
 builder.Services.AddSignalR(options =>
 {
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
     options.EnableDetailedErrors = true; // Only for development
+    options.HandshakeTimeout = TimeSpan.FromSeconds(30); // Increased for Windows Docker
+    options.MaximumReceiveMessageSize = 102400; // 100KB limit
+})
+.AddJsonProtocol(options =>
+{
+    // Configure JSON serialization for cross-platform compatibility
+    options.PayloadSerializerOptions.PropertyNamingPolicy = null;
 });
 
 // Global filter
