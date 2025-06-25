@@ -38,7 +38,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/pending
         [HttpGet("pending")]
-        [LogEvent("MissingBlocks", "Get Pending Missing Blocks")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetPendingMissingBlocks()
         {
             var pendingMissingBlocks = await _missingBlocksRepo.GetPendingAsync();
@@ -48,7 +47,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/5
         [HttpGet("{id}")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks by ID")]
         public async Task<ActionResult<MissingBlocksDto>> GetMissingBlocks(int id)
         {
             var missingBlocks = await _missingBlocksRepo.GetByIdAsync(id);
@@ -67,7 +65,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/order/5
         [HttpGet("order/{orderId}")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks by Order ID")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocksByOrderId(int orderId)
         {
             var missingBlocks = await _missingBlocksRepo.GetByOrderIdAsync(orderId);
@@ -77,7 +74,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/runner
         [HttpGet("runner")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks for Runner")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocksForRunner()
         {
             var missingBlocks = await _missingBlocksRepo.GetForRunnerAsync();
@@ -87,7 +83,6 @@ namespace ERPNumber1.Controllers
 
         // GET: api/MissingBlocks/supplier
         [HttpGet("supplier")]
-        [LogEvent("MissingBlocks", "Get Missing Blocks for Supplier")]
         public async Task<ActionResult<IEnumerable<MissingBlocksDto>>> GetMissingBlocksForSupplier()
         {
             var missingBlocks = await _missingBlocksRepo.GetForSupplierAsync();

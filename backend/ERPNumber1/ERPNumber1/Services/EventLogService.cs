@@ -12,6 +12,15 @@ namespace ERPNumber1.Services
         private readonly AppDbContext _context;
         private readonly ILogger<EventLogService> _logger;
 
+        // Anomaly detection configuration constants
+        private const int MIN_SAMPLES_FOR_ANOMALY_DETECTION = 5; // Need at least 5 samples for statistical validity
+        private const double MIN_DURATION_FOR_ANOMALY_DETECTION_MS = 1000; // Only consider activities > 1 second
+        private const double ANOMALY_DURATION_MULTIPLIER_THRESHOLD = 2.0; // Must be at least 2x average duration
+        private const double ANOMALY_MAX_DURATION_MULTIPLIER = 10.0; // Cap at 10x average to avoid false positives
+        private const double HIGH_SEVERITY_DURATION_RATIO = 10.0; // 10x longer = High severity
+        private const double MEDIUM_SEVERITY_DURATION_RATIO = 5.0; // 5x longer = Medium severity
+        private const double STANDARD_DEVIATION_MULTIPLIER = 4.0; // Use 4 standard deviations instead of 2
+
         public EventLogService(AppDbContext context, ILogger<EventLogService> logger)
         {
             _context = context;
@@ -222,7 +231,8 @@ namespace ERPNumber1.Services
         public async Task<object> DetectAnomaliesAsync(DateTime? startDate = null, DateTime? endDate = null, string? severity = null)
         {
             var events = await GetFilteredEventsAsync(startDate, endDate);
-            _logger.LogInformation("Analyzing {EventCount} events for anomalies", events.Count);
+            _logger.LogInformation("Analyzing {EventCount} events for anomalies using thresholds: MinSamples={MinSamples}, MinDuration={MinDuration}ms, StdDevMultiplier={StdDevMultiplier}, DurationMultiplier={DurationMultiplier}", 
+                events.Count, MIN_SAMPLES_FOR_ANOMALY_DETECTION, MIN_DURATION_FOR_ANOMALY_DETECTION_MS, STANDARD_DEVIATION_MULTIPLIER, ANOMALY_DURATION_MULTIPLIER_THRESHOLD);
             
             var anomalies = new List<object>();
 
@@ -230,33 +240,54 @@ namespace ERPNumber1.Services
             var avgDurations = events
                 .Where(e => e.DurationMs.HasValue && e.DurationMs.Value > 0)
                 .GroupBy(e => e.Activity)
+                .Where(g => g.Count() >= MIN_SAMPLES_FOR_ANOMALY_DETECTION) // Need at least 5 samples for statistical validity
                 .Select(g => new { 
                     Activity = g.Key, 
                     AvgDuration = g.Average(e => e.DurationMs!.Value),
-                    StdDev = Math.Sqrt(g.Average(e => Math.Pow(e.DurationMs!.Value - g.Average(x => x.DurationMs!.Value), 2)))
+                    StdDev = Math.Sqrt(g.Average(e => Math.Pow(e.DurationMs!.Value - g.Average(x => x.DurationMs!.Value), 2))),
+                    SampleCount = g.Count()
                 })
+                .Where(x => x.AvgDuration > MIN_DURATION_FOR_ANOMALY_DETECTION_MS) // Only consider activities that normally take more than 1 second
                 .ToList();
 
             foreach (var avg in avgDurations)
             {
+                // Use more lenient thresholds: 4 standard deviations or 5x the average duration, whichever is larger
+                var minThreshold = Math.Max(STANDARD_DEVIATION_MULTIPLIER * avg.StdDev, avg.AvgDuration * ANOMALY_DURATION_MULTIPLIER_THRESHOLD); // At least 2x average duration
+                var maxThreshold = avg.AvgDuration * ANOMALY_MAX_DURATION_MULTIPLIER; // Cap at 10x average to avoid false positives from outliers
+                var actualThreshold = Math.Min(minThreshold, maxThreshold);
+                
                 var outliers = events
                     .Where(e => e.Activity == avg.Activity && e.DurationMs.HasValue)
-                    .Where(e => Math.Abs(e.DurationMs!.Value - avg.AvgDuration) > 2 * avg.StdDev)
+                    .Where(e => Math.Abs(e.DurationMs!.Value - avg.AvgDuration) > actualThreshold)
                     .ToList();
 
                 foreach (var outlier in outliers)
                 {
-                    anomalies.Add(new
+                    // Only flag as anomaly if it's significantly longer (not shorter) and truly excessive
+                    if (outlier.DurationMs!.Value > avg.AvgDuration + actualThreshold)
                     {
-                        Type = "Duration Anomaly",
-                        Severity = outlier.DurationMs > avg.AvgDuration + 2 * avg.StdDev ? "High" : "Medium",
-                        CaseId = outlier.CaseId,
-                        Activity = outlier.Activity,
-                        ActualDuration = outlier.DurationMs,
-                        ExpectedDuration = avg.AvgDuration,
-                        Timestamp = outlier.Timestamp,
-                        Description = $"Activity '{outlier.Activity}' took {outlier.DurationMs}ms, expected ~{avg.AvgDuration:F0}ms"
-                    });
+                        var durationRatio = outlier.DurationMs.Value / avg.AvgDuration;
+                        
+                        // Determine severity based on configurable thresholds
+                        string anomalySeverity = durationRatio > HIGH_SEVERITY_DURATION_RATIO ? "High" 
+                                               : durationRatio > MEDIUM_SEVERITY_DURATION_RATIO ? "Medium" 
+                                               : "Low";
+                        
+                        anomalies.Add(new
+                        {
+                            Type = "Duration Anomaly",
+                            Severity = anomalySeverity,
+                            CaseId = outlier.CaseId,
+                            Activity = outlier.Activity,
+                            ActualDuration = outlier.DurationMs,
+                            ExpectedDuration = avg.AvgDuration,
+                            DurationRatio = durationRatio,
+                            Timestamp = outlier.Timestamp,
+                            SampleSize = avg.SampleCount,
+                            Description = $"Activity '{outlier.Activity}' took {outlier.DurationMs}ms ({durationRatio:F1}x longer than expected ~{avg.AvgDuration:F0}ms, based on {avg.SampleCount} samples)"
+                        });
+                    }
                 }
             }
 
