@@ -2,8 +2,8 @@
   "containers": [
     {
       "name": "backend",
-      "image": "ghcr.io/zuyd-projects/backend:20250625181208"
+      "image": "ghcr.io/zuyd-projects/backend:20250626201159"
     }
   ],
-  "lastUpdated": "2025-06-25T18:12:48Z"
+  "lastUpdated": "2025-06-26T20:12:55Z"
 }
