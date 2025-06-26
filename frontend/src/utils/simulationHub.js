@@ -21,7 +21,7 @@ class SimulationHubService {
       }
 
       this.connection = new HubConnectionBuilder()
-        .withUrl('/simulationhub', {
+        .withUrl('/simulationHub', {
           accessTokenFactory: () => token
         })
         .withAutomaticReconnect()

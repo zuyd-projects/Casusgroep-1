@@ -162,8 +162,7 @@ export default function DeliveryDashboard() {
       // Remove from runner's list (it will now appear on supplier page)
       setMissingBlocksOrders(prev => prev.filter(o => o.id !== selectedMissingBlocksOrder.id));
       setSelectedMissingBlocksOrder(null);
-      
-      alert(`Cannot deliver missing blocks. Request escalated to supplier for Order ${request.orderId}.`);
+    
     } catch (error) {
       console.error('Error handling missing blocks delivery:', error);
     }
