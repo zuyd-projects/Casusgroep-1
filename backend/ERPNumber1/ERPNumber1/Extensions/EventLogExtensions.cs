@@ -13,7 +13,7 @@ namespace ERPNumber1.Extensions
             object? additionalData = null, string? userId = null)
         {
             await eventLogService.LogEventAsync(
-                caseId: $"Order_{orderId}",
+                caseId: $"Order-{orderId}",
                 activity: activity,
                 resource: resource,
                 eventType: "Order",
@@ -32,7 +32,7 @@ namespace ERPNumber1.Extensions
             object? additionalData = null, string? userId = null)
         {
             await eventLogService.LogEventAsync(
-                caseId: $"Simulation_{simulationId}",
+                caseId: $"Simulation-{simulationId}",
                 activity: activity,
                 resource: resource,
                 eventType: "Simulation",
@@ -51,7 +51,7 @@ namespace ERPNumber1.Extensions
             object? additionalData = null, string? userId = null)
         {
             await eventLogService.LogEventAsync(
-                caseId: $"Inventory_{inventoryId}",
+                caseId: $"Inventory-{inventoryId}",
                 activity: activity,
                 resource: resource,
                 eventType: "Inventory",
@@ -70,7 +70,7 @@ namespace ERPNumber1.Extensions
             object? additionalData = null, string? userId = null)
         {
             await eventLogService.LogEventAsync(
-                caseId: $"Delivery_{deliveryId}",
+                caseId: $"Delivery-{deliveryId}",
                 activity: activity,
                 resource: resource,
                 eventType: "Delivery",
@@ -89,7 +89,7 @@ namespace ERPNumber1.Extensions
             object? additionalData = null)
         {
             await eventLogService.LogEventAsync(
-                caseId: $"User_{userId}",
+                caseId: $"User-{userId}",
                 activity: activity,
                 resource: resource,
                 eventType: "User",
@@ -108,7 +108,7 @@ namespace ERPNumber1.Extensions
             object? additionalData = null, string? userId = null)
         {
             await eventLogService.LogEventAsync(
-                caseId: $"SupplierOrder_{supplierOrderId}",
+                caseId: $"SupplierOrder-{supplierOrderId}",
                 activity: activity,
                 resource: resource,
                 eventType: "SupplierOrder",

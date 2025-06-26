@@ -231,12 +231,16 @@ export default function AccountManagerDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingOrders.map((order) => {
+                {pendingOrders.map((order, index) => {
                   const { roundNumber, simulationId } = getRoundInfo(order.roundId);
                   return (
                     <div
                       key={order.id}
-                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm"
+                      className={`border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm transition-colors ${
+                        index % 2 === 0
+                          ? 'bg-white dark:bg-zinc-900'
+                          : 'bg-gray-50 dark:bg-zinc-800'
+                      }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -287,12 +291,16 @@ export default function AccountManagerDashboard() {
 
         {activeTab === 'all' && (
           <div className="space-y-3">
-            {allOrders.map((order) => {
+            {allOrders.map((order, index) => {
               const { roundNumber, simulationId } = getRoundInfo(order.roundId);
               return (
                 <div
                   key={order.id}
-                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm"
+                  className={`border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm transition-colors ${
+                    index % 2 === 0
+                      ? 'bg-white dark:bg-zinc-900'
+                      : 'bg-gray-50 dark:bg-zinc-800'
+                  }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">

@@ -19,7 +19,8 @@ namespace ERPNumber1.Data
         public DbSet<Statistics> Statistics { get; set; }
         public DbSet<SupplierOrder> SupplierOrders { get; set; }
         public DbSet<EventLog> EventLogs { get; set; }
-        public DbSet<MissingBlocks> MissingBlocks { get; set; }    
+        public DbSet<MissingBlocks> MissingBlocks { get; set; }
+        public DbSet<MaintenanceOrder> MaintenanceOrders { get; set; }    
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
