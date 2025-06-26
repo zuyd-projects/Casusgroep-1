@@ -68,9 +68,6 @@ export default function SupplierPage() {
       
       console.log(`✅ Resolved missing blocks for order ${request.orderId}, returned to production line ${request.productionLine}`);
       
-      // Show success message
-      alert(`Missing blocks delivered! Order ${request.orderId} has been returned to ${request.productionLine} and prioritized.`);
-      
     } catch (error) {
       console.error('Error resolving missing blocks request:', error);
       alert('Failed to resolve missing blocks request. Please try again.');
