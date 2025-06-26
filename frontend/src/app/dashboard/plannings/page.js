@@ -763,6 +763,27 @@ export default function PlanningPage() {
         </Card>
       )}
 
+      {/* Maintenance Message */}
+      {maintenanceMessage && (
+        <Card
+          className={
+            maintenanceMessage.includes("❌")
+              ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+              : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
+          }
+        >
+          <p
+            className={
+              maintenanceMessage.includes("❌")
+                ? "text-red-700 dark:text-red-300"
+                : "text-green-700 dark:text-green-300"
+            }
+          >
+            {maintenanceMessage}
+          </p>
+        </Card>
+      )}
+
       {/* Maintenance Feature Section */}
       <Card title="🔧 Production Line Maintenance">
         <div className="space-y-4">
@@ -778,7 +799,7 @@ export default function PlanningPage() {
               Schedule Maintenance
             </button>
           </div>
-
+          
           {/* Maintenance Orders Table */}
           {maintenanceOrders.length > 0 ? (
             <div className="overflow-x-auto">
@@ -859,7 +880,6 @@ export default function PlanningPage() {
           )}
         </div>
       </Card>
-
       {/* Maintenance Modal */}
       {showMaintenanceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -942,368 +962,6 @@ export default function PlanningPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Maintenance Message */}
-      {maintenanceMessage && (
-        <Card
-          className={
-            maintenanceMessage.includes("❌")
-              ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-              : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
-          }
-        >
-          <p
-            className={
-              maintenanceMessage.includes("❌")
-                ? "text-red-700 dark:text-red-300"
-                : "text-green-700 dark:text-green-300"
-            }
-          >
-            {maintenanceMessage}
-          </p>
-        </Card>
-      )}
-
-      {message && (
-        <Card
-          className={
-            message.includes("❌")
-              ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-              : message.includes("✅")
-              ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
-              : "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20"
-          }
-        >
-          <p
-            className={
-              message.includes("❌")
-                ? "text-red-700 dark:text-red-300"
-                : message.includes("✅")
-                ? "text-green-700 dark:text-green-300"
-                : "text-yellow-700 dark:text-yellow-300"
-            }
-          >
-            {message}
-          </p>
-        </Card>
-      )}
-
-      {/* Orders tables */}
-      <div className="space-y-6">
-        {/* Unassigned Orders Table */}
-        <Card title="📋 Unassigned Orders">
-          {loading ? (
-            <div className="py-20 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-zinc-500 dark:text-zinc-400">
-                Loading orders...
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-                <thead className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Order ID
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Customer
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Motor Type
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Quantity
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Simulation
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Round
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Assign to Production Line
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {filteredOrders.filter(order => !order.productielijn).map((order, index) => (
-                    <tr
-                      key={order.id}
-                      className={`hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${
-                        index % 2 === 0 
-                          ? 'bg-white dark:bg-zinc-900' 
-                          : 'bg-gray-50 dark:bg-zinc-800'
-                      }`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.customer}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md`}>
-                          Motor {order.motortype}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.aantal}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.simulationId ? (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
-                            Sim {order.simulationId}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">No Simulation</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.roundNumber ? (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
-                            Round {order.roundNumber}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">No Round</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => updateProductionLine(order.id, "1")}
-                            disabled={updating === order.id}
-                            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                          >
-                            Line 1
-                          </button>
-                          <button
-                            onClick={() => updateProductionLine(order.id, "2")}
-                            disabled={updating === order.id}
-                            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                          >
-                            Line 2
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={order.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {filteredOrders.filter(order => !order.productielijn).length === 0 && (
-                <div className="py-12 text-center text-zinc-500 dark:text-zinc-400">
-                  All orders have been assigned to production lines
-                </div>
-              )}
-            </div>
-          )}
-        </Card>
-
-        {/* Assigned Orders Table */}
-        {filteredOrders.filter(order => order.productielijn).length > 0 && (
-          <Card title="🏭 Assigned Orders">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-                <thead className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Order ID
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Customer
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Motor Type
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Quantity
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Simulation
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Round
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Production Line
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {filteredOrders.filter(order => order.productielijn).sort((a, b) => b.id - a.id).map((order, index) => (
-                    <tr
-                      key={order.id}
-                      className={`hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${
-                        index % 2 === 0 
-                          ? 'bg-white dark:bg-zinc-900' 
-                          : 'bg-gray-50 dark:bg-zinc-800'
-                      }`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.customer}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md`}>
-                          Motor {order.motortype}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.aantal}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.simulationId ? (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">
-                            Sim {order.simulationId}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">No Simulation</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.roundNumber ? (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md">
-                            Round {order.roundNumber}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400">No Round</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-2">
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-md ${
-                              order.productielijn === "1"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700"
-                                : "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-300 dark:border-purple-700"
-                            }`}
-                          >
-                            Line {order.productielijn}
-                          </span>
-                          <button
-                            onClick={() => updateProductionLine(order.id, null)}
-                            disabled={updating === order.id || order.status === "InProduction" || order.status === "ApprovedByAccountManager" || order.status === "AwaitingAccountManagerApproval" || order.status === "Delivered" || order.status === "Completed"}
-                            className="px-2 py-1 text-xs font-medium rounded-md bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={order.status === "InProduction" || order.status === "ApprovedByAccountManager" || order.status === "AwaitingAccountManagerApproval" || order.status === "Delivered" || order.status === "Completed" ? "Cannot unassign when order is in production, awaiting/approved by account manager, delivered, or completed" : "Unassign from production line"}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={order.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {/* Rejected Orders table */}
-      {rejectedOrders.length > 0 && (
-        <Card 
-          title="🚫 Rejected Orders" 
-          className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-        >
-          <div className="mb-4">
-            <p className="text-sm text-red-700 dark:text-red-300">
-              These orders have been rejected by Voorraad Beheer and cannot be assigned to production lines. 
-              They are excluded from planning but kept for record-keeping purposes.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-red-200 dark:divide-red-800">
-              <thead className="text-xs uppercase tracking-wider text-red-600 dark:text-red-400">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Order ID
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Customer
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Motor Type
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Quantity
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Simulation
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Round
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-red-200 dark:divide-red-800">
-                {rejectedOrders.map((order, index) => (
-                  <tr
-                    key={order.id}
-                    className={`hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors ${
-                      index % 2 === 0 
-                        ? 'bg-white dark:bg-zinc-900' 
-                        : 'bg-gray-50 dark:bg-zinc-800'
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
-                      #{order.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
-                      {order.customer}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium ${getMotorTypeColors(order.motortype).full} rounded-md opacity-75`}>
-                        Motor {order.motortype}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
-                      {order.aantal}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.simulationId ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md opacity-75">
-                          Sim {order.simulationId}
-                        </span>
-                      ) : (
-                        <span className="text-red-400 dark:text-red-500">No Simulation</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.roundNumber ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-md opacity-75">
-                          Round {order.roundNumber}
-                        </span>
-                      ) : (
-                        <span className="text-red-400 dark:text-red-500">No Round</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-red-200 text-red-800 dark:bg-red-800/50 dark:text-red-200 border border-red-300 dark:border-red-700 rounded-md">
-                        🚫 Rejected by Voorraad Beheer
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       )}
     </div>
   );

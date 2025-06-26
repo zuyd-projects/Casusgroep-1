@@ -3,10 +3,11 @@
     "http": {
       "commandName": "Project",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_CONNECTION_STRING": "Server=localhost;Database=SimulationDb;User Id=sa;Password=New_password123!;TrustServerCertificate=True;",
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5045"
+      "applicationUrl": "http://localhost:8080"
     },
     "https": {
       "commandName": "Project",
