@@ -165,6 +165,7 @@ builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
 builder.Services.AddScoped<ISupplierOrderRepository, SupplierOrderRepository>();
 builder.Services.AddScoped<IMissingBlocksRepository, MissingBlocksRepository>();
+builder.Services.AddScoped<IMaintenanceOrderRepository, MaintenanceOrderRepository>();
 
 var app = builder.Build();
 
