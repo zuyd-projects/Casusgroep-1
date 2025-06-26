@@ -238,7 +238,7 @@ export default function Dashboard() {
         
         <Card className="flex flex-col">
           <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Revenue</div>
-          <div className="text-3xl font-bold mt-1">${dashboardStats.totalRevenue.toLocaleString()}</div>
+          <div className="text-3xl font-bold mt-1">€{dashboardStats.totalRevenue.toLocaleString()}</div>
           <div className="text-sm text-green-600 dark:text-green-400 mt-1">+8% from last month</div>
         </Card>
         
@@ -477,7 +477,7 @@ export default function Dashboard() {
                   <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{order.customer}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">${order.amount.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">€{order.amount.toFixed(2)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <StatusBadge status={order.status} />
                   </td>

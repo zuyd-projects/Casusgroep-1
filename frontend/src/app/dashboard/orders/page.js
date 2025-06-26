@@ -363,7 +363,7 @@ export default function Orders() {
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                       Quantity
                       <span className="text-xs text-zinc-500 ml-2">
-                        (Price: ${(newOrder.quantity * 100).toFixed(2)})
+                        (Price: €{(newOrder.quantity * 100).toFixed(2)})
                       </span>
                     </label>
                     <input
@@ -412,7 +412,7 @@ export default function Orders() {
                     </div>
                     <div>
                       <span className="text-zinc-600 dark:text-zinc-400">Total Price:</span>
-                      <span className="ml-2 font-medium text-green-600">${(newOrder.quantity * 100).toFixed(2)}</span>
+                      <span className="ml-2 font-medium text-green-600">€{(newOrder.quantity * 100).toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -570,7 +570,7 @@ export default function Orders() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">${order.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">€{order.amount.toFixed(2)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={order.status} />
                     </td>

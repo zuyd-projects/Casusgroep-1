@@ -295,10 +295,10 @@ export default function OrderDetail({ params }) {
                         <td className="px-6 py-4">{itemName}</td>
                         <td className="px-6 py-4 text-right">{itemQuantity}</td>
                         <td className="px-6 py-4 text-right">
-                          ${itemPrice.toFixed(2)}
+                          €{itemPrice.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          ${(itemPrice * itemQuantity).toFixed(2)}
+                          €{(itemPrice * itemQuantity).toFixed(2)}
                         </td>
                       </tr>
                     );
@@ -388,22 +388,22 @@ export default function OrderDetail({ params }) {
                 <span className="text-zinc-600 dark:text-zinc-300">
                   Subtotal:
                 </span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>€{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-600 dark:text-zinc-300">Tax:</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>€{tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-600 dark:text-zinc-300">
                   Shipping:
                 </span>
-                <span>{shipping > 0 ? `$${shipping.toFixed(2)}` : "Free"}</span>
+                <span>{shipping > 0 ? `€${shipping.toFixed(2)}` : "Free"}</span>
               </div>
               <div className="border-t pt-3 border-zinc-200 dark:border-zinc-700">
                 <div className="flex justify-between font-medium">
                   <span>Total:</span>
-                  <span>${(subtotal + tax + shipping).toFixed(2)}</span>
+                  <span>€{(subtotal + tax + shipping).toFixed(2)}</span>
                 </div>
               </div>
             </div>
