@@ -545,7 +545,7 @@ export default function Dashboard() {
 
         <Card className="flex flex-col bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-700">
           <div className="text-sm font-medium text-green-600 dark:text-green-400">Total Revenue</div>
-          <div className="text-3xl font-bold mt-1 text-green-900 dark:text-green-100">${dashboardStats.totalRevenue.toLocaleString()}</div>
+          <div className="text-3xl font-bold mt-1 text-green-900 dark:text-green-100">€{dashboardStats.totalRevenue.toLocaleString()}</div>
         </Card>
 
         <Card className="flex flex-col bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
