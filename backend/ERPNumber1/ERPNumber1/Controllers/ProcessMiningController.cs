@@ -77,7 +77,7 @@ namespace ERPNumber1.Controllers
             try
             {
                 var xesData = await _eventLogService.ExportToXesAsync(startDate, endDate);
-                
+
                 var fileName = $"process_log_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xes";
                 return File(System.Text.Encoding.UTF8.GetBytes(xesData), "application/xml", fileName);
             }
@@ -311,6 +311,46 @@ namespace ERPNumber1.Controllers
         }
 
         /// <summary>
+        /// Get simulation-specific business analysis with metrics per product type, quantity, and production line
+        /// </summary>
+        [HttpGet("simulation-analysis")]
+        public async Task<ActionResult<object>> GetSimulationBusinessAnalysis(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var analysis = await _eventLogService.GetSimulationBusinessAnalysisAsync(startDate, endDate);
+                return Ok(analysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving simulation business analysis");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get simulation performance metrics for the dashboard
+        /// </summary>
+        [HttpGet("simulation-performance")]
+        public async Task<ActionResult<object>> GetSimulationPerformance(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var performance = await _eventLogService.GetSimulationPerformanceAsync(startDate, endDate);
+                return Ok(performance);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving simulation performance");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// Seed sample process mining data for demonstration (Development only)
         /// </summary>
         [HttpPost("seed-sample-data")]
@@ -335,7 +375,7 @@ namespace ERPNumber1.Controllers
                         var activity = activities[activityIndex];
                         var resource = resources[activityIndex];
                         var status = "Completed";
-                        
+
                         // Simulate some delays and failures
                         if (random.NextDouble() < 0.1) // 10% chance of failure
                         {
@@ -357,11 +397,12 @@ namespace ERPNumber1.Controllers
                             resource: resource,
                             eventType: "Order",
                             status: status,
-                            additionalData: System.Text.Json.JsonSerializer.Serialize(new { 
+                            additionalData: System.Text.Json.JsonSerializer.Serialize(new
+                            {
                                 orderId = orderId,
                                 duration = duration,
                                 step = activityIndex + 1,
-                                totalSteps = activities.Length 
+                                totalSteps = activities.Length
                             }),
                             entityId: orderId.ToString(),
                             priority: orderId % 3 == 0 ? "High" : "Normal",
@@ -389,7 +430,8 @@ namespace ERPNumber1.Controllers
                         resource: "AnomalySystem",
                         eventType: "Anomaly",
                         status: "Completed",
-                        additionalData: System.Text.Json.JsonSerializer.Serialize(new { 
+                        additionalData: System.Text.Json.JsonSerializer.Serialize(new
+                        {
                             type = "duration_anomaly",
                             expected = 60,
                             actual = random.Next(300, 1000) // Very long duration

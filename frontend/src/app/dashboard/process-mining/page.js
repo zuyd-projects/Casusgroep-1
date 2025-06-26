@@ -4,32 +4,25 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter, AreaChart, Area
 } from 'recharts';
-import { 
-  AlertTriangle, TrendingUp, Clock, Activity, 
-  Target, AlertCircle, CheckCircle, XCircle, 
-  Users, BarChart3, Settings, Lightbulb, 
-  Timer, TrendingDown, Zap 
+import {
+  AlertTriangle, TrendingUp, Clock, Activity,
+  Target, AlertCircle, CheckCircle, XCircle,
+  Users, BarChart3, Settings, Lightbulb,
+  Timer, TrendingDown, Zap
 } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function ProcessMining() {
-  const [statistics, setStatistics] = useState(null);
-  const [anomalies, setAnomalies] = useState(null);
-  const [flowData, setFlowData] = useState(null);
-  const [predictions, setPredictions] = useState(null);
-  const [businessAnalysis, setBusinessAnalysis] = useState(null);
-  const [activityPerformance, setActivityPerformance] = useState(null);
-  const [conformanceAnalysis, setConformanceAnalysis] = useState(null);
-  const [resourceUtilization, setResourceUtilization] = useState(null);
-  const [recommendations, setRecommendations] = useState(null);
+  const [simulationAnalysis, setSimulationAnalysis] = useState(null);
+  const [simulationPerformance, setSimulationPerformance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('30'); // days
-  const [activeTab, setActiveTab] = useState('overview'); // overview, performance, conformance, resources, optimization
+  const [activeTab, setActiveTab] = useState('simulation'); // Default to simulation tab
 
   useEffect(() => {
     fetchData();
@@ -43,36 +36,15 @@ export default function ProcessMining() {
       startDate.setDate(startDate.getDate() - parseInt(selectedTimeRange));
 
       const [
-        statsRes, 
-        anomaliesRes, 
-        flowRes, 
-        predictionsRes,
-        businessRes,
-        activityRes,
-        conformanceRes,
-        resourceRes,
-        recommendationsRes
+        simulationAnalysisRes,
+        simulationPerformanceRes
       ] = await Promise.all([
-        api.get(`/api/ProcessMining/statistics?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/anomalies?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/flow?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get('/api/ProcessMining/delivery-predictions'),
-        api.get(`/api/ProcessMining/business-analysis?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/activity-performance?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/conformance?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/resource-utilization?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/optimization-recommendations?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
+        api.get(`/api/ProcessMining/simulation-analysis?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
+        api.get(`/api/ProcessMining/simulation-performance?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
       ]);
 
-      setStatistics(statsRes);
-      setAnomalies(anomaliesRes);
-      setFlowData(flowRes);
-      setPredictions(predictionsRes);
-      setBusinessAnalysis(businessRes);
-      setActivityPerformance(activityRes);
-      setConformanceAnalysis(conformanceRes);
-      setResourceUtilization(resourceRes);
-      setRecommendations(recommendationsRes);
+      setSimulationAnalysis(simulationAnalysisRes);
+      setSimulationPerformance(simulationPerformanceRes);
     } catch (error) {
       console.error('Error fetching process mining data:', error);
     } finally {
@@ -114,11 +86,10 @@ export default function ProcessMining() {
   const TabButton = ({ id, label, icon, isActive, onClick }) => (
     <button
       onClick={() => onClick(id)}
-      className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-        isActive 
-          ? 'bg-blue-600 text-white' 
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-      }`}
+      className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${isActive
+        ? 'bg-blue-600 text-white'
+        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`}
     >
       {icon}
       <span>{label}</span>
@@ -131,10 +102,10 @@ export default function ProcessMining() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-            Business Process Analysis
+            Simulation Process Analysis
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Comprehensive process mining dashboard with advanced analytics and optimization insights
+            School project simulation dashboard with metrics per product type, quantity, and production line
           </p>
         </div>
         <select
@@ -144,7 +115,7 @@ export default function ProcessMining() {
         >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
+          <option value="90">Current simulation</option>
         </select>
       </div>
 
@@ -160,41 +131,13 @@ export default function ProcessMining() {
         </Link>
       </div>
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation - Only Simulation */}
       <div className="flex space-x-2 border-b border-gray-200 dark:border-gray-700 pb-4">
         <TabButton
-          id="overview"
-          label="Overview"
-          icon={<BarChart3 className="h-4 w-4" />}
-          isActive={activeTab === 'overview'}
-          onClick={setActiveTab}
-        />
-        <TabButton
-          id="performance"
-          label="Performance"
-          icon={<TrendingUp className="h-4 w-4" />}
-          isActive={activeTab === 'performance'}
-          onClick={setActiveTab}
-        />
-        <TabButton
-          id="conformance"
-          label="Conformance"
-          icon={<Target className="h-4 w-4" />}
-          isActive={activeTab === 'conformance'}
-          onClick={setActiveTab}
-        />
-        <TabButton
-          id="resources"
-          label="Resources"
-          icon={<Users className="h-4 w-4" />}
-          isActive={activeTab === 'resources'}
-          onClick={setActiveTab}
-        />
-        <TabButton
-          id="optimization"
-          label="Optimization"
-          icon={<Lightbulb className="h-4 w-4" />}
-          isActive={activeTab === 'optimization'}
+          id="simulation"
+          label="Simulation"
+          icon={<Activity className="h-4 w-4" />}
+          isActive={activeTab === 'simulation'}
           onClick={setActiveTab}
         />
       </div>
@@ -205,512 +148,264 @@ export default function ProcessMining() {
         </div>
       ) : (
         <>
-          {/* Overview Tab */}
-          {activeTab === 'overview' && (
+          {/* Simulation Tab */}
+          {activeTab === 'simulation' && (
             <div className="space-y-6">
-              {/* Business KPIs */}
-              {businessAnalysis && (
+              {/* Simulation Progress */}
+              {simulationPerformance?.simulationProgress && (
+                <Card title="📊 Simulation Progress">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {simulationPerformance.simulationProgress.currentRound}
+                      </div>
+                      <div className="text-sm text-blue-500">Current Round</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {simulationPerformance.simulationProgress.completionPercentage?.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-green-500">Progress</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {simulationPerformance.simulationProgress.orderingPhaseRounds}
+                      </div>
+                      <div className="text-sm text-purple-500">Ordering Rounds</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {simulationPerformance.simulationProgress.productionPhaseRounds}
+                      </div>
+                      <div className="text-sm text-orange-500">Production Rounds</div>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${simulationPerformance.simulationProgress.completionPercentage || 0}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-center mt-2 text-sm text-gray-600">
+                    {simulationPerformance.simulationProgress.isInOrderingPhase ? 'Ordering Phase' : 'Production Phase'}
+                  </div>
+                </Card>
+              )}
+
+              {/* Key Simulation Metrics */}
+              {simulationAnalysis?.simulationMetrics && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Card className="flex flex-col">
                     <div className="flex items-center space-x-2">
-                      <Clock className="h-5 w-5 text-blue-600" />
+                      <Activity className="h-5 w-5 text-blue-600" />
+                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Orders</div>
+                    </div>
+                    <div className="text-3xl font-bold mt-1">
+                      {simulationAnalysis.simulationMetrics.totalOrders || 0}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Avg: {simulationAnalysis.simulationMetrics.averageOrdersPerRound?.toFixed(1) || 0}/round
+                    </div>
+                  </Card>
+
+                  <Card className="flex flex-col">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-5 w-5 text-green-600" />
                       <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Avg Cycle Time</div>
                     </div>
                     <div className="text-3xl font-bold mt-1">
-                      {businessAnalysis.overallMetrics?.averageCycleTime?.toFixed(1) || 0} min
+                      {simulationAnalysis?.cycleTimeAnalysis?.overallStats?.averageCycleTime?.toFixed(1) || 0} sec
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      Median: {businessAnalysis.overallMetrics?.medianCycleTime?.toFixed(1) || 0} min
+                      Median: {simulationAnalysis?.cycleTimeAnalysis?.overallStats?.medianCycleTime?.toFixed(1) || 0} sec
                     </div>
                   </Card>
-                  
+
                   <Card className="flex flex-col">
                     <div className="flex items-center space-x-2">
-                      <Target className="h-5 w-5 text-green-600" />
-                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Process Efficiency</div>
-                    </div>
-                    <div className={`text-3xl font-bold mt-1 ${getPerformanceColor(businessAnalysis.overallMetrics?.processEfficiency || 0)}`}>
-                      {businessAnalysis.overallMetrics?.processEfficiency?.toFixed(1) || 0}%
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Rework Rate: {businessAnalysis.overallMetrics?.reworkRate?.toFixed(1) || 0}%
-                    </div>
-                  </Card>
-                  
-                  <Card className="flex flex-col">
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="h-5 w-5 text-purple-600" />
-                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Throughput</div>
+                      <Timer className="h-5 w-5 text-purple-600" />
+                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Rounds</div>
                     </div>
                     <div className="text-3xl font-bold mt-1">
-                      {businessAnalysis.overallMetrics?.throughputPerDay?.toFixed(1) || 0}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">orders/day</div>
-                  </Card>
-                  
-                  <Card className="flex flex-col">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Completion Rate</div>
-                    </div>
-                    <div className="text-3xl font-bold mt-1">
-                      {businessAnalysis.overallMetrics ? 
-                        ((businessAnalysis.overallMetrics.completedCases / businessAnalysis.overallMetrics.totalCases) * 100).toFixed(1) 
-                        : 0}%
+                      {simulationAnalysis.simulationMetrics.totalRounds || 0}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {businessAnalysis.overallMetrics?.completedCases || 0} / {businessAnalysis.overallMetrics?.totalCases || 0}
+                      / 36 rounds total
+                    </div>
+                  </Card>
+
+                  <Card className="flex flex-col">
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-5 w-5 text-orange-600" />
+                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Periods</div>
+                    </div>
+                    <div className="text-3xl font-bold mt-1">
+                      {simulationAnalysis.simulationMetrics.totalPeriods || 0}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      20 sec/round
                     </div>
                   </Card>
                 </div>
               )}
 
-              {/* Stage Performance Chart */}
-              {businessAnalysis?.stagePerformance && (
-                <Card title="Stage Performance Analysis">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={businessAnalysis.stagePerformance}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="stage" angle={-45} textAnchor="end" height={100} fontSize={12} />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          `${value.toFixed(1)} min`,
-                          name === 'averageTime' ? 'Average Time' : name
-                        ]}
-                      />
-                      <Bar dataKey="averageTime" fill="#8884d8" name="Average Time (min)" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              )}
-
-              {/* Anomalies and Delivery Warnings */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Anomalies Section */}
-                {anomalies && anomalies.anomalies && anomalies.anomalies.length > 0 && (
-                  <Card title="🚨 Process Anomalies" className="border-red-200 dark:border-red-800">
-                    <div className="mb-4 grid grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <div className="text-xl font-bold text-red-600">{anomalies.highSeverity}</div>
-                        <div className="text-xs text-red-500">High</div>
-                      </div>
-                      <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <div className="text-xl font-bold text-yellow-600">{anomalies.mediumSeverity}</div>
-                        <div className="text-xs text-yellow-500">Medium</div>
-                      </div>
-                      <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <div className="text-xl font-bold text-blue-600">{anomalies.totalAnomalies}</div>
-                        <div className="text-xs text-blue-500">Total</div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {anomalies.anomalies.slice(0, 5).map((anomaly, index) => (
-                        <div key={index} className={`p-3 rounded-lg border ${getSeverityColor(anomaly.severity)}`}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-2">
-                              {getSeverityIcon(anomaly.severity)}
-                              <div>
-                                <div className="font-medium text-sm">{anomaly.type}</div>
-                                <div className="text-xs opacity-75">{anomaly.description}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {/* Product Distribution Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Product Type Distribution */}
+                {simulationAnalysis?.simulationMetrics?.productTypeDistribution && (
+                  <Card title="Product Type Distribution">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={simulationAnalysis.simulationMetrics.productTypeDistribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="count"
+                          label={({ type, percentage }) => `${type}: ${percentage.toFixed(1)}%`}
+                        >
+                          {simulationAnalysis.simulationMetrics.productTypeDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value, name) => [value, 'Orders']} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </Card>
                 )}
 
-                {/* Delivery Predictions */}
-                {predictions && predictions.warnings && predictions.warnings.length > 0 && (
-                  <Card title="📋 Delivery Warnings" className="border-orange-200 dark:border-orange-800">
-                    <div className="mb-4 grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <div className="text-xl font-bold text-red-600">{predictions.delayedOrders}</div>
-                        <div className="text-xs text-red-500">Delayed</div>
-                      </div>
-                      <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <div className="text-xl font-bold text-yellow-600">{predictions.atRiskOrders}</div>
-                        <div className="text-xs text-yellow-500">At Risk</div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {predictions.warnings.slice(0, 5).map((warning, index) => (
-                        <div key={index} className={`p-3 rounded-lg border ${getSeverityColor(warning.severity)}`}>
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="font-medium text-sm">{warning.type}</div>
-                              <div className="text-xs opacity-75">{warning.caseId}</div>
-                              <div className="text-xs mt-1">Age: {warning.orderAge?.toFixed(1)} days</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Performance Tab */}
-          {activeTab === 'performance' && (
-            <div className="space-y-6">
-              {/* Activity Performance */}
-              {activityPerformance && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card title="Activity Frequency">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={activityPerformance.activityDetails?.slice(0, 8) || []}>
+                {/* Quantity Distribution */}
+                {simulationAnalysis?.simulationMetrics?.quantityDistribution && (
+                  <Card title="Quantity Distribution">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={simulationAnalysis.simulationMetrics.quantityDistribution}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="activity" angle={-45} textAnchor="end" height={100} fontSize={10} />
+                        <XAxis dataKey="quantity" />
                         <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="totalOccurrences" fill="#8884d8" />
+                        <Tooltip formatter={(value) => [value, 'Orders']} />
+                        <Bar dataKey="count" fill="#8884d8" />
                       </BarChart>
                     </ResponsiveContainer>
                   </Card>
+                )}
 
-                  <Card title="Success Rate by Activity">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={activityPerformance.activityDetails?.slice(0, 8) || []}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="activity" angle={-45} textAnchor="end" height={100} fontSize={10} />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip formatter={(value) => [`${value.toFixed(1)}%`, 'Success Rate']} />
-                        <Bar dataKey="successRate" fill="#10b981" />
-                      </BarChart>
+                {/* Production Line Distribution */}
+                {simulationAnalysis?.simulationMetrics?.productionLineDistribution && (
+                  <Card title="Production Line Distribution">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={simulationAnalysis.simulationMetrics.productionLineDistribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="count"
+                          label={({ line, percentage }) => `Line ${line}: ${percentage.toFixed(1)}%`}
+                        >
+                          {simulationAnalysis.simulationMetrics.productionLineDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value, name) => [value, 'Orders']} />
+                      </PieChart>
                     </ResponsiveContainer>
                   </Card>
-                </div>
-              )}
-
-              {/* Bottleneck Activities */}
-              {activityPerformance?.performanceSummary && (
-                <Card title="Performance Summary">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                      <h4 className="font-medium text-red-700 dark:text-red-300 mb-2">Bottleneck Activities</h4>
-                      <div className="space-y-1">
-                        {activityPerformance.performanceSummary.bottleneckActivities?.length > 0 ? (
-                          activityPerformance.performanceSummary.bottleneckActivities.map((activity, index) => (
-                            <div key={index} className="text-sm text-red-600 dark:text-red-400">{activity}</div>
-                          ))
-                        ) : (
-                          <div className="text-sm text-gray-500">No bottlenecks detected</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                      <h4 className="font-medium text-yellow-700 dark:text-yellow-300 mb-2">High Error Activities</h4>
-                      <div className="space-y-1">
-                        {activityPerformance.performanceSummary.highErrorActivities?.length > 0 ? (
-                          activityPerformance.performanceSummary.highErrorActivities.map((activity, index) => (
-                            <div key={index} className="text-sm text-yellow-600 dark:text-yellow-400">
-                              {activity.activity}: {activity.errorRate?.toFixed(1)}%
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-sm text-gray-500">No high error activities</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2">Most Frequent</h4>
-                      <div className="text-sm text-blue-600 dark:text-blue-400">
-                        {activityPerformance.performanceSummary.mostFrequentActivity || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {/* Conformance Tab */}
-          {activeTab === 'conformance' && conformanceAnalysis && (
-            <div className="space-y-6">
-              {/* Conformance Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <Target className="h-5 w-5 text-green-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Avg Conformance</div>
-                  </div>
-                  <div className={`text-3xl font-bold mt-1 ${getPerformanceColor(conformanceAnalysis.overallConformance?.averageConformanceScore || 0)}`}>
-                    {conformanceAnalysis.overallConformance?.averageConformanceScore?.toFixed(1) || 0}%
-                  </div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Fully Conformant</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1 text-green-600">
-                    {conformanceAnalysis.overallConformance?.fullyConformantCases || 0}
-                  </div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <XCircle className="h-5 w-5 text-red-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Non-Conformant</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1 text-red-600">
-                    {conformanceAnalysis.overallConformance?.nonConformantCases || 0}
-                  </div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="h-5 w-5 text-orange-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Deviations</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1 text-orange-600">
-                    {conformanceAnalysis.overallConformance?.totalDeviations || 0}
-                  </div>
-                </Card>
+                )}
               </div>
 
-              {/* Process Variants */}
-              {conformanceAnalysis.processVariants && (
-                <Card title="Process Variants">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={conformanceAnalysis.processVariants.slice(0, 8)}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="variant" angle={-45} textAnchor="end" height={100} fontSize={10} />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="caseCount" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              )}
+              {/* Cycle Time Analysis */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Cycle Time by Product Type */}
+                {simulationAnalysis?.cycleTimeAnalysis?.byProductType && (
+                  <Card title="Cycle Time by Product Type">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={simulationAnalysis.cycleTimeAnalysis.byProductType}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="productType" />
+                        <YAxis label={{ value: 'Seconds', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip formatter={(value) => [`${value.toFixed(1)} sec`, 'Avg Cycle Time']} />
+                        <Bar dataKey="averageCycleTime" fill="#10b981" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
 
-              {/* Common Deviations */}
-              {conformanceAnalysis.commonDeviations && (
-                <Card title="Common Deviations">
-                  <div className="space-y-3">
-                    {conformanceAnalysis.commonDeviations.map((deviation, index) => (
+                {/* Cycle Time by Production Line */}
+                {simulationAnalysis?.cycleTimeAnalysis?.byProductionLine && (
+                  <Card title="Cycle Time by Production Line">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={simulationAnalysis.cycleTimeAnalysis.byProductionLine}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="productionLine" />
+                        <YAxis label={{ value: 'Seconds', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip formatter={(value) => [`${value.toFixed(1)} sec`, 'Avg Cycle Time']} />
+                        <Bar dataKey="averageCycleTime" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+              </div>
+
+              {/* Production Line Performance */}
+              {simulationPerformance?.productionLineMetrics && (
+                <Card title="Production Line Performance">
+                  <div className="space-y-4">
+                    {simulationPerformance.productionLineMetrics.map((line, index) => (
                       <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start mb-2">
                           <div>
-                            <div className="font-medium">{deviation.deviationType}</div>
+                            <h4 className="font-medium">Production Line {line.productionLine}</h4>
                             <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {deviation.count} occurrences ({deviation.percentage?.toFixed(1)}%)
+                              {line.totalOrders} total orders • {line.completedOrders} completed
                             </div>
                           </div>
+                          <div className={`px-2 py-1 rounded text-sm font-medium ${line.completionRate >= 90 ? 'bg-green-50 text-green-700' :
+                            line.completionRate >= 70 ? 'bg-yellow-50 text-yellow-700' :
+                              'bg-red-50 text-red-700'
+                            }`}>
+                            {line.completionRate?.toFixed(1)}% completion
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <div className="font-medium">Product A: {line.productTypes?.find(p => p.type === 'A')?.count || 0}</div>
+                          </div>
+                          <div>
+                            <div className="font-medium">Product B: {line.productTypes?.find(p => p.type === 'B')?.count || 0}</div>
+                          </div>
+                          <div>
+                            <div className="font-medium">Product C: {line.productTypes?.find(p => p.type === 'C')?.count || 0}</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-600">
+                          Average Quantity: {line.averageQuantity?.toFixed(1) || 0}
                         </div>
                       </div>
                     ))}
                   </div>
                 </Card>
               )}
-            </div>
-          )}
 
-          {/* Resources Tab */}
-          {activeTab === 'resources' && resourceUtilization && (
-            <div className="space-y-6">
-              {/* Resource Utilization Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-5 w-5 text-blue-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Resources</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1">{resourceUtilization.totalResources || 0}</div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Avg Utilization</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1">
-                    {resourceUtilization.utilizationSummary?.averageUtilization?.toFixed(1) || 0}%
-                  </div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5 text-purple-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Efficiency</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1">
-                    {resourceUtilization.utilizationSummary?.resourceEfficiency?.toFixed(1) || 0}%
-                  </div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Highly Utilized</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1 text-red-600">
-                    {resourceUtilization.utilizationSummary?.highlyUtilizedResources?.length || 0}
-                  </div>
-                </Card>
-              </div>
-
-              {/* Resource Details */}
-              <Card title="Resource Utilization Details">
-                <div className="space-y-3">
-                  {resourceUtilization.resourceDetails?.map((resource, index) => (
-                    <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="font-medium">{resource.resource}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            {resource.totalActivities} activities • {resource.uniqueCases} cases
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Success Rate: {resource.performanceMetrics?.successRate?.toFixed(1)}% • 
-                            Error Rate: {resource.performanceMetrics?.errorRate?.toFixed(1)}%
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-2 py-1 rounded text-sm font-medium ${getUtilizationColor(resource.utilizationScore)}`}>
-                            {resource.utilizationScore?.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* Optimization Tab */}
-          {activeTab === 'optimization' && recommendations && (
-            <div className="space-y-6">
-              {/* Quick Actions */}
-              <Card title="Quick Actions">
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => window.open('/api/ProcessMining/export/xes', '_blank')}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center space-x-2"
-                  >
-                    <Activity className="h-4 w-4" />
-                    <span>Export XES Data</span>
-                  </button>
-                </div>
-              </Card>
-
-              {/* Recommendations Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <Lightbulb className="h-5 w-5 text-yellow-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Recommendations</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1">{recommendations.totalRecommendations || 0}</div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">High Priority</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1 text-red-600">
-                    {recommendations.highPriorityRecommendations || 0}
-                  </div>
-                </Card>
-                
-                <Card className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Expected Improvement</div>
-                  </div>
-                  <div className="text-3xl font-bold mt-1 text-green-600">
-                    {recommendations.expectedBenefits?.cycleTimeReduction || 'N/A'}
-                  </div>
-                </Card>
-              </div>
-
-              {/* Recommendations List */}
-              <Card title="Process Optimization Recommendations">
-                <div className="space-y-4">
-                  {recommendations.recommendations?.map((rec, index) => (
-                    <div key={index} className={`p-4 rounded-lg border ${getSeverityColor(rec.priority)}`}>
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="font-semibold">{rec.type}</div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getSeverityColor(rec.priority)}`}>
-                            {rec.priority}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-500">{rec.category}</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-sm"><strong>Issue:</strong> {rec.issue}</div>
-                        <div className="text-sm"><strong>Impact:</strong> {rec.impact}</div>
-                        <div className="text-sm"><strong>Recommendation:</strong> {rec.recommendation}</div>
-                        <div className="text-sm text-green-600">
-                          <strong>Expected Improvement:</strong> {rec.estimatedImprovement}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Implementation Roadmap */}
-              {recommendations.implementationRoadmap && (
-                <Card title="Implementation Roadmap">
-                  <div className="space-y-4">
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <div className="font-medium text-blue-700 dark:text-blue-300">Phase 1</div>
-                      <div className="text-sm text-blue-600 dark:text-blue-400">
-                        {recommendations.implementationRoadmap.phase1}
-                      </div>
-                    </div>
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <div className="font-medium text-green-700 dark:text-green-300">Phase 2</div>
-                      <div className="text-sm text-green-600 dark:text-green-400">
-                        {recommendations.implementationRoadmap.phase2}
-                      </div>
-                    </div>
-                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                      <div className="font-medium text-purple-700 dark:text-purple-300">Phase 3</div>
-                      <div className="text-sm text-purple-600 dark:text-purple-400">
-                        {recommendations.implementationRoadmap.phase3}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {/* Expected Benefits */}
-              {recommendations.expectedBenefits && (
-                <Card title="Expected Benefits">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-                      <div className="text-lg font-bold text-green-600">
-                        {recommendations.expectedBenefits.cycleTimeReduction}
-                      </div>
-                      <div className="text-sm text-green-500">Cycle Time Reduction</div>
-                    </div>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {recommendations.expectedBenefits.efficiencyImprovement}
-                      </div>
-                      <div className="text-sm text-blue-500">Efficiency Improvement</div>
-                    </div>
-                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
-                      <div className="text-lg font-bold text-purple-600">
-                        {recommendations.expectedBenefits.costSavings}
-                      </div>
-                      <div className="text-sm text-purple-500">Cost Savings</div>
-                    </div>
-                  </div>
+              {/* Round Performance Chart */}
+              {simulationPerformance?.roundPerformance && (
+                <Card title="Round-by-Round Performance">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={simulationPerformance.roundPerformance.slice(-20)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="roundId" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="ordersCreated" stroke="#8884d8" name="Orders Created" />
+                      <Line type="monotone" dataKey="productionCompleted" stroke="#22c55e" name="Production Completed" />
+                      <Line type="monotone" dataKey="productionLine1Orders" stroke="#10b981" name="Line 1" />
+                      <Line type="monotone" dataKey="productionLine2Orders" stroke="#f59e0b" name="Line 2" />
+                      <Line type="monotone" dataKey="ordersInProduction" stroke="#ef4444" name="In Production" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </Card>
               )}
             </div>

@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
-import { 
-  Clock, 
-  Search, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
+import {
+  Clock,
+  Search,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
   BarChart3,
   Timer,
   Activity,
@@ -18,6 +18,21 @@ import {
   Zap
 } from 'lucide-react';
 
+// Helper function to format status names nicely
+const formatStatusName = (status) => {
+  const statusMap = {
+    'Pending': 'Pending',
+    'ApprovedByVoorraadbeheer': 'Inventory Approved',
+    'ToProduction': 'To Production',
+    'InProduction': 'In Production',
+    'AwaitingAccountManagerApproval': 'Awaiting Manager',
+    'ApprovedByAccountManager': 'Manager Approved',
+    'Delivered': 'Delivered',
+    'Completed': 'Completed'
+  };
+  return statusMap[status] || status;
+};
+
 const DetailedTimingAnalyzer = () => {
   const [caseId, setCaseId] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -25,30 +40,75 @@ const DetailedTimingAnalyzer = () => {
   const [timingData, setTimingData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [expandedCases, setExpandedCases] = useState(new Set());
 
   // Auto-fetch data on component mount
   useEffect(() => {
     fetchTimingData();
   }, []);
-
   const fetchTimingData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       let url = '/api/ProcessMining/detailed-timing';
       const params = new URLSearchParams();
-      
+
       if (caseId.trim()) params.append('caseId', caseId);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
-      
+
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
-      const response = await api.get(url);
+
+      const response = await api.get(url);      // Filter to only include Order-* cases (exclude Simulation_* and SupplierOrder_*)
+      if (response.detailedCaseAnalysis) {
+        response.detailedCaseAnalysis = response.detailedCaseAnalysis.filter(
+          caseAnalysis => caseAnalysis.caseId.startsWith('Order-')
+        );
+      }
+
+      // Also filter fastest and slowest processes to only include Order-* cases
+      if (response.summary) {
+        if (response.summary.fastestProcess && !response.summary.fastestProcess.caseId.startsWith('Order-')) {
+          // Find fastest Order-* case from filtered detailed analysis
+          const orderCases = response.detailedCaseAnalysis || [];
+          if (orderCases.length > 0) {
+            response.summary.fastestProcess = orderCases.reduce((fastest, current) =>
+              current.totalDurationMinutes < fastest.totalDurationMinutes ? current : fastest
+            );
+          } else {
+            response.summary.fastestProcess = null;
+          }
+        }
+
+        if (response.summary.slowestProcess && !response.summary.slowestProcess.caseId.startsWith('Order-')) {
+          // Find slowest Order-* case from filtered detailed analysis
+          const orderCases = response.detailedCaseAnalysis || [];
+          if (orderCases.length > 0) {
+            response.summary.slowestProcess = orderCases.reduce((slowest, current) =>
+              current.totalDurationMinutes > slowest.totalDurationMinutes ? current : slowest
+            );
+          } else {
+            response.summary.slowestProcess = null;
+          }
+        }
+      }
+
       setTimingData(response);
+
+      // Debug: Log efficiency data to understand the calculations
+      console.log('Timing Data Debug:', {
+        summary: response.summary,
+        sampleCase: response.detailedCaseAnalysis?.[0],
+        efficiencyValues: response.detailedCaseAnalysis?.map(c => ({
+          caseId: c.caseId,
+          efficiency: c.processEfficiency,
+          totalDuration: c.totalDurationMinutes,
+          stages: c.stages?.length
+        }))
+      });
     } catch (err) {
       setError('Failed to fetch detailed timing analysis');
       console.error('Error fetching timing data:', err);
@@ -75,76 +135,242 @@ const DetailedTimingAnalyzer = () => {
     return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
   };
 
+  // Calculate a more meaningful efficiency score based on process characteristics
+  const calculateImprovedEfficiency = (caseAnalysis) => {
+    if (!caseAnalysis.stages || caseAnalysis.stages.length === 0) return 50;
+
+    const totalDuration = caseAnalysis.totalDurationMinutes;
+    const stageCount = caseAnalysis.stages.length;
+
+    // Factors that reduce efficiency:
+    // 1. Excessive number of stages (indicates rework/complications)
+    // 2. Long total duration relative to stage count
+    // 3. Status changes that indicate rework (going backwards in process)
+
+    let efficiencyScore = 100;
+
+    // Penalize excessive stages (ideal is 5-8 stages for an order)
+    const idealStageCount = 6;
+    if (stageCount > idealStageCount) {
+      const excessStages = stageCount - idealStageCount;
+      efficiencyScore -= (excessStages * 5); // -5% per excess stage
+    }
+
+    // Penalize long duration (benchmark: 30 minutes for typical order)
+    const benchmarkDuration = 30; // minutes
+    if (totalDuration > benchmarkDuration) {
+      const excessTime = totalDuration - benchmarkDuration;
+      const timesPenalty = (excessTime / benchmarkDuration) * 20; // Up to -20% for very long processes
+      efficiencyScore -= Math.min(timesPenalty, 30); // Cap penalty at 30%
+    }
+
+    // Check for rework patterns (status reversals)
+    const statusChanges = caseAnalysis.stages.filter(s => s.activity.includes('Order Status Changed'));
+    const hasRework = statusChanges.some(stage => {
+      return stage.activity.includes('to ApprovedByVoorraadbeheer') &&
+        !stage.activity.includes('from Pending to ApprovedByVoorraadbeheer');
+    });
+
+    if (hasRework) {
+      efficiencyScore -= 15; // -15% for rework
+    }
+
+    return Math.max(10, Math.min(100, efficiencyScore)); // Keep between 10-100%
+  };
+
   const getEfficiencyColor = (score) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const renderStageTimeline = (stages) => {
+  // Function to filter meaningful stages and calculate bottlenecks based on all Order-* cases
+  const filterMeaningfulStages = (stages, caseAnalysis, allCasesData = []) => {
+    // Collect all activity durations from all Order-* cases for bottleneck comparison
+    const activityDurations = {};
+    allCasesData.forEach(otherCase => {
+      if (otherCase.caseId.startsWith('Order-')) {
+        otherCase.stages.forEach(stage => {
+          if (stage.durationMinutes > 0) {
+            if (!activityDurations[stage.activity]) {
+              activityDurations[stage.activity] = [];
+            }
+            activityDurations[stage.activity].push(stage.durationMinutes);
+          }
+        });
+      }
+    });
+
+    // Calculate averages for bottleneck detection
+    const activityAverages = {};
+    Object.keys(activityDurations).forEach(activity => {
+      const durations = activityDurations[activity];
+      activityAverages[activity] = durations.reduce((sum, d) => sum + d, 0) / durations.length;
+    });
+
+    // Process stages and calculate proper durations
+    const processedStages = stages.map((stage, index, allStages) => {
+      let actualDuration = stage.durationMinutes;
+
+      // For stages with 0 duration or "Order Created", calculate time to next stage
+      if ((actualDuration === 0 || stage.activity === 'Order Created') && index < allStages.length - 1) {
+        const nextStage = allStages[index + 1];
+        if (nextStage) {
+          const startTime = new Date(stage.startTime);
+          const nextTime = new Date(nextStage.startTime);
+          actualDuration = (nextTime - startTime) / (1000 * 60); // Convert to minutes
+        }
+      }
+
+      // Improve activity names for better readability
+      let friendlyName = stage.activity;
+      if (stage.activity.includes('Order Status Changed')) {
+        // Extract from/to status from activity name
+        const match = stage.activity.match(/from (\w+) to (\w+)/);
+        if (match) {
+          const fromStatus = formatStatusName(match[1]);
+          const toStatus = formatStatusName(match[2]);
+          friendlyName = `${fromStatus} → ${toStatus}`;
+        }
+      } else if (stage.activity === 'Order Created') {
+        friendlyName = 'Order Created';
+      } else if (stage.activity === 'Order Approved by VoorraadBeheer') {
+        friendlyName = 'Inventory Approval';
+      } else if (stage.activity === 'Production Started') {
+        friendlyName = 'Production Started';
+      } else if (stage.activity === 'Order Delivered') {
+        friendlyName = 'Order Delivered';
+      }
+
+      // Determine if this is a bottleneck (compared to average for same activity)
+      const avgDuration = activityAverages[stage.activity] || 0;
+      const isBottleneck = actualDuration > 0 && avgDuration > 0 && actualDuration > (avgDuration * 1.5);
+
+      return {
+        ...stage,
+        actualDuration,
+        friendlyName,
+        isBottleneck: isBottleneck && actualDuration > 1, // Only mark as bottleneck if > 1 minute
+        formattedDuration: formatDuration(actualDuration * 60), // Convert minutes to seconds for formatting
+        durationSeconds: actualDuration * 60
+      };
+    });
+
+    // Filter meaningful stages (exclude generic "Order Updated" unless it's a status change)
+    const meaningfulStages = processedStages.filter(stage =>
+      !stage.activity.toLowerCase().includes('order updated') ||
+      stage.activity.includes('Order Status Changed')
+    );
+
+    // Ensure "Order Created" is always first if it exists
+    const orderCreatedIndex = meaningfulStages.findIndex(s => s.activity === 'Order Created');
+    if (orderCreatedIndex > 0) {
+      const orderCreatedStage = meaningfulStages.splice(orderCreatedIndex, 1)[0];
+      meaningfulStages.unshift(orderCreatedStage);
+    }
+
+    return meaningfulStages;
+  };
+
+  const renderCollapsibleStageTimeline = (caseAnalysis, index) => {
+    const isExpanded = expandedCases.has(index);
+
+    const toggleExpanded = () => {
+      const newExpanded = new Set(expandedCases);
+      if (isExpanded) {
+        newExpanded.delete(index);
+      } else {
+        newExpanded.add(index);
+      }
+      setExpandedCases(newExpanded);
+    };
+
+    const filteredStages = filterMeaningfulStages(
+      caseAnalysis.stages,
+      caseAnalysis,
+      timingData.detailedCaseAnalysis || []
+    );
+
+    // Calculate improved efficiency
+    const improvedEfficiency = calculateImprovedEfficiency(caseAnalysis);
+
     return (
-      <div className="space-y-3">
-        <h4 className="font-semibold text-gray-900 dark:text-gray-100">Stage-by-Stage Timeline</h4>
-        <div className="relative">
-          {stages.map((stage, index) => (
-            <div key={index} className="flex items-start space-x-4 pb-4">
-              {/* Timeline Line */}
-              {index < stages.length - 1 && (
-                <div className="absolute left-6 top-8 w-0.5 h-16 bg-gray-300 dark:bg-gray-600"></div>
-              )}
-              
-              {/* Stage Icon */}
-              <div className={`flex-shrink-0 w-12 h-8 flex items-center justify-center rounded-full border-2 ${
-                stage.isBottleneck 
-                  ? 'bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-700' 
-                  : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'
-              }`}>
-                {stage.isBottleneck ? (
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                ) : (
-                  getStatusIcon(stage.status)
-                )}
+      <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+        {/* Collapsible Header */}
+        <button
+          onClick={toggleExpanded}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 rounded-t-lg"
+        >
+          <div className="flex items-center space-x-4">
+            <div className="text-left">
+              <div className="font-semibold text-gray-900 dark:text-white">
+                {caseAnalysis.caseId}
               </div>
-              
-              {/* Stage Details */}
-              <div className={`flex-1 min-w-0 rounded-lg p-4 ${
-                stage.isBottleneck 
-                  ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
-                  : 'bg-gray-50 dark:bg-gray-800'
-              }`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        Stage {stage.stageNumber}: {stage.activity}
-                      </div>
-                      {stage.isBottleneck && (
-                        <span className="px-2 py-1 text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full">
-                          Bottleneck
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Resource: {stage.resource}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatTimestamp(stage.startTime)}
-                      {stage.endTime && ` → ${formatTimestamp(stage.endTime)}`}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600">
-                      {formatDuration(stage.durationSeconds)}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {stage.percentageOfTotal.toFixed(1)}% of total
-                    </div>
-                  </div>
-                </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {formatDuration(caseAnalysis.totalDurationMinutes * 60)} •
+                {filteredStages.length} meaningful stages •
+                {filteredStages.filter(s => s.isBottleneck).length} bottlenecks
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <div className={`text-lg font-bold ${getEfficiencyColor(improvedEfficiency)}`}>
+                {improvedEfficiency.toFixed(1)}%
+              </div>
+              <div className="text-sm text-gray-500">efficiency</div>
+              <div className="text-xs text-gray-400">
+                Backend: {caseAnalysis.processEfficiency.toFixed(1)}%
+              </div>
+            </div>
+            <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </button>
+
+        {/* Collapsible Content */}
+        {isExpanded && (
+          <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="pt-4 space-y-3">
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100">Status Progression</h4>
+              <div className="space-y-2">
+                {filteredStages.map((stage, stageIndex) => (
+                  <div key={stageIndex} className={`flex items-center justify-between p-3 rounded-lg ${stage.isBottleneck
+                    ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    : 'bg-gray-50 dark:bg-gray-800'
+                    }`}>
+                    <div className="flex items-center space-x-3">
+                      {stage.isBottleneck ? (
+                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                      ) : (
+                        getStatusIcon(stage.status)
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {stage.friendlyName}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {stage.resource} • {formatTimestamp(stage.startTime)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${stage.isBottleneck ? 'text-red-600' : 'text-blue-600'}`}>
+                        {stage.formattedDuration}
+                      </div>
+                      {stage.isBottleneck && (
+                        <div className="text-xs text-red-500">bottleneck detected</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -161,7 +387,7 @@ const DetailedTimingAnalyzer = () => {
               </label>
               <input
                 type="text"
-                placeholder="e.g., Order-1, SupplierOrder_1"
+                placeholder="e.g., Order-1"
                 value={caseId}
                 onChange={(e) => setCaseId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-800 dark:text-white bg-white text-gray-900"
@@ -190,7 +416,7 @@ const DetailedTimingAnalyzer = () => {
               />
             </div>
           </div>
-          
+
           <button
             onClick={fetchTimingData}
             disabled={loading}
@@ -200,7 +426,7 @@ const DetailedTimingAnalyzer = () => {
             <span>{loading ? 'Analyzing...' : 'Analyze Timing'}</span>
           </button>
         </div>
-        
+
         {error && (
           <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
             <div className="text-red-600 dark:text-red-400">{error}</div>
@@ -218,17 +444,17 @@ const DetailedTimingAnalyzer = () => {
             </div>
             <div className="text-3xl font-bold mt-1">{timingData.summary.totalCases}</div>
           </Card>
-          
+
           <Card className="flex flex-col">
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-purple-600" />
               <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Avg Duration</div>
             </div>
             <div className="text-3xl font-bold mt-1">
-              {formatDuration(timingData.summary.averageProcessDuration)}
+              {formatDuration(timingData.summary.averageProcessDuration * 60)}
             </div>
           </Card>
-          
+
           <Card className="flex flex-col">
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
@@ -238,7 +464,7 @@ const DetailedTimingAnalyzer = () => {
               {timingData.summary.totalBottlenecks}
             </div>
           </Card>
-          
+
           <Card className="flex flex-col">
             <div className="flex items-center space-x-2">
               <Zap className="h-5 w-5 text-green-600" />
@@ -267,7 +493,7 @@ const DetailedTimingAnalyzer = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatDuration(timingData.summary.fastestProcess.totalDurationSeconds)}
+                    {formatDuration(timingData.summary.fastestProcess.totalDurationMinutes * 60)}
                   </div>
                   <div className="text-sm text-gray-500">
                     {timingData.summary.fastestProcess.processEfficiency.toFixed(1)}% efficient
@@ -276,7 +502,7 @@ const DetailedTimingAnalyzer = () => {
               </div>
             </div>
           </Card>
-          
+
           <Card title="🐌 Slowest Process" className="border-red-200 dark:border-red-800">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -290,7 +516,7 @@ const DetailedTimingAnalyzer = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-red-600">
-                    {formatDuration(timingData.summary.slowestProcess.totalDurationSeconds)}
+                    {formatDuration(timingData.summary.slowestProcess.totalDurationMinutes * 60)}
                   </div>
                   <div className="text-sm text-gray-500">
                     {timingData.summary.slowestProcess.processEfficiency.toFixed(1)}% efficient
@@ -306,74 +532,23 @@ const DetailedTimingAnalyzer = () => {
       {timingData && timingData.detailedCaseAnalysis && timingData.detailedCaseAnalysis.length > 0 && (
         <div className="space-y-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Detailed Case-by-Case Analysis
+            Order-by-Order Analysis
           </h2>
-          
-          {timingData.detailedCaseAnalysis.slice(0, 5).map((caseAnalysis, index) => (
-            <Card key={index} title={`📊 ${caseAnalysis.caseId}`}>
-              {/* Case Metrics */}
-              <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-lg font-bold text-blue-600">
-                    {formatDuration(caseAnalysis.totalDurationSeconds)}
-                  </div>
-                  <div className="text-sm text-blue-500">Total Duration</div>
-                </div>
-                <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <div className="text-lg font-bold text-purple-600">
-                    {caseAnalysis.totalStages}
-                  </div>
-                  <div className="text-sm text-purple-500">Stages</div>
-                </div>
-                <div className={`text-center p-3 rounded-lg ${getEfficiencyColor(caseAnalysis.processEfficiency) === 'text-green-600' 
-                  ? 'bg-green-50 dark:bg-green-900/20' 
-                  : getEfficiencyColor(caseAnalysis.processEfficiency) === 'text-yellow-600'
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20'
-                  : 'bg-red-50 dark:bg-red-900/20'
-                }`}>
-                  <div className={`text-lg font-bold ${getEfficiencyColor(caseAnalysis.processEfficiency)}`}>
-                    {caseAnalysis.processEfficiency.toFixed(1)}%
-                  </div>
-                  <div className={`text-sm ${getEfficiencyColor(caseAnalysis.processEfficiency).replace('text-', 'text-').replace('-600', '-500')}`}>
-                    Efficiency
-                  </div>
-                </div>
-                <div className={`text-center p-3 rounded-lg ${
-                  caseAnalysis.bottleneckCount > 0 
-                    ? 'bg-orange-50 dark:bg-orange-900/20' 
-                    : 'bg-green-50 dark:bg-green-900/20'
-                }`}>
-                  <div className={`text-lg font-bold ${
-                    caseAnalysis.bottleneckCount > 0 ? 'text-orange-600' : 'text-green-600'
-                  }`}>
-                    {caseAnalysis.bottleneckCount}
-                  </div>
-                  <div className={`text-sm ${
-                    caseAnalysis.bottleneckCount > 0 ? 'text-orange-500' : 'text-green-500'
-                  }`}>
-                    Bottlenecks
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className={`text-lg font-bold ${
-                    caseAnalysis.waitTimePercentage > 50 ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                    {caseAnalysis.waitTimePercentage.toFixed(1)}%
-                  </div>
-                  <div className="text-sm text-gray-500">Wait Time</div>
-                </div>
-              </div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Click on any order to expand detailed timing information. Only Order-* cases are shown. Bottlenecks are highlighted in red and identified by comparing stage durations to averages across all orders.
+          </p>
 
-              {/* Timeline */}
-              {renderStageTimeline(caseAnalysis.stages)}
-            </Card>
-          ))}
+          <div className="space-y-3">
+            {timingData.detailedCaseAnalysis.slice(0, 10).map((caseAnalysis, index) =>
+              renderCollapsibleStageTimeline(caseAnalysis, index)
+            )}
+          </div>
 
-          {timingData.detailedCaseAnalysis.length > 5 && (
+          {timingData.detailedCaseAnalysis.length > 10 && (
             <Card>
               <div className="text-center py-4">
                 <div className="text-gray-500 dark:text-gray-400">
-                  Showing 5 of {timingData.detailedCaseAnalysis.length} cases
+                  Showing 10 of {timingData.detailedCaseAnalysis.length} orders
                 </div>
                 <div className="text-sm text-gray-400 dark:text-gray-500 mt-1">
                   Use filters to narrow down the analysis
@@ -384,34 +559,6 @@ const DetailedTimingAnalyzer = () => {
         </div>
       )}
 
-      {/* Stage Performance Analysis */}
-      {timingData && timingData.stagePerformanceAnalysis && timingData.stagePerformanceAnalysis.length > 0 && (
-        <Card title="📈 Stage Performance Analysis">
-          <div className="space-y-4">
-            {timingData.stagePerformanceAnalysis.slice(0, 10).map((stage, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {stage.activity}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {stage.occurrences} occurrences • {stage.bottleneckPercentage.toFixed(1)}% bottleneck rate
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-blue-600">
-                    {formatDuration(stage.averageDuration)}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    avg duration
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
       {/* No Results */}
       {timingData && (!timingData.detailedCaseAnalysis || timingData.detailedCaseAnalysis.length === 0) && (
         <Card>
@@ -419,6 +566,9 @@ const DetailedTimingAnalyzer = () => {
             <Timer className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <div className="text-gray-500 dark:text-gray-400">
               No timing data found for the specified criteria
+            </div>
+            <div className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+              Try adjusting your date range or removing the case ID filter
             </div>
           </div>
         </Card>
