@@ -19,20 +19,47 @@ const ProductionLine2Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [approvedOrders, setApprovedOrders] = useState([]);
   const [rounds, setRounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastRemovedOrder, setLastRemovedOrder] = useState(null);
   const [restoredOrderId, setRestoredOrderId] = useState(null);
   const [updating, setUpdating] = useState(null); // Track which order is being updated
-  const [showMissingBlocksModal, setShowMissingBlocksModal] = useState(false);
+  const [showMissingBlocksForm, setShowMissingBlocksForm] = useState(false);
   const [missingBlocks, setMissingBlocks] = useState({
     blue: 0,
     red: 0,
     gray: 0
   });
+  
+  // Maintenance state
+  const [maintenanceStatus, setMaintenanceStatus] = useState({
+    isUnderMaintenance: false,
+    maintenanceOrder: null
+  });
+  
   const modelViewerRef = useRef(null);
 
   const { currentRound, currentSimulation, isRunning } = useSimulation();
+
+  // Check for maintenance in current round
+  const checkMaintenanceStatus = async () => {
+    if (!currentRound) return;
+    
+    try {
+      const maintenanceOrders = await api.get(`/api/Maintenance/round/${currentRound.number}`);
+      const line2Maintenance = maintenanceOrders.find(
+        mo => mo.productionLine === 2 && mo.status !== 'Completed'
+      );
+      
+      setMaintenanceStatus({
+        isUnderMaintenance: !!line2Maintenance,
+        maintenanceOrder: line2Maintenance || null
+      });
+    } catch (error) {
+      console.error('Failed to check maintenance status:', error);
+    }
+  };
 
   // Fetch orders assigned to Production Line 2
   const fetchOrders = async () => {
@@ -90,9 +117,18 @@ const ProductionLine2Dashboard = () => {
           };
         });
         
-      setOrders(productionLine2Orders);
+      // Separate orders into regular orders and approved by account manager orders
+      const regularOrders = productionLine2Orders.filter(order => 
+        order.status !== 'ApprovedByAccountManager'
+      );
+      const approvedByAccountManagerOrders = productionLine2Orders.filter(order => 
+        order.status === 'ApprovedByAccountManager'
+      );
+        
+      setOrders(regularOrders);
+      setApprovedOrders(approvedByAccountManagerOrders);
       
-      // Preserve selected order by finding the updated version
+      // Preserve selected order by finding the updated version in either list
       if (selectedOrder) {
         const updatedSelectedOrder = productionLine2Orders.find(order => order.id === selectedOrder.id);
         if (updatedSelectedOrder) {
@@ -104,7 +140,7 @@ const ProductionLine2Dashboard = () => {
       }
       
       setRounds(apiRounds);
-      console.log(`🏭 Production Line 2: Loaded ${productionLine2Orders.length} orders`);
+      console.log(`🏭 Production Line 2: Loaded ${regularOrders.length} regular orders and ${approvedByAccountManagerOrders.length} approved orders (${productionLine2Orders.length} total)`);
     } catch (error) {
       console.error('Failed to fetch Production Line 2 orders:', error);
       setOrders([]);
@@ -115,6 +151,7 @@ const ProductionLine2Dashboard = () => {
 
   useEffect(() => {
     fetchOrders();
+    checkMaintenanceStatus();
   }, []);
 
   // Refetch orders when round changes
@@ -125,6 +162,7 @@ const ProductionLine2Dashboard = () => {
         currentRound.number
       );
       fetchOrders();
+      checkMaintenanceStatus();
     }
   }, [currentRound?.number]);
 
@@ -203,7 +241,13 @@ const ProductionLine2Dashboard = () => {
       
       await api.put(`/api/Order/${lastRemovedOrder.id}`, updateData);
       
-      setOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'In Queue'}]);
+      // Add to appropriate list based on status
+      if (lastRemovedOrder.status === 'ApprovedByAccountManager') {
+        setApprovedOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'ApprovedByAccountManager'}]);
+      } else {
+        setOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'In Queue'}]);
+      }
+      
       setRestoredOrderId(lastRemovedOrder.id);
       setLastRemovedOrder(null);
       console.log(`✅ Order ${lastRemovedOrder.id} restored to production line 2`);
@@ -247,6 +291,12 @@ const ProductionLine2Dashboard = () => {
         )
       );
       
+      setApprovedOrders(prev =>
+        prev.map(order =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+      
       // Update selected order if it's the one being changed
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => ({ ...prev, status: newStatus }));
@@ -263,9 +313,9 @@ const ProductionLine2Dashboard = () => {
   const handleReportMissingBlocks = async () => {
     if (!selectedOrder) return;
     
-    // Reset missing blocks state and show modal
+    // Reset missing blocks state and show form
     setMissingBlocks({ blue: 0, red: 0, gray: 0 });
-    setShowMissingBlocksModal(true);
+    setShowMissingBlocksForm(true);
   };
 
   const handleSubmitMissingBlocks = async () => {
@@ -293,8 +343,8 @@ const ProductionLine2Dashboard = () => {
       // Send to API (this will also update the order status to ProductionError automatically)
       await api.post('/api/MissingBlocks', missingBlocksData);
       
-      // Close modal and show success message
-      setShowMissingBlocksModal(false);
+      // Close form and show success message
+      setShowMissingBlocksForm(false);
       alert(`Missing blocks reported for Order ${selectedOrder.id}. Sent to supplier for delivery.`);
       
       // Refresh orders to get updated status
@@ -410,6 +460,12 @@ const ProductionLine2Dashboard = () => {
         )
       );
       
+      setApprovedOrders(prev =>
+        prev.map(order =>
+          order.id === orderId ? { ...order, status: 'InProduction' } : order
+        )
+      );
+      
       // Update selected order if it's the one being changed
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => ({ ...prev, status: 'InProduction' }));
@@ -424,6 +480,128 @@ const ProductionLine2Dashboard = () => {
     }
   };
 
+  // Helper functions for missing blocks +/- buttons
+  const incrementMissingBlocks = (blockType) => {
+    setMissingBlocks(prev => ({
+      ...prev,
+      [blockType]: prev[blockType] + 1
+    }));
+  };
+
+  const decrementMissingBlocks = (blockType) => {
+    setMissingBlocks(prev => ({
+      ...prev,
+      [blockType]: Math.max(0, prev[blockType] - 1)
+    }));
+  };
+
+  const cancelMissingBlocksReport = () => {
+    setShowMissingBlocksForm(false);
+    setMissingBlocks({ blue: 0, red: 0, gray: 0 });
+  };
+
+  // Missing Blocks Form Component
+  const renderMissingBlocksForm = () => {
+    if (!showMissingBlocksForm) return null;
+
+    return (
+      <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+        <h4 className="text-sm font-bold text-orange-900 dark:text-orange-100 mb-3">
+          Report Missing Building Blocks for Order #{selectedOrder?.id}
+        </h4>
+        
+        <div className="space-y-3">
+          {/* Blue Blocks */}
+          <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Blue Blocks Missing</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => decrementMissingBlocks('blue')}
+                className="w-8 h-8 flex items-center justify-center bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-300 dark:hover:bg-blue-700 transition-colors"
+                disabled={missingBlocks.blue === 0}
+              >
+                -
+              </button>
+              <span className="w-8 text-center font-bold text-blue-900 dark:text-blue-100">{missingBlocks.blue}</span>
+              <button
+                onClick={() => incrementMissingBlocks('blue')}
+                className="w-8 h-8 flex items-center justify-center bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-300 dark:hover:bg-blue-700 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Red Blocks */}
+          <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <span className="text-sm font-medium text-red-900 dark:text-red-100">Red Blocks Missing</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => decrementMissingBlocks('red')}
+                className="w-8 h-8 flex items-center justify-center bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 rounded-full hover:bg-red-300 dark:hover:bg-red-700 transition-colors"
+                disabled={missingBlocks.red === 0}
+              >
+                -
+              </button>
+              <span className="w-8 text-center font-bold text-red-900 dark:text-red-100">{missingBlocks.red}</span>
+              <button
+                onClick={() => incrementMissingBlocks('red')}
+                className="w-8 h-8 flex items-center justify-center bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 rounded-full hover:bg-red-300 dark:hover:bg-red-700 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Gray Blocks */}
+          <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-4 h-4 bg-zinc-500 rounded"></div>
+              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Gray Blocks Missing</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => decrementMissingBlocks('gray')}
+                className="w-8 h-8 flex items-center justify-center bg-zinc-200 dark:bg-zinc-600 text-zinc-800 dark:text-zinc-200 rounded-full hover:bg-zinc-300 dark:hover:bg-zinc-500 transition-colors"
+                disabled={missingBlocks.gray === 0}
+              >
+                -
+              </button>
+              <span className="w-8 text-center font-bold text-zinc-900 dark:text-zinc-100">{missingBlocks.gray}</span>
+              <button
+                onClick={() => incrementMissingBlocks('gray')}
+                className="w-8 h-8 flex items-center justify-center bg-zinc-200 dark:bg-zinc-600 text-zinc-800 dark:text-zinc-200 rounded-full hover:bg-zinc-300 dark:hover:bg-zinc-500 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex space-x-3 mt-4">
+          <button
+            onClick={cancelMissingBlocksReport}
+            className="flex-1 px-4 py-2 border border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300 rounded-md hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmitMissingBlocks}
+            className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+          >
+            Report Missing Blocks
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Script
@@ -433,6 +611,27 @@ const ProductionLine2Dashboard = () => {
       />
       <div className="h-screen bg-black">
         <div className="p-6">
+          {/* Maintenance Warning Banner */}
+          {maintenanceStatus.isUnderMaintenance && (
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-center">
+                <Settings className="h-6 w-6 text-red-600 dark:text-red-400 mr-3" />
+                <div className="flex-1">
+                  <h3 className="font-medium text-red-900 dark:text-red-100">
+                    Production Line 2 Under Maintenance
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {maintenanceStatus.maintenanceOrder?.description || 'Scheduled maintenance in progress'}
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                    Status: {maintenanceStatus.maintenanceOrder?.status} | 
+                    Round {maintenanceStatus.maintenanceOrder?.roundNumber}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <Package className="w-8 h-8 text-zinc-600 dark:text-zinc-400" />
@@ -443,9 +642,17 @@ const ProductionLine2Dashboard = () => {
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center px-4 py-2 rounded-lg bg-zinc-600 text-white text-base font-semibold dark:bg-zinc-700">
                   <Users className="w-4 h-4 mr-2" />
-                  Total: {orders.length}
+                  Total: {orders.length + approvedOrders.length}
                 </span>
               </div>
+              {approvedOrders.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-green-600 text-white text-sm font-medium dark:bg-green-700">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Approved: {approvedOrders.length}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 <span>Live Updates</span>
@@ -453,9 +660,9 @@ const ProductionLine2Dashboard = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-6 h-full">
+          <div className="grid grid-cols-2 gap-6" style={{height: 'calc(100vh - 200px)'}}>
             {/* Orders Overview */}
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
+            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-400">Assigned Orders</h3>
               </div>
@@ -471,7 +678,7 @@ const ProductionLine2Dashboard = () => {
                   <p className="text-sm text-zinc-400">Orders will appear here when assigned by the planner</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 flex-1 overflow-y-auto">
                   {orders
                     .map((order) => (
                       <div
@@ -526,7 +733,7 @@ const ProductionLine2Dashboard = () => {
             </div>
             
             {/* 3D Model and Order Details */}
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
+            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col">
               {selectedOrder ? (
                 <div>
                   <div className="mb-4">
@@ -544,25 +751,70 @@ const ProductionLine2Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      <div className="flex space-x-3">
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
-                          onClick={() => handleStartProduction(selectedOrder.id)}
-                          disabled={updating === selectedOrder.id}
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
-                        </button>
-                      </div>
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Cannot start production during maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                            onClick={() => handleStartProduction(selectedOrder.id)}
+                            disabled={updating === selectedOrder.id}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-3">
                         <button
                           className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                           onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
                         >
                           <AlertCircle className="w-4 h-4 mr-2" />
                           Report Missing Building Blocks
                         </button>
                       </div>
+                    </>
+                  )}
+                  
+                  {selectedOrder.status === 'ApprovedByAccountManager' && (
+                    <>
+                      {renderOrderDetails(selectedOrder)}
+                      
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Cannot start production during maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
+                            onClick={() => handleStartProduction(selectedOrder.id)}
+                            disabled={updating === selectedOrder.id}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
+                          </button>
+                        </div>
+                      )}
+                      <div className="mt-3">
+                        <button
+                          className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                          onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Report Missing Building Blocks
+                        </button>
+                      </div>
+                      {renderMissingBlocksForm()}
                     </>
                   )}
                   
@@ -570,24 +822,34 @@ const ProductionLine2Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      <div className="flex space-x-3">
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
-                          onClick={handleStartAssembly}
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          Start Assembly
-                        </button>
-                      </div>
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Cannot start assembly during maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
+                            onClick={handleStartAssembly}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Start Assembly
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-3">
                         <button
                           className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                           onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
                         >
                           <AlertCircle className="w-4 h-4 mr-2" />
                           Report Missing Building Blocks
                         </button>
                       </div>
+                      {renderMissingBlocksForm()}
                     </>
                   )}
                   
@@ -595,24 +857,34 @@ const ProductionLine2Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      <div className="flex space-x-3">
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
-                          onClick={handleSendForReview}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Send for Review
-                        </button>
-                      </div>
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Production halted due to maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                            onClick={handleSendForReview}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Send for Review
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-3">
                         <button
                           className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                           onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
                         >
                           <AlertCircle className="w-4 h-4 mr-2" />
                           Report Missing Building Blocks
                         </button>
                       </div>
+                      {renderMissingBlocksForm()}
                     </>
                   )}
                   
@@ -626,7 +898,7 @@ const ProductionLine2Dashboard = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-center justify-center flex-1 text-zinc-500 dark:text-zinc-400">
                   <div className="text-center">
                     <Package className="w-12 h-12 mx-auto mb-4 text-zinc-400 dark:text-zinc-500" />
                     <p className="text-lg font-medium text-zinc-900 dark:text-white">Select an Order</p>
@@ -638,6 +910,55 @@ const ProductionLine2Dashboard = () => {
           </div>
         </div>
         
+        {/* Approved by Account Manager Orders Table */}
+        {approvedOrders.length > 0 && (
+          <div className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6 ${showMissingBlocksForm ? 'mt-96' : 'mt-20'}`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-green-700 dark:text-green-400">Orders Approved by Account Manager</h3>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                {approvedOrders.length} Order{approvedOrders.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {approvedOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="p-4 border rounded-lg border-green-200 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10 opacity-75"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-zinc-900 dark:text-white">Order #{order.id}</h4>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 border border-green-300 dark:border-green-700">
+                          ✅ Approved by Account Manager
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">{order.productName}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 font-medium">
+                        Sim {order.simulationId}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 font-medium">
+                        Round {order.roundNumber}
+                      </span>
+                      <StatusBadge status={order.status} />
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
+                    <span>Qty: {order.quantity}</span>
+                    <span>Motor: {order.motorType}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                    <span>{order.customer}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {/* Restore button for last removed order */}
         {lastRemovedOrder && (
           <div className="fixed bottom-6 right-6 z-50">
@@ -647,82 +968,6 @@ const ProductionLine2Dashboard = () => {
             >
               Restore Last Removed Order
             </button>
-          </div>
-        )}
-
-        {/* Missing Blocks Modal */}
-        {showMissingBlocksModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
-                Report Missing Building Blocks
-              </h3>
-              <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                Order #{selectedOrder?.id} - Specify how many blocks are missing:
-              </p>
-              
-              <div className="space-y-4">
-                {/* Blue Blocks */}
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
-                    Blue Blocks Missing
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={missingBlocks.blue}
-                    onChange={(e) => setMissingBlocks(prev => ({ ...prev, blue: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
-                    placeholder="0"
-                  />
-                </div>
-                
-                {/* Red Blocks */}
-                <div>
-                  <label className="block text-sm font-medium text-red-700 dark:text-red-300 mb-2">
-                    Red Blocks Missing
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={missingBlocks.red}
-                    onChange={(e) => setMissingBlocks(prev => ({ ...prev, red: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-zinc-700 dark:text-white"
-                    placeholder="0"
-                  />
-                </div>
-                
-                {/* Gray Blocks */}
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Gray Blocks Missing
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={missingBlocks.gray}
-                    onChange={(e) => setMissingBlocks(prev => ({ ...prev, gray: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 dark:bg-zinc-700 dark:text-white"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={() => setShowMissingBlocksModal(false)}
-                  className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitMissingBlocks}
-                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
-                >
-                  Report Missing Blocks
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
