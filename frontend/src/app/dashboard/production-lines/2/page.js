@@ -31,13 +31,13 @@ const ProductionLine2Dashboard = () => {
     red: 0,
     gray: 0
   });
-  
+
   // Maintenance state
   const [maintenanceStatus, setMaintenanceStatus] = useState({
     isUnderMaintenance: false,
     maintenanceOrder: null
   });
-  
+
   const modelViewerRef = useRef(null);
 
   const { currentRound, currentSimulation, isRunning } = useSimulation();
@@ -45,13 +45,13 @@ const ProductionLine2Dashboard = () => {
   // Check for maintenance in current round
   const checkMaintenanceStatus = async () => {
     if (!currentRound) return;
-    
+
     try {
       const maintenanceOrders = await api.get(`/api/Maintenance/round/${currentRound.number}`);
       const line2Maintenance = maintenanceOrders.find(
         mo => mo.productionLine === 2 && mo.status !== 'Completed'
       );
-      
+
       setMaintenanceStatus({
         isUnderMaintenance: !!line2Maintenance,
         maintenanceOrder: line2Maintenance || null
@@ -82,20 +82,20 @@ const ProductionLine2Dashboard = () => {
         .filter(order => {
           const prodLine = order.productionLine ? order.productionLine.toString() : null;
           const isAssignedToLine2 = prodLine === '2';
-          
+
           // Only show orders that are assigned to production line and ready for production
           const relevantStatuses = [
             'ApprovedByVoorraadbeheer', // Orders approved by voorraadBeheer and ready for production
             'ToProduction', // Orders assigned to production line and ready to start
             'Pending',  // Include pending orders (returned from missing blocks)
-            'InProduction', 
+            'InProduction',
             'In Progress',
             'RejectedByAccountManager',
             'ApprovedByAccountManager'  // Include approved orders
           ];
-          const hasRelevantStatus = relevantStatuses.includes(order.status) || 
-                                  relevantStatuses.includes(order.productionStatus);
-          
+          const hasRelevantStatus = relevantStatuses.includes(order.status) ||
+            relevantStatuses.includes(order.productionStatus);
+
           return isAssignedToLine2 && hasRelevantStatus;
         })
         .sort((a, b) => {
@@ -122,18 +122,18 @@ const ProductionLine2Dashboard = () => {
             wasReturnedFromMissingBlocks: order.wasReturnedFromMissingBlocks || false  // New field
           };
         });
-        
+
       // Separate orders into regular orders and approved by account manager orders
-      const regularOrders = productionLine2Orders.filter(order => 
+      const regularOrders = productionLine2Orders.filter(order =>
         order.status !== 'ApprovedByAccountManager'
       );
-      const approvedByAccountManagerOrders = productionLine2Orders.filter(order => 
+      const approvedByAccountManagerOrders = productionLine2Orders.filter(order =>
         order.status === 'ApprovedByAccountManager'
       );
-        
+
       setOrders(regularOrders);
       setApprovedOrders(approvedByAccountManagerOrders);
-      
+
       // Preserve selected order by finding the updated version in either list
       if (selectedOrder) {
         const updatedSelectedOrder = productionLine2Orders.find(order => order.id === selectedOrder.id);
@@ -144,7 +144,7 @@ const ProductionLine2Dashboard = () => {
           setSelectedOrder(null);
         }
       }
-      
+
       setRounds(apiRounds);
       console.log(`🏭 Production Line 2: Loaded ${regularOrders.length} regular orders and ${approvedByAccountManagerOrders.length} approved orders (${productionLine2Orders.length} total)`);
     } catch (error) {
@@ -176,7 +176,7 @@ const ProductionLine2Dashboard = () => {
     switch (status) {
       case 'Pending': return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20';
       case 'ToProduction': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
-      case 'InProduction': 
+      case 'InProduction':
       case 'In Progress': return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20';
       case 'In Queue': return 'text-zinc-600 bg-zinc-100 dark:text-zinc-400 dark:bg-zinc-900/20';
       case 'Completed': return 'text-violet-600 bg-violet-100 dark:text-violet-400 dark:bg-violet-900/20';
@@ -186,17 +186,17 @@ const ProductionLine2Dashboard = () => {
 
   const handleStartAssembly = async () => {
     if (!selectedOrder) return;
-    
+
     try {
       console.log(`🏭 Starting assembly for order ${selectedOrder.id}, current status: ${selectedOrder.status}`);
-      
+
       // Update status in the API
-      await api.patch(`/api/Order/${selectedOrder.id}/status`, { 
-        status: 'InProduction' 
+      await api.patch(`/api/Order/${selectedOrder.id}/status`, {
+        status: 'InProduction'
       }).catch(err => {
         console.warn('API status update not supported, updating locally:', err.message);
       });
-      
+
       // Update local state - use consistent status name
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
@@ -208,7 +208,7 @@ const ProductionLine2Dashboard = () => {
       setSelectedOrder((prev) =>
         prev ? { ...prev, status: 'InProduction' } : prev
       );
-      
+
       console.log(`✅ Assembly started for order ${selectedOrder.id}, new status: InProduction`);
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -217,7 +217,7 @@ const ProductionLine2Dashboard = () => {
 
   const handleSendForReview = async () => {
     if (!selectedOrder) return;
-    
+
     try {
       // Update status to awaiting account manager approval using the new updateOrderStatus function
       await updateOrderStatus(selectedOrder.id, 'AwaitingAccountManagerApproval');
@@ -228,11 +228,11 @@ const ProductionLine2Dashboard = () => {
 
   const handleRestoreLastOrder = async () => {
     if (!lastRemovedOrder) return;
-    
+
     try {
       // Get the current order to preserve other properties
       const currentOrder = lastRemovedOrder;
-      
+
       // Update via API with all required fields, restoring to production line 2
       const updateData = {
         roundId: currentOrder.originalOrder.roundId || 1,
@@ -244,16 +244,16 @@ const ProductionLine2Dashboard = () => {
         productionLine: '2',
         status: currentOrder.originalOrder.status
       };
-      
+
       await api.put(`/api/Order/${lastRemovedOrder.id}`, updateData);
-      
+
       // Add to appropriate list based on status
       if (lastRemovedOrder.status === 'ApprovedByAccountManager') {
-        setApprovedOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'ApprovedByAccountManager'}]);
+        setApprovedOrders((prevOrders) => [...prevOrders, { ...lastRemovedOrder, status: 'ApprovedByAccountManager' }]);
       } else {
-        setOrders((prevOrders) => [...prevOrders, {...lastRemovedOrder, status: 'In Queue'}]);
+        setOrders((prevOrders) => [...prevOrders, { ...lastRemovedOrder, status: 'In Queue' }]);
       }
-      
+
       setRestoredOrderId(lastRemovedOrder.id);
       setLastRemovedOrder(null);
       console.log(`✅ Order ${lastRemovedOrder.id} restored to production line 2`);
@@ -281,33 +281,33 @@ const ProductionLine2Dashboard = () => {
         motorType: currentOrder.originalOrder.motorType,
         quantity: currentOrder.originalOrder.quantity,
         signature: currentOrder.originalOrder.signature,
-        productionLine: currentOrder.originalOrder.productionLine 
-          ? currentOrder.originalOrder.productionLine.toString().charAt(0) 
+        productionLine: currentOrder.originalOrder.productionLine
+          ? currentOrder.originalOrder.productionLine.toString().charAt(0)
           : null,
         status: newStatus,
         wasReturnedFromMissingBlocks: newStatus === 'InProduction' ? false : currentOrder.originalOrder.wasReturnedFromMissingBlocks
       };
-      
+
       await api.put(`/api/Order/${orderId}`, updateData);
-      
+
       // Update local state
       setOrders(prev =>
         prev.map(order =>
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
-      
+
       setApprovedOrders(prev =>
         prev.map(order =>
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
-      
+
       // Update selected order if it's the one being changed
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => ({ ...prev, status: newStatus }));
       }
-      
+
       console.log(`✅ Status updated for order ${orderId} to ${newStatus}`);
     } catch (error) {
       console.error('❌ Failed to update status:', error);
@@ -318,7 +318,7 @@ const ProductionLine2Dashboard = () => {
 
   const handleReportMissingBlocks = async () => {
     if (!selectedOrder) return;
-    
+
     // Reset missing blocks state and show form
     setMissingBlocks({ blue: 0, red: 0, gray: 0 });
     setShowMissingBlocksForm(true);
@@ -326,14 +326,14 @@ const ProductionLine2Dashboard = () => {
 
   const handleSubmitMissingBlocks = async () => {
     if (!selectedOrder) return;
-    
+
     // Check if at least one block is missing
     const totalMissing = missingBlocks.blue + missingBlocks.red + missingBlocks.gray;
     if (totalMissing === 0) {
       alert('Please specify at least one missing block.');
       return;
     }
-    
+
     try {
       // Create missing blocks request via API
       const missingBlocksData = {
@@ -348,14 +348,14 @@ const ProductionLine2Dashboard = () => {
 
       // Send to API (this will also update the order status to ProductionError automatically)
       await api.post('/api/MissingBlocks', missingBlocksData);
-      
+
       // Close form and show success message
       setShowMissingBlocksForm(false);
       alert(`Missing blocks reported for Order ${selectedOrder.id}. Sent to supplier for delivery.`);
-      
+
       // Refresh orders to get updated status
       fetchOrders();
-      
+
     } catch (error) {
       console.error('Error reporting missing blocks:', error);
       alert('Failed to report missing blocks. Please try again.');
@@ -363,10 +363,10 @@ const ProductionLine2Dashboard = () => {
   };
 
   const render3DModel = (motorType) => {
-    const modelSrc = motorType === 'A' ? '/models/Ontwerp-A.glb' : 
-                     motorType === 'B' ? '/models/Ontwerp-B.glb' : 
-                     '/models/Ontwerp-C.glb';
-    
+    const modelSrc = motorType === 'A' ? '/models/Ontwerp-A.glb' :
+      motorType === 'B' ? '/models/Ontwerp-B.glb' :
+        '/models/Ontwerp-C.glb';
+
     return (
       <div className="w-full h-80 rounded-lg border-2 border-zinc-300 dark:border-zinc-600 overflow-hidden relative flex items-center justify-center bg-white dark:bg-zinc-800">
         <model-viewer
@@ -391,12 +391,12 @@ const ProductionLine2Dashboard = () => {
 
   const renderOrderDetails = (order) => {
     // Calculate block requirements based on motor type and quantity
-    const blockRequirements = MotorBlockRequirements[order.motorType] 
+    const blockRequirements = MotorBlockRequirements[order.motorType]
       ? {
-          Blauw: MotorBlockRequirements[order.motorType].Blauw * order.quantity,
-          Rood: MotorBlockRequirements[order.motorType].Rood * order.quantity,
-          Grijs: MotorBlockRequirements[order.motorType].Grijs * order.quantity
-        }
+        Blauw: MotorBlockRequirements[order.motorType].Blauw * order.quantity,
+        Rood: MotorBlockRequirements[order.motorType].Rood * order.quantity,
+        Grijs: MotorBlockRequirements[order.motorType].Grijs * order.quantity
+      }
       : { Blauw: 0, Rood: 0, Grijs: 0 };
 
     return (
@@ -425,7 +425,7 @@ const ProductionLine2Dashboard = () => {
             Round {order.roundNumber}
           </span>
         </div>
-        
+
         {/* Block Requirements Section */}
         <div className="col-span-2 bg-gradient-to-r from-blue-50 to-red-50 dark:from-blue-900/20 dark:to-red-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400 mb-3 block">Required Building Blocks</label>
@@ -455,28 +455,28 @@ const ProductionLine2Dashboard = () => {
   const handleStartProduction = async (orderId) => {
     try {
       setUpdating(orderId);
-      
+
       // Call the new API endpoint to start production
       await api.post(`/api/Order/${orderId}/start-production`);
-      
+
       // Update local state to reflect the status change
       setOrders(prev =>
         prev.map(order =>
           order.id === orderId ? { ...order, status: 'InProduction' } : order
         )
       );
-      
+
       setApprovedOrders(prev =>
         prev.map(order =>
           order.id === orderId ? { ...order, status: 'InProduction' } : order
         )
       );
-      
+
       // Update selected order if it's the one being changed
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => ({ ...prev, status: 'InProduction' }));
       }
-      
+
       console.log(`✅ Production started for order ${orderId}`);
     } catch (error) {
       console.error('❌ Failed to start production:', error);
@@ -515,7 +515,7 @@ const ProductionLine2Dashboard = () => {
         <h4 className="text-sm font-bold text-orange-900 dark:text-orange-100 mb-3">
           Report Missing Building Blocks for Order #{selectedOrder?.id}
         </h4>
-        
+
         <div className="space-y-3">
           {/* Blue Blocks */}
           <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
@@ -589,7 +589,7 @@ const ProductionLine2Dashboard = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="flex space-x-3 mt-4">
           <button
             onClick={cancelMissingBlocksReport}
@@ -630,7 +630,7 @@ const ProductionLine2Dashboard = () => {
                     {maintenanceStatus.maintenanceOrder?.description || 'Scheduled maintenance in progress'}
                   </p>
                   <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                    Status: {maintenanceStatus.maintenanceOrder?.status} | 
+                    Status: {maintenanceStatus.maintenanceOrder?.status} |
                     Round {maintenanceStatus.maintenanceOrder?.roundNumber}
                   </p>
                 </div>
@@ -665,8 +665,8 @@ const ProductionLine2Dashboard = () => {
               </div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-6" style={{height: 'calc(100vh - 200px)'}}>
+
+          <div className="grid grid-cols-2 gap-6" style={{ height: 'calc(100vh - 200px)' }}>
             {/* Orders Overview */}
             <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col">
               <div className="flex justify-between items-center mb-4">
@@ -695,7 +695,7 @@ const ProductionLine2Dashboard = () => {
                   {loading ? "Refreshing..." : "Refresh"}
                 </button>
               </div>
-              
+
               {loading ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -713,15 +713,14 @@ const ProductionLine2Dashboard = () => {
                       <div
                         key={order.id}
                         onClick={() => setSelectedOrder(order)}
-                        className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                          selectedOrder?.id === order.id
+                        className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedOrder?.id === order.id
                             ? 'border-zinc-500 bg-zinc-50 dark:bg-zinc-900/20 dark:border-zinc-400'
                             : order.wasReturnedFromMissingBlocks
                               ? 'bg-orange-50 border-orange-300 dark:bg-orange-900/20 dark:border-orange-400 border-2 shadow-md'
-                            : restoredOrderId === order.id
-                              ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-400'
-                              : 'border-zinc-200 dark:border-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-400'
-                        }`}
+                              : restoredOrderId === order.id
+                                ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-400'
+                                : 'border-zinc-200 dark:border-zinc-600 hover:border-zinc-300 dark:hover:border-zinc-400'
+                          }`}
                         onMouseEnter={() => {
                           if (restoredOrderId === order.id) setRestoredOrderId(null);
                         }}
@@ -760,7 +759,7 @@ const ProductionLine2Dashboard = () => {
                 </div>
               )}
             </div>
-            
+
             {/* 3D Model and Order Details */}
             <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col">
               {selectedOrder ? (
@@ -769,17 +768,17 @@ const ProductionLine2Dashboard = () => {
                     <h3 className="text-xl font-bold text-zinc-900 dark:text-white">{selectedOrder.productName}</h3>
                     <p className="text-zinc-600 dark:text-zinc-400">Order #{selectedOrder.id}</p>
                   </div>
-                  
+
                   {/* 3D Product Viewer */}
                   <div className="mb-6 relative">
                     {render3DModel(selectedOrder.motorType)}
                   </div>
-                  
+
                   {/* Conditional rendering based on status */}
                   {(selectedOrder.status === 'ApprovedByVoorraadbeheer' || selectedOrder.status === 'ToProduction') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
-                      
+
                       {maintenanceStatus.isUnderMaintenance ? (
                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
                           <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
@@ -810,11 +809,11 @@ const ProductionLine2Dashboard = () => {
                       </div>
                     </>
                   )}
-                  
+
                   {selectedOrder.status === 'ApprovedByAccountManager' && (
                     <>
                       {renderOrderDetails(selectedOrder)}
-                      
+
                       {maintenanceStatus.isUnderMaintenance ? (
                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
                           <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
@@ -846,11 +845,11 @@ const ProductionLine2Dashboard = () => {
                       {renderMissingBlocksForm()}
                     </>
                   )}
-                  
+
                   {(selectedOrder.status === 'In Queue' || selectedOrder.status === 'Pending') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
-                      
+
                       {maintenanceStatus.isUnderMaintenance ? (
                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
                           <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
@@ -881,11 +880,11 @@ const ProductionLine2Dashboard = () => {
                       {renderMissingBlocksForm()}
                     </>
                   )}
-                  
+
                   {(selectedOrder.status === 'In Production' || selectedOrder.status === 'InProduction') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
-                      
+
                       {maintenanceStatus.isUnderMaintenance ? (
                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
                           <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
@@ -916,7 +915,7 @@ const ProductionLine2Dashboard = () => {
                       {renderMissingBlocksForm()}
                     </>
                   )}
-                  
+
                   {selectedOrder.status === 'Completed' && (
                     <>
                       <div className="mb-6 text-center">
@@ -938,7 +937,7 @@ const ProductionLine2Dashboard = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Approved by Account Manager Orders Table */}
         {approvedOrders.length > 0 && (
           <div className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6 ${showMissingBlocksForm ? 'mt-96' : 'mt-20'}`}>
@@ -948,7 +947,7 @@ const ProductionLine2Dashboard = () => {
                 {approvedOrders.length} Order{approvedOrders.length !== 1 ? 's' : ''}
               </span>
             </div>
-            
+
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {approvedOrders.map((order) => (
                 <div
@@ -987,7 +986,7 @@ const ProductionLine2Dashboard = () => {
             </div>
           </div>
         )}
-        
+
         {/* Restore button for last removed order */}
         {lastRemovedOrder && (
           <div className="fixed bottom-6 right-6 z-50">
