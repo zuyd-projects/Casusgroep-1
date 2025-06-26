@@ -169,6 +169,127 @@ namespace ERPNumber1.Controllers
         }
 
         /// <summary>
+        /// Get comprehensive business process analysis including cycle times, throughput, and efficiency metrics
+        /// </summary>
+        [HttpGet("business-analysis")]
+        public async Task<ActionResult<object>> GetBusinessProcessAnalysis(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var analysis = await _eventLogService.GetBusinessProcessAnalysisAsync(startDate, endDate);
+                return Ok(analysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving business process analysis");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get detailed process performance metrics for specific activities
+        /// </summary>
+        [HttpGet("activity-performance")]
+        public async Task<ActionResult<object>> GetActivityPerformanceAnalysis(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var analysis = await _eventLogService.GetActivityPerformanceAnalysisAsync(startDate, endDate);
+                return Ok(analysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving activity performance analysis");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get process conformance analysis showing deviation from expected process flow
+        /// </summary>
+        [HttpGet("conformance")]
+        public async Task<ActionResult<object>> GetProcessConformanceAnalysis(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var analysis = await _eventLogService.GetProcessConformanceAnalysisAsync(startDate, endDate);
+                return Ok(analysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving process conformance analysis");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get resource utilization and workload analysis
+        /// </summary>
+        [HttpGet("resource-utilization")]
+        public async Task<ActionResult<object>> GetResourceUtilizationAnalysis(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var analysis = await _eventLogService.GetResourceUtilizationAnalysisAsync(startDate, endDate);
+                return Ok(analysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving resource utilization analysis");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get detailed case journey analysis for individual orders
+        /// </summary>
+        [HttpGet("case-journey")]
+        public async Task<ActionResult<object>> GetCaseJourneyAnalysis(
+            [FromQuery] string? caseId = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var analysis = await _eventLogService.GetCaseJourneyAnalysisAsync(caseId, startDate, endDate);
+                return Ok(analysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving case journey analysis");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get process optimization recommendations based on analysis
+        /// </summary>
+        [HttpGet("optimization-recommendations")]
+        public async Task<ActionResult<object>> GetProcessOptimizationRecommendations(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var recommendations = await _eventLogService.GetProcessOptimizationRecommendationsAsync(startDate, endDate);
+                return Ok(recommendations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving process optimization recommendations");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// Seed sample process mining data for demonstration (Development only)
         /// </summary>
         [HttpPost("seed-sample-data")]

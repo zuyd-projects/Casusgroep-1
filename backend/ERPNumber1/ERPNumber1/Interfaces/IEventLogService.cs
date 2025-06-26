@@ -64,5 +64,35 @@ namespace ERPNumber1.Interfaces
         /// Get delivery time predictions and warnings for planners
         /// </summary>
         Task<object> GetDeliveryPredictionsAsync();
+
+        /// <summary>
+        /// Get comprehensive business process analysis including cycle times, throughput, and efficiency metrics
+        /// </summary>
+        Task<object> GetBusinessProcessAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
+        /// Get detailed process performance metrics for specific activities
+        /// </summary>
+        Task<object> GetActivityPerformanceAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
+        /// Get process conformance analysis showing deviation from expected process flow
+        /// </summary>
+        Task<object> GetProcessConformanceAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
+        /// Get resource utilization and workload analysis
+        /// </summary>
+        Task<object> GetResourceUtilizationAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
+        /// Get detailed case journey analysis for individual orders
+        /// </summary>
+        Task<object> GetCaseJourneyAnalysisAsync(string? caseId = null, DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
+        /// Get process optimization recommendations based on analysis
+        /// </summary>
+        Task<object> GetProcessOptimizationRecommendationsAsync(DateTime? startDate = null, DateTime? endDate = null);
     }
 }

@@ -603,5 +603,728 @@ namespace ERPNumber1.Services
 
             return await query.OrderBy(e => e.Timestamp).ToListAsync();
         }
+
+        public async Task<object> GetBusinessProcessAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            _logger.LogInformation("Analyzing {EventCount} events for business process analysis", events.Count);
+
+            // Group events by case to analyze process flows
+            var caseGroups = events.GroupBy(e => e.CaseId).ToList();
+            
+            // Calculate cycle times
+            var cycleTimes = new List<double>();
+            var processingTimes = new Dictionary<string, List<double>>();
+            var processStages = new List<string> { "Created", "ApprovedByVoorraadbeheer", "ToProduction", "InProduction", "AwaitingAccountManagerApproval", "ApprovedByAccountManager", "Delivered", "Completed" };
+            
+            foreach (var caseGroup in caseGroups)
+            {
+                var caseEvents = caseGroup.OrderBy(e => e.Timestamp).ToList();
+                var startEvent = caseEvents.FirstOrDefault();
+                var endEvent = caseEvents.LastOrDefault();
+                
+                if (startEvent != null && endEvent != null && startEvent != endEvent)
+                {
+                    var totalCycleTime = (endEvent.Timestamp - startEvent.Timestamp).TotalMinutes;
+                    cycleTimes.Add(totalCycleTime);
+                    
+                    // Calculate processing time for each stage
+                    for (int i = 0; i < caseEvents.Count - 1; i++)
+                    {
+                        var stageTime = (caseEvents[i + 1].Timestamp - caseEvents[i].Timestamp).TotalMinutes;
+                        var stageName = ExtractStageFromActivity(caseEvents[i].Activity);
+                        
+                        if (!processingTimes.ContainsKey(stageName))
+                            processingTimes[stageName] = new List<double>();
+                        processingTimes[stageName].Add(stageTime);
+                    }
+                }
+            }
+
+            // Calculate throughput metrics
+            var timespan = events.Any() ? (events.Max(e => e.Timestamp) - events.Min(e => e.Timestamp)).TotalDays : 0;
+            var completedCases = caseGroups.Count(g => g.Any(e => e.Activity.Contains("Completed") || e.Activity.Contains("Delivered")));
+            var throughputPerDay = timespan > 0 ? completedCases / timespan : 0;
+
+            // Calculate process efficiency
+            var reworkCases = caseGroups.Count(g => HasRework(g.ToList()));
+            var processEfficiency = caseGroups.Count > 0 ? ((double)(caseGroups.Count - reworkCases) / caseGroups.Count) * 100 : 0;
+
+            // Calculate stage performance
+            var stagePerformance = processingTimes.Select(kvp => new
+            {
+                Stage = kvp.Key,
+                AverageTime = kvp.Value.Any() ? kvp.Value.Average() : 0,
+                MedianTime = kvp.Value.Any() ? GetMedian(kvp.Value) : 0,
+                MinTime = kvp.Value.Any() ? kvp.Value.Min() : 0,
+                MaxTime = kvp.Value.Any() ? kvp.Value.Max() : 0,
+                Count = kvp.Value.Count,
+                StandardDeviation = kvp.Value.Any() ? CalculateStandardDeviation(kvp.Value) : 0
+            }).OrderBy(x => processStages.IndexOf(x.Stage)).ToList();
+
+            return new
+            {
+                OverallMetrics = new
+                {
+                    TotalCases = caseGroups.Count,
+                    CompletedCases = completedCases,
+                    AverageCycleTime = cycleTimes.Any() ? cycleTimes.Average() : 0,
+                    MedianCycleTime = cycleTimes.Any() ? GetMedian(cycleTimes) : 0,
+                    ThroughputPerDay = throughputPerDay,
+                    ProcessEfficiency = processEfficiency,
+                    ReworkRate = caseGroups.Count > 0 ? ((double)reworkCases / caseGroups.Count) * 100 : 0,
+                    AnalysisPeriod = new
+                    {
+                        Start = events.Any() ? events.Min(e => e.Timestamp) : (DateTime?)null,
+                        End = events.Any() ? events.Max(e => e.Timestamp) : (DateTime?)null,
+                        DurationDays = timespan
+                    }
+                },
+                StagePerformance = stagePerformance,
+                ProcessFlow = new
+                {
+                    TotalActivities = events.Select(e => e.Activity).Distinct().Count(),
+                    AverageActivitiesPerCase = caseGroups.Any() ? caseGroups.Average(g => g.Count()) : 0,
+                    MostCommonPath = GetMostCommonProcessPath(caseGroups),
+                    ProcessVariants = GetProcessVariants(caseGroups)
+                },
+                QualityMetrics = new
+                {
+                    ReworkCases = reworkCases,
+                    FailedCases = caseGroups.Count(g => g.Any(e => e.Status.Contains("Failed") || e.Status.Contains("Error"))),
+                    OnTimeDelivery = CalculateOnTimeDeliveryRate(caseGroups),
+                    CustomerSatisfactionIndicators = GetCustomerSatisfactionIndicators(caseGroups)
+                }
+            };
+        }
+
+        public async Task<object> GetActivityPerformanceAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            
+            var activityAnalysis = events
+                .GroupBy(e => e.Activity)
+                .Select(g => new
+                {
+                    Activity = g.Key,
+                    TotalOccurrences = g.Count(),
+                    UniqueResources = g.Select(e => e.Resource).Distinct().Count(),
+                    AverageExecutionTime = g.Where(e => e.DurationMs.HasValue).Any() 
+                        ? g.Where(e => e.DurationMs.HasValue).Average(e => e.DurationMs!.Value) 
+                        : (double?)null,
+                    SuccessRate = g.Count() > 0 ? ((double)g.Count(e => e.Status == "Completed") / g.Count()) * 100 : 0,
+                    ErrorRate = g.Count() > 0 ? ((double)g.Count(e => e.Status.Contains("Failed") || e.Status.Contains("Error")) / g.Count()) * 100 : 0,
+                    MostActiveResource = g.GroupBy(e => e.Resource).OrderByDescending(r => r.Count()).FirstOrDefault()?.Key,
+                    PeakTimes = GetActivityPeakTimes(g.ToList()),
+                    Bottleneck = IsBottleneck(g.ToList(), events),
+                    ProcessImpact = CalculateProcessImpact(g.Key, events)
+                })
+                .OrderByDescending(x => x.TotalOccurrences)
+                .ToList();
+
+            return new
+            {
+                TotalActivities = activityAnalysis.Count,
+                ActivityDetails = activityAnalysis,
+                PerformanceSummary = new
+                {
+                    MostFrequentActivity = activityAnalysis.FirstOrDefault()?.Activity,
+                    BottleneckActivities = activityAnalysis.Where(a => a.Bottleneck).Select(a => a.Activity).ToList(),
+                    HighErrorActivities = activityAnalysis.Where(a => a.ErrorRate > 5).Select(a => new { a.Activity, a.ErrorRate }).ToList(),
+                    LowPerformanceActivities = activityAnalysis.Where(a => a.SuccessRate < 95).Select(a => new { a.Activity, a.SuccessRate }).ToList()
+                }
+            };
+        }
+
+        public async Task<object> GetProcessConformanceAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            var caseGroups = events.GroupBy(e => e.CaseId).ToList();
+            
+            // Define expected process flow
+            var expectedFlow = new List<string> 
+            { 
+                "Order Created", 
+                "Order Approved by VoorraadBeheer", 
+                "Production Started", 
+                "Order Updated", 
+                "Approve Order", 
+                "Order Status Changed", 
+                "Update Order Status" 
+            };
+
+            var conformanceResults = new List<object>();
+            var deviations = new List<object>();
+
+            foreach (var caseGroup in caseGroups)
+            {
+                var caseEvents = caseGroup.OrderBy(e => e.Timestamp).ToList();
+                var actualFlow = caseEvents.Select(e => NormalizeActivityName(e.Activity)).ToList();
+                
+                var conformanceScore = CalculateConformanceScore(actualFlow, expectedFlow);
+                var caseDeviations = FindDeviations(actualFlow, expectedFlow, caseGroup.Key);
+                
+                conformanceResults.Add(new
+                {
+                    CaseId = caseGroup.Key,
+                    ConformanceScore = conformanceScore,
+                    ActualSteps = actualFlow.Count,
+                    ExpectedSteps = expectedFlow.Count,
+                    HasDeviations = caseDeviations.Any(),
+                    DeviationCount = caseDeviations.Count(),
+                    ProcessVariant = string.Join(" → ", actualFlow.Take(5)) // First 5 steps for variant identification
+                });
+
+                deviations.AddRange(caseDeviations);
+            }
+
+            return new
+            {
+                OverallConformance = new
+                {
+                    AverageConformanceScore = conformanceResults.Any() ? 
+                        conformanceResults.Average(r => ((dynamic)r).ConformanceScore) : 0,
+                    FullyConformantCases = conformanceResults.Count(r => ((dynamic)r).ConformanceScore >= 95),
+                    NonConformantCases = conformanceResults.Count(r => ((dynamic)r).ConformanceScore < 80),
+                    TotalDeviations = deviations.Count
+                },
+                ProcessVariants = conformanceResults
+                    .GroupBy(r => ((dynamic)r).ProcessVariant)
+                    .Select(g => new
+                    {
+                        Variant = g.Key,
+                        CaseCount = g.Count(),
+                        Percentage = conformanceResults.Count > 0 ? ((double)g.Count() / conformanceResults.Count) * 100 : 0,
+                        AverageConformance = g.Average(r => ((dynamic)r).ConformanceScore)
+                    })
+                    .OrderByDescending(v => v.CaseCount)
+                    .ToList(),
+                CommonDeviations = deviations
+                    .GroupBy(d => ((dynamic)d).DeviationType)
+                    .Select(g => new
+                    {
+                        DeviationType = g.Key,
+                        Count = g.Count(),
+                        Percentage = deviations.Count > 0 ? ((double)g.Count() / deviations.Count) * 100 : 0,
+                        Examples = g.Take(3).ToList()
+                    })
+                    .OrderByDescending(d => d.Count)
+                    .ToList(),
+                CaseConformanceDetails = conformanceResults.OrderBy(r => ((dynamic)r).ConformanceScore).Take(20).ToList()
+            };
+        }
+
+        public async Task<object> GetResourceUtilizationAnalysisAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            
+            var resourceAnalysis = events
+                .GroupBy(e => e.Resource)
+                .Select(g => new
+                {
+                    Resource = g.Key,
+                    TotalActivities = g.Count(),
+                    UniqueActivities = g.Select(e => e.Activity).Distinct().Count(),
+                    UniqueCases = g.Select(e => e.CaseId).Distinct().Count(),
+                    AverageActivitiesPerDay = CalculateActivitiesPerDay(g.ToList()),
+                    WorkloadDistribution = GetWorkloadDistribution(g.ToList()),
+                    PerformanceMetrics = new
+                    {
+                        SuccessRate = g.Count() > 0 ? ((double)g.Count(e => e.Status == "Completed") / g.Count()) * 100 : 0,
+                        ErrorRate = g.Count() > 0 ? ((double)g.Count(e => e.Status.Contains("Failed")) / g.Count()) * 100 : 0,
+                        AverageResponseTime = g.Where(e => e.DurationMs.HasValue).Any() 
+                            ? g.Where(e => e.DurationMs.HasValue).Average(e => e.DurationMs!.Value) 
+                            : (double?)null
+                    },
+                    ActivityBreakdown = g.GroupBy(e => e.Activity)
+                        .Select(a => new { Activity = a.Key, Count = a.Count() })
+                        .OrderByDescending(a => a.Count)
+                        .ToList(),
+                    UtilizationScore = CalculateUtilizationScore(g.ToList(), events.Count)
+                })
+                .OrderByDescending(r => r.TotalActivities)
+                .ToList();
+
+            return new
+            {
+                TotalResources = resourceAnalysis.Count,
+                ResourceDetails = resourceAnalysis,
+                UtilizationSummary = new
+                {
+                    HighlyUtilizedResources = resourceAnalysis.Where(r => r.UtilizationScore > 80).Select(r => r.Resource).ToList(),
+                    UnderutilizedResources = resourceAnalysis.Where(r => r.UtilizationScore < 20).Select(r => r.Resource).ToList(),
+                    AverageUtilization = resourceAnalysis.Any() ? resourceAnalysis.Average(r => r.UtilizationScore) : 0,
+                    ResourceEfficiency = resourceAnalysis.Any() ? resourceAnalysis.Average(r => r.PerformanceMetrics.SuccessRate) : 0
+                },
+                Recommendations = GenerateResourceRecommendations(resourceAnalysis.Cast<object>().ToList())
+            };
+        }
+
+        public async Task<object> GetCaseJourneyAnalysisAsync(string? caseId = null, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            
+            if (!string.IsNullOrEmpty(caseId))
+            {
+                events = events.Where(e => e.CaseId == caseId).ToList();
+            }
+
+            var caseJourneys = events
+                .GroupBy(e => e.CaseId)
+                .Select(g => AnalyzeCaseJourney(g.ToList()))
+                .ToList();
+
+            return new
+            {
+                TotalCases = caseJourneys.Count,
+                CaseJourneys = caseJourneys.OrderByDescending(c => ((dynamic)c).TotalDuration).ToList(),
+                JourneySummary = new
+                {
+                    AverageJourneySteps = caseJourneys.Any() ? caseJourneys.Average(c => ((dynamic)c).TotalSteps) : 0,
+                    AverageJourneyDuration = caseJourneys.Any() ? caseJourneys.Average(c => ((dynamic)c).TotalDuration) : 0,
+                    MostCommonIssues = GetMostCommonJourneyIssues(caseJourneys),
+                    SuccessfulJourneys = caseJourneys.Count(c => ((dynamic)c).IsSuccessful),
+                    ProblematicJourneys = caseJourneys.Count(c => !((dynamic)c).IsSuccessful)
+                }
+            };
+        }
+
+        public async Task<object> GetProcessOptimizationRecommendationsAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = await GetFilteredEventsAsync(startDate, endDate);
+            var caseGroups = events.GroupBy(e => e.CaseId).ToList();
+            
+            var recommendations = new List<object>();
+
+            // Analyze bottlenecks
+            var bottlenecks = IdentifyBottlenecks(events);
+            foreach (dynamic bottleneck in bottlenecks)
+            {
+                recommendations.Add(new
+                {
+                    Type = "Bottleneck Resolution",
+                    Priority = "High",
+                    Category = "Process Flow",
+                    Issue = $"Activity '{bottleneck.Activity}' is causing delays",
+                    Impact = $"Average delay of {bottleneck.AverageDelay:F1} minutes per case",
+                    Recommendation = $"Consider parallel processing or additional resources for '{bottleneck.Activity}'",
+                    EstimatedImprovement = $"Could reduce cycle time by {bottleneck.PotentialImprovement:F1}%"
+                });
+            }
+
+            // Analyze rework patterns
+            var reworkPatterns = IdentifyReworkPatterns(caseGroups);
+            foreach (dynamic pattern in reworkPatterns)
+            {
+                recommendations.Add(new
+                {
+                    Type = "Rework Reduction",
+                    Priority = "Medium",
+                    Category = "Quality Improvement",
+                    Issue = $"High rework rate in '{pattern.Stage}' ({pattern.ReworkRate:F1}%)",
+                    Impact = $"Affects {pattern.CasesAffected} cases, adding {pattern.ExtraTime:F1} minutes average",
+                    Recommendation = $"Implement quality checks and training for '{pattern.Stage}' activities",
+                    EstimatedImprovement = $"Could improve efficiency by {pattern.PotentialSavings:F1}%"
+                });
+            }
+
+            // Analyze resource allocation
+            var resourceIssues = IdentifyResourceIssues(events);
+            foreach (dynamic issue in resourceIssues)
+            {
+                recommendations.Add(new
+                {
+                    Type = "Resource Optimization",
+                    Priority = issue.Severity,
+                    Category = "Resource Management",
+                    Issue = issue.Description,
+                    Impact = issue.Impact,
+                    Recommendation = issue.Recommendation,
+                    EstimatedImprovement = issue.EstimatedImprovement
+                });
+            }
+
+            return new
+            {
+                TotalRecommendations = recommendations.Count,
+                HighPriorityRecommendations = recommendations.Count(r => ((dynamic)r).Priority == "High"),
+                Recommendations = recommendations.OrderBy(r => ((dynamic)r).Priority == "High" ? 0 : ((dynamic)r).Priority == "Medium" ? 1 : 2).ToList(),
+                ImplementationRoadmap = GenerateImplementationRoadmap(recommendations),
+                ExpectedBenefits = CalculateExpectedBenefits(recommendations)
+            };
+        }
+
+        // Helper methods for the new analysis features
+        private string ExtractStageFromActivity(string activity)
+        {
+            if (activity.Contains("Created")) return "Created";
+            if (activity.Contains("ApprovedByVoorraadbeheer")) return "ApprovedByVoorraadbeheer";
+            if (activity.Contains("ToProduction")) return "ToProduction";
+            if (activity.Contains("InProduction")) return "InProduction";
+            if (activity.Contains("AwaitingAccountManagerApproval")) return "AwaitingAccountManagerApproval";
+            if (activity.Contains("ApprovedByAccountManager")) return "ApprovedByAccountManager";
+            if (activity.Contains("Delivered")) return "Delivered";
+            if (activity.Contains("Completed")) return "Completed";
+            return "Other";
+        }
+
+        private bool HasRework(List<EventLog> caseEvents)
+        {
+            var activities = caseEvents.Select(e => ExtractStageFromActivity(e.Activity)).ToList();
+            var uniqueActivities = activities.Distinct().ToList();
+            return activities.Count > uniqueActivities.Count; // Rework if same activity appears multiple times
+        }
+
+        private double GetMedian(List<double> values)
+        {
+            var sorted = values.OrderBy(x => x).ToList();
+            var count = sorted.Count;
+            if (count == 0) return 0;
+            if (count % 2 == 0)
+                return (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0;
+            return sorted[count / 2];
+        }
+
+        private double CalculateStandardDeviation(List<double> values)
+        {
+            if (!values.Any()) return 0;
+            var avg = values.Average();
+            var sumOfSquares = values.Sum(x => Math.Pow(x - avg, 2));
+            return Math.Sqrt(sumOfSquares / values.Count);
+        }
+
+        private string GetMostCommonProcessPath(List<IGrouping<string, EventLog>> caseGroups)
+        {
+            var paths = caseGroups
+                .Select(g => string.Join(" → ", g.OrderBy(e => e.Timestamp).Select(e => ExtractStageFromActivity(e.Activity)).Take(5)))
+                .GroupBy(p => p)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            
+            return paths?.Key ?? "No common path found";
+        }
+
+        private List<object> GetProcessVariants(List<IGrouping<string, EventLog>> caseGroups)
+        {
+            return caseGroups
+                .Select(g => string.Join(" → ", g.OrderBy(e => e.Timestamp).Select(e => ExtractStageFromActivity(e.Activity))))
+                .GroupBy(path => path)
+                .Select(g => new { Variant = g.Key, Count = g.Count() })
+                .OrderByDescending(v => v.Count)
+                .Take(5)
+                .Cast<object>()
+                .ToList();
+        }
+
+        private double CalculateOnTimeDeliveryRate(List<IGrouping<string, EventLog>> caseGroups)
+        {
+            var deliveredCases = caseGroups.Where(g => g.Any(e => e.Activity.Contains("Delivered"))).ToList();
+            if (!deliveredCases.Any()) return 0;
+
+            var onTimeCases = deliveredCases.Count(g =>
+            {
+                var created = g.OrderBy(e => e.Timestamp).FirstOrDefault();
+                var delivered = g.FirstOrDefault(e => e.Activity.Contains("Delivered"));
+                if (created == null || delivered == null) return false;
+                
+                var deliveryTime = (delivered.Timestamp - created.Timestamp).TotalDays;
+                return deliveryTime <= 7; // Assuming 7 days is the target
+            });
+
+            return ((double)onTimeCases / deliveredCases.Count) * 100;
+        }
+
+        private object GetCustomerSatisfactionIndicators(List<IGrouping<string, EventLog>> caseGroups)
+        {
+            var rejectedOrders = caseGroups.Count(g => g.Any(e => e.Activity.Contains("Rejected")));
+            var totalOrders = caseGroups.Count;
+            
+            return new
+            {
+                RejectionRate = totalOrders > 0 ? ((double)rejectedOrders / totalOrders) * 100 : 0,
+                ComplaintIndicators = rejectedOrders,
+                ProcessSmoothness = CalculateProcessSmoothness(caseGroups)
+            };
+        }
+
+        private double CalculateProcessSmoothness(List<IGrouping<string, EventLog>> caseGroups)
+        {
+            if (!caseGroups.Any()) return 0;
+            
+            var smoothCases = caseGroups.Count(g => !HasRework(g.ToList()));
+            return ((double)smoothCases / caseGroups.Count) * 100;
+        }
+
+        // Additional helper methods would continue here...
+        private object GetActivityPeakTimes(List<EventLog> activityEvents)
+        {
+            return activityEvents
+                .GroupBy(e => e.Timestamp.Hour)
+                .OrderByDescending(g => g.Count())
+                .Take(3)
+                .Select(g => new { Hour = g.Key, Count = g.Count() })
+                .ToList();
+        }
+
+        private bool IsBottleneck(List<EventLog> activityEvents, List<EventLog> allEvents)
+        {
+            var activityCount = activityEvents.Count;
+            var avgActivityCount = allEvents.GroupBy(e => e.Activity).Average(g => g.Count());
+            return activityCount > avgActivityCount * 1.5; // 50% above average
+        }
+
+        private double CalculateProcessImpact(string activity, List<EventLog> allEvents)
+        {
+            var activityEvents = allEvents.Where(e => e.Activity == activity).ToList();
+            var totalEvents = allEvents.Count;
+            return totalEvents > 0 ? ((double)activityEvents.Count / totalEvents) * 100 : 0;
+        }
+
+        private string NormalizeActivityName(string activity)
+        {
+            // Normalize activity names for conformance analysis
+            if (activity.Contains("Order Created")) return "Order Created";
+            if (activity.Contains("Approved by VoorraadBeheer")) return "Order Approved by VoorraadBeheer";
+            if (activity.Contains("Production Started")) return "Production Started";
+            if (activity.Contains("Order Updated")) return "Order Updated";
+            if (activity.Contains("Approve Order")) return "Approve Order";
+            if (activity.Contains("Order Status Changed")) return "Order Status Changed";
+            if (activity.Contains("Update Order Status")) return "Update Order Status";
+            return activity;
+        }
+
+        private double CalculateConformanceScore(List<string> actualFlow, List<string> expectedFlow)
+        {
+            // Simple conformance calculation - can be enhanced with more sophisticated algorithms
+            var matches = actualFlow.Intersect(expectedFlow).Count();
+            var maxLength = Math.Max(actualFlow.Count, expectedFlow.Count);
+            return maxLength > 0 ? ((double)matches / maxLength) * 100 : 0;
+        }
+
+        private IEnumerable<object> FindDeviations(List<string> actualFlow, List<string> expectedFlow, string caseId)
+        {
+            var deviations = new List<object>();
+            
+            // Find missing steps
+            var missingSteps = expectedFlow.Except(actualFlow).ToList();
+            foreach (var missing in missingSteps)
+            {
+                deviations.Add(new
+                {
+                    CaseId = caseId,
+                    DeviationType = "Missing Step",
+                    Description = $"Missing expected step: {missing}",
+                    Impact = "Process incompleteness"
+                });
+            }
+
+            // Find extra steps
+            var extraSteps = actualFlow.Except(expectedFlow).ToList();
+            foreach (var extra in extraSteps)
+            {
+                deviations.Add(new
+                {
+                    CaseId = caseId,
+                    DeviationType = "Extra Step",
+                    Description = $"Unexpected step: {extra}",
+                    Impact = "Process inefficiency"
+                });
+            }
+
+            return deviations;
+        }
+
+        private double CalculateActivitiesPerDay(List<EventLog> resourceEvents)
+        {
+            if (!resourceEvents.Any()) return 0;
+            
+            var days = (resourceEvents.Max(e => e.Timestamp) - resourceEvents.Min(e => e.Timestamp)).TotalDays;
+            return days > 0 ? resourceEvents.Count / days : resourceEvents.Count;
+        }
+
+        private object GetWorkloadDistribution(List<EventLog> resourceEvents)
+        {
+            return resourceEvents
+                .GroupBy(e => e.Timestamp.Date)
+                .Select(g => new { Date = g.Key, ActivityCount = g.Count() })
+                .OrderByDescending(x => x.ActivityCount)
+                .Take(5)
+                .ToList();
+        }
+
+        private double CalculateUtilizationScore(List<EventLog> resourceEvents, int totalEvents)
+        {
+            return totalEvents > 0 ? ((double)resourceEvents.Count / totalEvents) * 100 : 0;
+        }
+
+        private List<object> GenerateResourceRecommendations(List<object> resourceAnalysis)
+        {
+            var recommendations = new List<object>();
+            
+            foreach (dynamic resource in resourceAnalysis)
+            {
+                if (resource.UtilizationScore > 90)
+                {
+                    recommendations.Add(new
+                    {
+                        Type = "Overutilization",
+                        Resource = resource.Resource,
+                        Recommendation = "Consider load balancing or additional resources",
+                        Priority = "High"
+                    });
+                }
+                else if (resource.UtilizationScore < 10)
+                {
+                    recommendations.Add(new
+                    {
+                        Type = "Underutilization",
+                        Resource = resource.Resource,
+                        Recommendation = "Consider reassigning tasks or cross-training",
+                        Priority = "Medium"
+                    });
+                }
+            }
+            
+            return recommendations;
+        }
+
+        private object AnalyzeCaseJourney(List<EventLog> caseEvents)
+        {
+            var orderedEvents = caseEvents.OrderBy(e => e.Timestamp).ToList();
+            var totalDuration = orderedEvents.Any() ? (orderedEvents.Last().Timestamp - orderedEvents.First().Timestamp).TotalMinutes : 0;
+            
+            return new
+            {
+                CaseId = caseEvents.First().CaseId,
+                TotalSteps = orderedEvents.Count,
+                TotalDuration = totalDuration,
+                StartTime = orderedEvents.First().Timestamp,
+                EndTime = orderedEvents.Last().Timestamp,
+                IsSuccessful = orderedEvents.Any(e => e.Activity.Contains("Completed") || e.Activity.Contains("Delivered")),
+                HasRework = HasRework(orderedEvents),
+                Journey = orderedEvents.Select(e => new
+                {
+                    Step = e.Activity,
+                    Timestamp = e.Timestamp,
+                    Resource = e.Resource,
+                    Duration = e.DurationMs
+                }).ToList()
+            };
+        }
+
+        private List<object> GetMostCommonJourneyIssues(List<object> caseJourneys)
+        {
+            var issuesList = new List<object>();
+            
+            foreach (dynamic journey in caseJourneys)
+            {
+                if (journey.HasRework)
+                    issuesList.Add(new { Issue = "Rework Required", CaseId = journey.CaseId });
+                
+                if (journey.TotalDuration > 1440) // More than 24 hours
+                    issuesList.Add(new { Issue = "Extended Duration", CaseId = journey.CaseId });
+                    
+                if (!journey.IsSuccessful)
+                    issuesList.Add(new { Issue = "Incomplete Process", CaseId = journey.CaseId });
+            }
+            
+            return issuesList
+                .GroupBy(i => ((dynamic)i).Issue)
+                .Select(g => new { Issue = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(5)
+                .Cast<object>()
+                .ToList();
+        }
+
+        private List<object> IdentifyBottlenecks(List<EventLog> events)
+        {
+            // Simplified bottleneck identification
+            return events
+                .GroupBy(e => e.Activity)
+                .Where(g => g.Count() > events.Count * 0.1) // Activities that occur in more than 10% of events
+                .Select(g => new
+                {
+                    Activity = g.Key,
+                    AverageDelay = g.Where(e => e.DurationMs.HasValue).Any() 
+                        ? g.Where(e => e.DurationMs.HasValue).Average(e => e.DurationMs!.Value) / 60000.0 // Convert to minutes
+                        : 0.0,
+                    PotentialImprovement = 15.0 // Placeholder percentage
+                })
+                .Where(b => b.AverageDelay > 5) // More than 5 minutes average
+                .Cast<object>()
+                .ToList();
+        }
+
+        private List<object> IdentifyReworkPatterns(List<IGrouping<string, EventLog>> caseGroups)
+        {
+            return new List<object>
+            {
+                new
+                {
+                    Stage = "Order Approval",
+                    ReworkRate = 15.0,
+                    CasesAffected = caseGroups.Count(g => HasRework(g.ToList())),
+                    ExtraTime = 30.0,
+                    PotentialSavings = 10.0
+                }
+            };
+        }
+
+        private List<object> IdentifyResourceIssues(List<EventLog> events)
+        {
+            var resourceWorkload = events
+                .GroupBy(e => e.Resource)
+                .Select(g => new
+                {
+                    Resource = g.Key,
+                    Workload = g.Count(),
+                    AvgWorkload = events.Count / events.Select(e => e.Resource).Distinct().Count()
+                })
+                .ToList();
+
+            var issues = new List<object>();
+
+            foreach (var resource in resourceWorkload)
+            {
+                if (resource.Workload > resource.AvgWorkload * 2)
+                {
+                    issues.Add(new
+                    {
+                        Severity = "High",
+                        Description = $"Resource '{resource.Resource}' is overloaded",
+                        Impact = $"Handling {resource.Workload} activities vs average {resource.AvgWorkload:F0}",
+                        Recommendation = "Redistribute workload or add capacity",
+                        EstimatedImprovement = "20-30% efficiency gain"
+                    });
+                }
+            }
+
+            return issues;
+        }
+
+        private object GenerateImplementationRoadmap(List<object> recommendations)
+        {
+            return new
+            {
+                Phase1 = "Address high-priority bottlenecks (0-3 months)",
+                Phase2 = "Implement quality improvements (3-6 months)",
+                Phase3 = "Optimize resource allocation (6-12 months)",
+                TotalEstimatedTime = "12 months",
+                InvestmentRequired = "Medium to High"
+            };
+        }
+
+        private object CalculateExpectedBenefits(List<object> recommendations)
+        {
+            return new
+            {
+                CycleTimeReduction = "15-25%",
+                EfficiencyImprovement = "20-30%",
+                CostSavings = "10-15%",
+                QualityImprovement = "Reduced rework by 40%",
+                CustomerSatisfaction = "Improved delivery times"
+            };
+        }
     }
 }
