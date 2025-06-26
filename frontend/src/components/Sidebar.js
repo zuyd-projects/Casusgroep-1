@@ -9,9 +9,9 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Orders", href: "/dashboard/orders" },
-  { label: "Voorraad Beheer", href: "/dashboard/voorraadBeheer" },
+  { label: "Inventory", href: "/dashboard/inventoryManagement" },
   { label: "Supplier", href: "/dashboard/supplier" },
-  { label: "Plannings", href: "/dashboard/plannings" },
+  { label: "Planning", href: "/dashboard/planning" },
   {
     label: "Production Lines",
     href: "/dashboard/production-lines",
@@ -60,9 +60,8 @@ function SidebarItem({ item, pathname, onMobileMenuClose }) {
       >
         <span>{item.label}</span>
         <svg
-          className={`w-4 h-4 ml-2 transition-transform ${
-            open ? "rotate-90" : ""
-          }`}
+          className={`w-4 h-4 ml-2 transition-transform ${open ? "rotate-90" : ""
+            }`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -82,11 +81,10 @@ function SidebarItem({ item, pathname, onMobileMenuClose }) {
               key={child.href}
               href={child.href}
               onClick={onMobileMenuClose}
-              className={`block px-4 py-2 rounded-lg transition-colors font-medium ${
-                pathname === child.href
+              className={`block px-4 py-2 rounded-lg transition-colors font-medium ${pathname === child.href
                   ? "bg-pink-700 text-white shadow-md"
                   : "text-white/80 hover:bg-pink-600/20 hover:text-white"
-              }`}
+                }`}
             >
               {child.label}
             </Link>
@@ -118,39 +116,39 @@ export default function Sidebar() {
 
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/50 z-30"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`
           w-60 h-screen bg-gradient-to-b from-purple-600 to-pink-600 dark:from-purple-800 dark:to-pink-800 text-white p-6 rounded-br-3xl shadow-2xl relative
           lg:block
           ${isMobileMenuOpen ? 'fixed left-0 top-0 z-40' : 'hidden lg:block'}
         `}
       >
-      <div className="flex items-center mb-10 px-2">
-        <span className="text-3xl font-extrabold tracking-wide drop-shadow-lg text-white">
-          ERPNumber1
-        </span>
-      </div>
-      <nav className="space-y-2">
-        {navItems.map((item) => (
-          <SidebarItem 
-            key={item.label} 
-            item={item} 
-            pathname={pathname}
-            onMobileMenuClose={() => setIsMobileMenuOpen(false)}
-          />
-        ))}
-      </nav>
-      <div className="absolute bottom-8 left-0 w-full px-6">
-        <span className="text-white/70 text-sm">About</span>
-      </div>
-    </aside>
+        <div className="flex items-center mb-10 px-2">
+          <span className="text-3xl font-extrabold tracking-wide drop-shadow-lg text-white">
+            ERPNumber1
+          </span>
+        </div>
+        <nav className="space-y-2">
+          {navItems.map((item) => (
+            <SidebarItem
+              key={item.label}
+              item={item}
+              pathname={pathname}
+              onMobileMenuClose={() => setIsMobileMenuOpen(false)}
+            />
+          ))}
+        </nav>
+        <div className="absolute bottom-8 left-0 w-full px-6">
+          <span className="text-white/70 text-sm">About</span>
+        </div>
+      </aside>
     </>
   );
 }

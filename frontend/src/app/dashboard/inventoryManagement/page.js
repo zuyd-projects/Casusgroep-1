@@ -15,7 +15,7 @@ const MotorBlockRequirements = {
   C: { Blauw: 3, Rood: 3, Grijs: 2 },
 };
 
-export default function VoorraadBeheerPage() {
+export default function InventoryManagementPage() {
   const [inventoryData, setInventoryData] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [rejectedOrders, setRejectedOrders] = useState([]);
@@ -57,7 +57,7 @@ export default function VoorraadBeheerPage() {
       ]);
 
       setPendingOrders(pendingOrdersData);
-      
+
       // Filter and set rejected orders
       const rejectedOrdersData = orders.filter(order => order.status === "RejectedByVoorraadbeheer");
       setRejectedOrders(rejectedOrdersData);
@@ -86,9 +86,8 @@ export default function VoorraadBeheerPage() {
           motorType: relatedOrder?.motorType || "Unknown",
           orderQuantity: relatedOrder?.quantity || 0,
           expectedBlocks: blockRequirements,
-          productionLine: `Lijn ${
-            ((relatedOrder?.id || supplierOrder.id) % 3) + 1
-          }`, // Simple production line assignment
+          productionLine: `Lijn ${((relatedOrder?.id || supplierOrder.id) % 3) + 1
+            }`, // Simple production line assignment
           isDelivered:
             supplierOrder.status === "Delivered" ||
             supplierOrder.status === "FromOrder",
@@ -98,7 +97,7 @@ export default function VoorraadBeheerPage() {
           status: relatedOrder?.status || "Unknown", // Use the order status, not supplier order status
           deliveryDate:
             supplierOrder.status === "Delivered" ||
-            supplierOrder.status === "FromOrder"
+              supplierOrder.status === "FromOrder"
               ? supplierOrder.orderDate
               : null,
           // Add customer name from the related order
@@ -125,12 +124,12 @@ export default function VoorraadBeheerPage() {
     try {
       console.log(`🟢 Approving order ${orderId}`);
       await api.post(`/api/Order/${orderId}/approve-voorraad`);
-      
+
       showSuccessMessage(
         "✅ Order Approved!",
         `Order ${orderId} has been approved and sent to supplier and planning.`
       );
-      
+
       // Refresh data
       await fetchInventoryData();
     } catch (error) {
@@ -147,12 +146,12 @@ export default function VoorraadBeheerPage() {
     try {
       console.log(`🔴 Rejecting order ${orderId} with reason: ${reason}`);
       await api.post(`/api/Order/${orderId}/reject-voorraad`, { reason });
-      
+
       showSuccessMessage(
         "❌ Order Rejected",
         `Order ${orderId} has been rejected. Reason: ${reason}`
       );
-      
+
       // Refresh data
       await fetchInventoryData();
     } catch (error) {
@@ -167,21 +166,20 @@ export default function VoorraadBeheerPage() {
   // Handle order deletion - safety mechanism for bad orders
   const handleDeleteOrder = async (orderId) => {
     const isConfirmed = window.confirm(
-      `⚠️ WAARSCHUWING: Ben je er zeker van dat je order ${orderId} permanent wilt verwijderen uit de database?\n\n` +
-      `Dit kan alleen gebruikt worden in noodgevallen wanneer er iets echt mis is gegaan.\n\n` +
-      `Deze actie kan NIET ongedaan gemaakt worden!`
+      `⚠️ WARNING: Are you sure you want to PERMANENTLY delete order ${orderId} from the database?\n\n` +
+      `Use only in emergencies or if the order is invalid.`
     );
-    
+
     if (!isConfirmed) {
       return;
     }
 
     // Double confirmation for safety
     const isDoubleConfirmed = window.confirm(
-      `🔥 LAATSTE WAARSCHUWING: Order ${orderId} wordt permanent verwijderd!\n\n` +
-      `Klik OK om te bevestigen of Cancel om te annuleren.`
+      `🔥 FINAL WARNING: Order ${orderId} will be permanently deleted!\n\n` +
+      `Click OK to confirm or Cancel to go back.`
     );
-    
+
     if (!isDoubleConfirmed) {
       return;
     }
@@ -189,12 +187,12 @@ export default function VoorraadBeheerPage() {
     try {
       console.log(`🗑️ Deleting order ${orderId} from database`);
       await api.delete(`/api/Order/${orderId}`);
-      
+
       showSuccessMessage(
         "🗑️ Order Deleted!",
         `Order ${orderId} has been permanently deleted from the database.`
       );
-      
+
       // Refresh data to remove the deleted order
       await fetchInventoryData();
     } catch (error) {
@@ -209,7 +207,7 @@ export default function VoorraadBeheerPage() {
   // Handle rejection - simplified without prompt
   const handleRejectOrderWithPrompt = (orderId) => {
     // Use a default reason instead of prompting the user
-    const reason = "Order rejected by VoorraadBeheer";
+    const reason = "Order rejected by Inventory Management";
     handleRejectOrder(orderId, reason);
   };
 
@@ -251,10 +249,10 @@ export default function VoorraadBeheerPage() {
               <div className="flex items-center gap-8">
                 <div>
                   <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-                    Voorraad Beheer
+                    Inventory Management
                   </h1>
                   <p className="text-zinc-600 dark:text-zinc-400 mt-1 text-sm">
-                    Monitor voorraad niveaus en leveringen
+                    Monitor and manage incoming orders
                   </p>
                 </div>
               </div>
@@ -291,10 +289,10 @@ export default function VoorraadBeheerPage() {
             <div className="bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-700 p-6">
               <div className="max-w-6xl mx-auto">
                 <h3 className="text-xl font-bold text-orange-800 dark:text-orange-200 mb-4">
-                  📋 Orders Wachten op Goedkeuring
+                  📋 Orders waiting for approval
                 </h3>
                 <p className="text-sm text-orange-700 dark:text-orange-300 mb-4">
-                  De volgende orders wachten op goedkeuring door VoorraadBeheer
+                  These orders are pending approval from Inventory Management.
                 </p>
                 <div className="grid gap-4">
                   {pendingOrders.map((order) => (
@@ -313,10 +311,10 @@ export default function VoorraadBeheerPage() {
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-2 ${getMotorTypeColors(order.motorType).full}`}>
                               Motor {order.motorType}
                             </span>
-                            {order.quantity} stuks
+                            {order.quantity}x
                           </p>
                           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Geplaatst op: {new Date(order.orderDate).toLocaleDateString()}
+                            Placed on: {new Date(order.orderDate).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="ml-4">
@@ -328,13 +326,12 @@ export default function VoorraadBeheerPage() {
                                 return (
                                   <span
                                     key={color}
-                                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                                      color === "Blauw"
-                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                                        : color === "Rood"
+                                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${color === "Blauw"
+                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                      : color === "Rood"
                                         ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
                                         : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
-                                    }`}
+                                      }`}
                                   >
                                     {color}: {needed}
                                   </span>
@@ -363,7 +360,7 @@ export default function VoorraadBeheerPage() {
                               d="M5 13l4 4L19 7"
                             />
                           </svg>
-                          Goedkeuren
+                          Approve
                         </button>
                         <button
                           onClick={() => handleRejectOrderWithPrompt(order.id)}
@@ -383,12 +380,12 @@ export default function VoorraadBeheerPage() {
                               d="M6 18L18 6M6 6l12 12"
                             />
                           </svg>
-                          Afwijzen
+                          Reject
                         </button>
                         <button
                           onClick={() => handleDeleteOrder(order.id)}
                           className="px-4 py-2 bg-gray-700 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 border-2 border-red-300"
-                          title="⚠️ NOODGEVAL: Verwijder order permanent uit database"
+                          title="⚠️ EMERGENCY: Delete order permanently from database"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -422,7 +419,7 @@ export default function VoorraadBeheerPage() {
                     rowSpan={2}
                     className="px-6 py-5 text-left text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
                   >
-                    Order Nummer
+                    Order #
                   </th>
                   <th
                     rowSpan={2}
@@ -446,30 +443,29 @@ export default function VoorraadBeheerPage() {
                     rowSpan={2}
                     className="px-6 py-5 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
                   >
-                    Aantal Motoren
+                    Quantity
                   </th>
                   <th
                     colSpan={3}
                     className="px-6 py-5 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800"
                   >
-                    Blokjes Telling
+                    Required Blocks
                   </th>
                 </tr>
                 <tr>
                   {legoColors.map((color) => (
                     <th
                       key={color}
-                      className={`px-6 py-4 text-center text-sm font-medium uppercase tracking-wider ${
-                        color === "Blauw"
-                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                          : color === "Rood"
+                      className={`px-6 py-4 text-center text-sm font-medium uppercase tracking-wider ${color === "Blauw"
+                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                        : color === "Rood"
                           ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
                           : color === "Grijs"
-                          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                          : ""
-                      }`}
+                            ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                            : ""
+                        }`}
                     >
-                      {color}
+                      {color === "Blauw" ? "Blue" : color === "Rood" ? "Red" : "Gray"}
                     </th>
                   ))}
                 </tr>
@@ -496,7 +492,7 @@ export default function VoorraadBeheerPage() {
                             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                           />
                         </svg>
-                        <p className="mt-3 text-lg">Nog geen voorraad data</p>
+                        <p className="mt-3 text-lg">No data</p>
                       </div>
                     </td>
                   </tr>
@@ -504,11 +500,10 @@ export default function VoorraadBeheerPage() {
                   [...inventoryData].reverse().map((item, idx) => (
                     <tr
                       key={item.id}
-                      className={`transition-colors duration-150 ${
-                        idx % 2 === 0 
-                          ? 'bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800' 
-                          : 'bg-gray-100 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50'
-                      }`}
+                      className={`transition-colors duration-150 ${idx % 2 === 0
+                        ? 'bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                        : 'bg-gray-100 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50'
+                        }`}
                     >
                       {/* Order Number */}
                       <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-zinc-900 dark:text-zinc-100">
@@ -528,42 +523,41 @@ export default function VoorraadBeheerPage() {
                       {/* Status */}
                       <td className="px-6 py-5 text-center">
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                            item.status?.toLowerCase() === "pending"
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              : item.status?.toLowerCase() === "inproduction"
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${item.status?.toLowerCase() === "pending"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            : item.status?.toLowerCase() === "inproduction"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                               : item.status?.toLowerCase() ===
                                 "rejectedbyvoorraadbeheer"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                              : item.status?.toLowerCase() ===
-                                "awaitingaccountmanagerapproval"
-                              ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                              : item.status?.toLowerCase() ===
-                                "approvedbyaccountmanager"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                              : item.status?.toLowerCase() ===
-                                "approvedbyvoorraadbeheer"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : item.status?.toLowerCase() ===
-                                "rejectedbyaccountmanager"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                              : item.status?.toLowerCase() === "delivered"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : item.status?.toLowerCase() === "completed"
-                              ? "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400"
-                              : item.status?.toLowerCase() === "cancelled"
-                              ? "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                              : item.status?.toLowerCase() === "processing"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                          }`}
+                                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                : item.status?.toLowerCase() ===
+                                  "awaitingaccountmanagerapproval"
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                                  : item.status?.toLowerCase() ===
+                                    "approvedbyaccountmanager"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                    : item.status?.toLowerCase() ===
+                                      "approvedbyvoorraadbeheer"
+                                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                      : item.status?.toLowerCase() ===
+                                        "rejectedbyaccountmanager"
+                                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                        : item.status?.toLowerCase() === "delivered"
+                                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                          : item.status?.toLowerCase() === "completed"
+                                            ? "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400"
+                                            : item.status?.toLowerCase() === "cancelled"
+                                              ? "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                                              : item.status?.toLowerCase() === "processing"
+                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                            }`}
                         >
                           {item.status
                             ? item.status
-                                .replace(/([A-Z])/g, " $1")
-                                .replace(/^./, (str) => str.toUpperCase())
-                                .trim()
+                              .replace(/([A-Z])/g, " $1")
+                              .replace(/^./, (str) => str.toUpperCase())
+                              .trim()
                             : "Unknown"}
                         </span>
                       </td>
@@ -583,15 +577,14 @@ export default function VoorraadBeheerPage() {
                       {legoColors.map((color) => (
                         <td key={color} className="px-6 py-5 text-center">
                           <span
-                            className={`inline-flex items-center justify-center h-12 w-12 rounded-full font-bold text-lg ${
-                              color === "Blauw"
-                                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                                : color === "Rood"
+                            className={`inline-flex items-center justify-center h-12 w-12 rounded-full font-bold text-lg ${color === "Blauw"
+                              ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                              : color === "Rood"
                                 ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
                                 : color === "Grijs"
-                                ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
-                                : ""
-                            }`}
+                                  ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                                  : ""
+                              }`}
                           >
                             {item.expectedBlocks[color]}
                           </span>
@@ -610,10 +603,10 @@ export default function VoorraadBeheerPage() {
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg mt-6">
             <div className="bg-red-100 dark:bg-red-900/50 py-4 px-6 border-b border-red-200 dark:border-red-700">
               <h3 className="text-xl font-bold text-red-800 dark:text-red-200">
-                ❌ Afgewezen Orders
+                ❌ Rejected Orders
               </h3>
               <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                Deze orders zijn afgewezen door VoorraadBeheer
+                These orders were rejected by Inventory Management and will not be processed further.
               </p>
             </div>
             <div className="overflow-x-auto p-4">
@@ -644,11 +637,10 @@ export default function VoorraadBeheerPage() {
                   {rejectedOrders.map((order, idx) => (
                     <tr
                       key={order.id}
-                      className={`transition-colors duration-150 ${
-                        idx % 2 === 0 
-                          ? 'bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-900/10' 
-                          : 'bg-gray-100 dark:bg-zinc-800/50 hover:bg-red-100/50 dark:hover:bg-red-900/15'
-                      }`}
+                      className={`transition-colors duration-150 ${idx % 2 === 0
+                        ? 'bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-900/10'
+                        : 'bg-gray-100 dark:bg-zinc-800/50 hover:bg-red-100/50 dark:hover:bg-red-900/15'
+                        }`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-zinc-900 dark:text-zinc-100">
                         #{order.id}
@@ -669,7 +661,7 @@ export default function VoorraadBeheerPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                          Afgewezen
+                          Rejected
                         </span>
                       </td>
                     </tr>
