@@ -30,9 +30,35 @@ const ProductionLine1Dashboard = () => {
     red: 0,
     gray: 0
   });
+  
+  // Maintenance state
+  const [maintenanceStatus, setMaintenanceStatus] = useState({
+    isUnderMaintenance: false,
+    maintenanceOrder: null
+  });
+  
   const modelViewerRef = useRef(null);
 
   const { currentRound, currentSimulation, isRunning } = useSimulation();
+
+  // Check for maintenance in current round
+  const checkMaintenanceStatus = async () => {
+    if (!currentRound) return;
+    
+    try {
+      const maintenanceOrders = await api.get(`/api/Maintenance/round/${currentRound.number}`);
+      const line1Maintenance = maintenanceOrders.find(
+        mo => mo.productionLine === 1 && mo.status !== 'Completed'
+      );
+      
+      setMaintenanceStatus({
+        isUnderMaintenance: !!line1Maintenance,
+        maintenanceOrder: line1Maintenance || null
+      });
+    } catch (error) {
+      console.error('Failed to check maintenance status:', error);
+    }
+  };
 
   // Fetch orders assigned to Production Line 1
   const fetchOrders = async () => {
@@ -117,6 +143,7 @@ const ProductionLine1Dashboard = () => {
 
   useEffect(() => {
     fetchOrders();
+    checkMaintenanceStatus();
   }, []);
 
   // Refetch orders when round changes
@@ -127,6 +154,7 @@ const ProductionLine1Dashboard = () => {
         currentRound.number
       );
       fetchOrders();
+      checkMaintenanceStatus();
     }
   }, [currentRound?.number]);
 
@@ -444,6 +472,27 @@ const ProductionLine1Dashboard = () => {
       />
       <div className="h-screen bg-black">
         <div className="p-6">
+          {/* Maintenance Warning Banner */}
+          {maintenanceStatus.isUnderMaintenance && (
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-center">
+                <Settings className="h-6 w-6 text-red-600 dark:text-red-400 mr-3" />
+                <div className="flex-1">
+                  <h3 className="font-medium text-red-900 dark:text-red-100">
+                    Production Line 1 Under Maintenance
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {maintenanceStatus.maintenanceOrder?.description || 'Scheduled maintenance in progress'}
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                    Status: {maintenanceStatus.maintenanceOrder?.status} | 
+                    Round {maintenanceStatus.maintenanceOrder?.roundNumber}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <Package className="w-8 h-8 text-zinc-600 dark:text-zinc-400" />
@@ -561,20 +610,29 @@ const ProductionLine1Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      <div className="flex space-x-3">
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
-                          onClick={() => handleStartProduction(selectedOrder.id)}
-                          disabled={updating === selectedOrder.id}
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
-                        </button>
-                      </div>
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Cannot start production during maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                            onClick={() => handleStartProduction(selectedOrder.id)}
+                            disabled={updating === selectedOrder.id}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-3">
                         <button
                           className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                           onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
                         >
                           <AlertCircle className="w-4 h-4 mr-2" />
                           Report Missing Building Blocks
@@ -587,19 +645,28 @@ const ProductionLine1Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      <div className="flex space-x-3">
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
-                          onClick={handleStartAssembly}
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          Start Assembly
-                        </button>
-                      </div>
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Cannot start assembly during maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
+                            onClick={handleStartAssembly}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Start Assembly
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-3">
                         <button
                           className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                           onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
                         >
                           <AlertCircle className="w-4 h-4 mr-2" />
                           Report Missing Building Blocks
@@ -612,19 +679,28 @@ const ProductionLine1Dashboard = () => {
                     <>
                       {renderOrderDetails(selectedOrder)}
                       
-                      <div className="flex space-x-3">
-                        <button
-                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
-                          onClick={handleSendForReview}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Send for Review
-                        </button>
-                      </div>
+                      {maintenanceStatus.isUnderMaintenance ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                          <Settings className="h-8 w-8 mx-auto text-red-600 dark:text-red-400 mb-2" />
+                          <p className="text-red-900 dark:text-red-100 font-medium">Production line under maintenance</p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Production halted due to maintenance</p>
+                        </div>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button
+                            className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                            onClick={handleSendForReview}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Send for Review
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-3">
                         <button
                           className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                           onClick={handleReportMissingBlocks}
+                          disabled={maintenanceStatus.isUnderMaintenance}
                         >
                           <AlertCircle className="w-4 h-4 mr-2" />
                           Report Missing Building Blocks
