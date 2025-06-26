@@ -504,7 +504,11 @@ export default function VoorraadBeheerPage() {
                   [...inventoryData].reverse().map((item, idx) => (
                     <tr
                       key={item.id}
-                      className="hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors duration-150"
+                      className={`transition-colors duration-150 ${
+                        idx % 2 === 0 
+                          ? 'bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800' 
+                          : 'bg-gray-100 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50'
+                      }`}
                     >
                       {/* Order Number */}
                       <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-zinc-900 dark:text-zinc-100">
@@ -637,10 +641,14 @@ export default function VoorraadBeheerPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-zinc-900">
-                  {rejectedOrders.map((order) => (
+                  {rejectedOrders.map((order, idx) => (
                     <tr
                       key={order.id}
-                      className="hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors duration-150"
+                      className={`transition-colors duration-150 ${
+                        idx % 2 === 0 
+                          ? 'bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-900/10' 
+                          : 'bg-gray-100 dark:bg-zinc-800/50 hover:bg-red-100/50 dark:hover:bg-red-900/15'
+                      }`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-zinc-900 dark:text-zinc-100">
                         #{order.id}

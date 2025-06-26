@@ -523,7 +523,11 @@ export default function SupplierPage() {
                 [...orderRounds].reverse().map((r, idx) => (
                   <tr
                     key={r.id}
-                    className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors duration-150"
+                    className={`transition-colors duration-150 ${
+                      idx % 2 === 0 
+                        ? 'bg-white dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700' 
+                        : 'bg-gray-100 dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-600/50'
+                    }`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-white">
                       {r.id}

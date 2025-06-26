@@ -399,10 +399,14 @@ export default function PlanningPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {filteredOrders.filter(order => !order.productielijn).map((order) => (
+                  {filteredOrders.filter(order => !order.productielijn).map((order, index) => (
                     <tr
                       key={order.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                      className={`hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${
+                        index % 2 === 0 
+                          ? 'bg-white dark:bg-zinc-900' 
+                          : 'bg-gray-50 dark:bg-zinc-800'
+                      }`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -503,10 +507,14 @@ export default function PlanningPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {filteredOrders.filter(order => order.productielijn).sort((a, b) => b.id - a.id).map((order) => (
+                  {filteredOrders.filter(order => order.productielijn).sort((a, b) => b.id - a.id).map((order, index) => (
                     <tr
                       key={order.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                      className={`hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${
+                        index % 2 === 0 
+                          ? 'bg-white dark:bg-zinc-900' 
+                          : 'bg-gray-50 dark:bg-zinc-800'
+                      }`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -611,10 +619,14 @@ export default function PlanningPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-red-200 dark:divide-red-800">
-                {rejectedOrders.map((order) => (
+                {rejectedOrders.map((order, index) => (
                   <tr
                     key={order.id}
-                    className="bg-red-100 dark:bg-red-900/30 hover:bg-red-150 dark:hover:bg-red-900/40"
+                    className={`hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors ${
+                      index % 2 === 0 
+                        ? 'bg-white dark:bg-zinc-900' 
+                        : 'bg-gray-50 dark:bg-zinc-800'
+                    }`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-red-800 dark:text-red-200">
                       #{order.id}

@@ -527,8 +527,12 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                {filteredOrders.map((order, index) => (
+                  <tr key={order.id} className={`${
+                    index % 2 === 0 
+                      ? 'bg-white dark:bg-zinc-900' 
+                      : 'bg-gray-50 dark:bg-gray-800'
+                  } hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors`}>
                     <td className="px-6 py-4 whitespace-nowrap">#{order.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{order.customer}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
