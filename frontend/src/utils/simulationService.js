@@ -8,6 +8,7 @@ class SimulationService {
     this.listeners = {
       onSimulationStarted: [],
       onSimulationStopped: [],
+      onSimulationPaused: [],
       onNewRound: [],
       onConnectionStateChanged: [],
       onTimerUpdate: []
@@ -63,6 +64,12 @@ class SimulationService {
         console.log('🛑 Simulation stopped');
         this.currentSimulation = null;
         this.listeners.onSimulationStopped.forEach(callback => callback(data));
+      });
+
+      this.connection.on('SimulationPaused', (data) => {
+        console.log(`⏸️ Simulation paused after round ${data.finalRoundNumber}`);
+        this.currentSimulation = null;
+        this.listeners.onSimulationPaused.forEach(callback => callback(data));
       });
 
       this.connection.on('NewRound', (data) => {
@@ -213,6 +220,13 @@ class SimulationService {
     this.listeners.onSimulationStopped.push(callback);
     return () => {
       this.listeners.onSimulationStopped = this.listeners.onSimulationStopped.filter(cb => cb !== callback);
+    };
+  }
+
+  onSimulationPaused(callback) {
+    this.listeners.onSimulationPaused.push(callback);
+    return () => {
+      this.listeners.onSimulationPaused = this.listeners.onSimulationPaused.filter(cb => cb !== callback);
     };
   }
 

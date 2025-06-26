@@ -34,13 +34,13 @@ export default function VoorraadBeheerPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentRound, isRunning } = useSimulation();
 
-  // Notification functions
+  // Notification functions - using console.log instead of alerts
   const showSuccessMessage = (title, message) => {
-    alert(`${title}\n\n${message}`);
+    console.log(`✅ ${title}: ${message}`);
   };
 
   const showErrorMessage = (title, message) => {
-    alert(`${title}\n\n${message}`);
+    console.error(`❌ ${title}: ${message}`);
   };
 
   // Fetch inventory data from API
@@ -118,6 +118,8 @@ export default function VoorraadBeheerPage() {
             supplierOrder.status === "FromOrder"
               ? supplierOrder.orderDate
               : null,
+          // Add customer name from the related order
+          customerName: relatedOrder?.appUserId ? `Customer ${relatedOrder.appUserId}` : "Unknown Customer",
         };
       });
 
@@ -597,6 +599,12 @@ export default function VoorraadBeheerPage() {
                     rowSpan={2}
                     className="px-6 py-5 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
                   >
+                    Klant
+                  </th>
+                  <th
+                    rowSpan={2}
+                    className="px-6 py-5 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider"
+                  >
                     Status
                   </th>
                   <th
@@ -653,7 +661,7 @@ export default function VoorraadBeheerPage() {
                 {inventoryData.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="py-12 text-center text-zinc-500 dark:text-zinc-400"
                     >
                       <div className="flex flex-col items-center justify-center">
@@ -691,6 +699,10 @@ export default function VoorraadBeheerPage() {
                             </span>
                           )}
                         </div>
+                      </td>
+                      {/* Customer Name */}
+                      <td className="px-6 py-5 whitespace-nowrap text-sm text-zinc-900 dark:text-zinc-100 text-center">
+                        {item.customerName}
                       </td>
                       {/* Status */}
                       <td className="px-6 py-5 text-center">

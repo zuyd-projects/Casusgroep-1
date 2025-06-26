@@ -29,6 +29,11 @@ namespace ERPNumber1.Services
             return _configuration.GetValue<int>("Simulation:RoundDurationSeconds", 20);
         }
 
+        public int GetMaxRounds()
+        {
+            return _configuration.GetValue<int>("Simulation:MaxRounds", 36);
+        }
+
         public async Task<bool> StartSimulationAsync(int simulationId)
         {
             using var scope = _serviceScopeFactory.CreateScope();
@@ -158,6 +163,25 @@ namespace ERPNumber1.Services
                 
                 var nextRoundNumber = _currentRounds.GetValueOrDefault(simulationId, 0) + 1;
                 Console.WriteLine($"Creating round {nextRoundNumber} for simulation {simulationId}");
+                
+                // Check if simulation should pause after reaching the maximum round limit
+                var maxRounds = GetMaxRounds();
+                if (nextRoundNumber > maxRounds)
+                {
+                    Console.WriteLine($"Simulation {simulationId} has reached the maximum round limit of {maxRounds}. Pausing simulation.");
+                    await StopSimulationAsync(simulationId);
+                    
+                    // Notify clients that simulation paused due to round limit
+                    await _hubContext.Clients.All
+                        .SendAsync("SimulationPaused", new 
+                        { 
+                            simulationId, 
+                            reason = $"Round {maxRounds} completed",
+                            finalRoundNumber = maxRounds,
+                            maxRounds = maxRounds
+                        });
+                    return;
+                }
                 
                 var newRound = new Round
                 {

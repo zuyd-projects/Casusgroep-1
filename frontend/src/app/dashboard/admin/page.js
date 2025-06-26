@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
 import { Database, Play, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
@@ -114,7 +115,7 @@ export default function AdminPage() {
               <h3 className="font-semibold text-red-800 dark:text-red-200">Danger Zone</h3>
             </div>
             <p className="text-sm text-red-700 dark:text-red-300">
-              The "Clean Database" button will permanently delete ALL data from all tables including Orders, Deliveries, 
+              The &quot;Clean Database&quot; button will permanently delete ALL data from all tables including Orders, Deliveries, 
               Event Logs, Simulations, Rounds, and more. This action cannot be undone and will reset all identity columns.
             </p>
           </div>
@@ -156,7 +157,7 @@ export default function AdminPage() {
             </div>
           </a>
 
-          <a
+          <Link
             href="/dashboard/orders"
             className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
@@ -169,7 +170,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-          </a>
+          </Link>
 
           <a
             href="/dashboard"
@@ -194,7 +195,7 @@ export default function AdminPage() {
           <div>
             <h4 className="font-semibold mb-2 text-red-600">⚠️ Database Cleanup</h4>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Use "Clean Database" to completely reset all data. This will:
+              Use &quot;Clean Database&quot; to completely reset all data. This will:
             </p>
             <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 ml-4 space-y-1">
               <li>Delete all Orders, Deliveries, and Event Logs</li>
@@ -208,7 +209,7 @@ export default function AdminPage() {
           <div>
             <h4 className="font-semibold mb-2">1. Generate Sample Data</h4>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Click "Seed Sample Process Data" to create sample orders with various activities and anomalies.
+              Click &quot;Seed Sample Process Data&quot; to create sample orders with various activities and anomalies.
             </p>
           </div>
           
@@ -241,14 +242,14 @@ export default function AdminPage() {
           <div>
             <h4 className="font-semibold mb-2">4. Round-Based Delay Detection</h4>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              The system now automatically detects orders that haven't been delivered after 3 rounds and shows them as high-priority warnings.
+              The system now automatically detects orders that haven&apos;t been delivered after 3 rounds and shows them as high-priority warnings.
             </p>
           </div>
           
           <div>
             <h4 className="font-semibold mb-2">5. Dutch Planner Messages</h4>
             <p className="text-gray-600 dark:text-gray-400">
-              Delivery warnings include the Dutch message "Levertijd wordt later" to inform planning teams about delivery delays.
+              Delivery warnings include the Dutch message &quot;Levertijd wordt later&quot; to inform planning teams about delivery delays.
             </p>
           </div>
         </div>

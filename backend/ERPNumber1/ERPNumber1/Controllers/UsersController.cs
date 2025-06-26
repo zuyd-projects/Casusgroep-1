@@ -153,6 +153,7 @@ namespace api.Controllers
                 {
                     Name = user.UserName,
                     Email = user.Email,
+                    Role = user.Role,
                     Token = _tokenService.CreateToken(user),
                 }
                 );

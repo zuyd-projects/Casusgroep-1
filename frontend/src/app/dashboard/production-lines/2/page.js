@@ -8,6 +8,13 @@ import StatusBadge from '@CASUSGROEP1/components/StatusBadge';
 import { useSimulation } from '@CASUSGROEP1/contexts/SimulationContext';
 import { getMotorTypeColors } from '@CASUSGROEP1/utils/motorColors';
 
+// Motor type to block requirements mapping (same as backend)
+const MotorBlockRequirements = {
+  'A': { Blauw: 3, Rood: 4, Grijs: 2 },
+  'B': { Blauw: 2, Rood: 2, Grijs: 4 },
+  'C': { Blauw: 3, Rood: 3, Grijs: 2 }
+};
+
 const ProductionLine2Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -43,8 +50,10 @@ const ProductionLine2Dashboard = () => {
           const prodLine = order.productionLine ? order.productionLine.toString() : null;
           const isAssignedToLine2 = prodLine === '2';
           
-          // Only show orders that are pending, in production, or rejected (hide awaiting approval)
+          // Only show orders that are assigned to production line and ready for production
           const relevantStatuses = [
+            'ApprovedByVoorraadbeheer', // Orders approved by voorraadBeheer and ready for production
+            'ToProduction', // Orders assigned to production line and ready to start
             'Pending',  // Include pending orders (returned from missing blocks)
             'InProduction', 
             'In Progress',
@@ -82,6 +91,18 @@ const ProductionLine2Dashboard = () => {
         });
         
       setOrders(productionLine2Orders);
+      
+      // Preserve selected order by finding the updated version
+      if (selectedOrder) {
+        const updatedSelectedOrder = productionLine2Orders.find(order => order.id === selectedOrder.id);
+        if (updatedSelectedOrder) {
+          setSelectedOrder(updatedSelectedOrder);
+        } else {
+          // Order might no longer be in the list (e.g., completed/removed), clear selection
+          setSelectedOrder(null);
+        }
+      }
+      
       setRounds(apiRounds);
       console.log(`🏭 Production Line 2: Loaded ${productionLine2Orders.length} orders`);
     } catch (error) {
@@ -110,8 +131,9 @@ const ProductionLine2Dashboard = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending': return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20';
+      case 'ToProduction': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
       case 'InProduction': 
-      case 'In Progress': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
+      case 'In Progress': return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20';
       case 'In Queue': return 'text-zinc-600 bg-zinc-100 dark:text-zinc-400 dark:bg-zinc-900/20';
       case 'Completed': return 'text-violet-600 bg-violet-100 dark:text-violet-400 dark:bg-violet-900/20';
       default: return 'text-zinc-600 bg-zinc-100 dark:text-zinc-400 dark:bg-zinc-800';
@@ -122,6 +144,8 @@ const ProductionLine2Dashboard = () => {
     if (!selectedOrder) return;
     
     try {
+      console.log(`🏭 Starting assembly for order ${selectedOrder.id}, current status: ${selectedOrder.status}`);
+      
       // Update status in the API
       await api.patch(`/api/Order/${selectedOrder.id}/status`, { 
         status: 'InProduction' 
@@ -129,17 +153,19 @@ const ProductionLine2Dashboard = () => {
         console.warn('API status update not supported, updating locally:', err.message);
       });
       
-      // Update local state
+      // Update local state - use consistent status name
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === selectedOrder.id
-            ? { ...order, status: 'In Progress' }
+            ? { ...order, status: 'InProduction' }
             : order
         )
       );
       setSelectedOrder((prev) =>
-        prev ? { ...prev, status: 'In Progress' } : prev
+        prev ? { ...prev, status: 'InProduction' } : prev
       );
+      
+      console.log(`✅ Assembly started for order ${selectedOrder.id}, new status: InProduction`);
     } catch (error) {
       console.error('Error updating order status:', error);
     }
@@ -153,44 +179,6 @@ const ProductionLine2Dashboard = () => {
       await updateOrderStatus(selectedOrder.id, 'AwaitingAccountManagerApproval');
     } catch (error) {
       console.error('Error sending order for review:', error);
-    }
-  };
-
-  const handleDenyAssembly = async () => {
-    if (!selectedOrder) return;
-    
-    try {
-      // Get the current order to preserve other properties
-      const currentOrder = orders.find(order => order.id === selectedOrder.id);
-      if (!currentOrder) {
-        console.error(`❌ Order ${selectedOrder.id} not found`);
-        return;
-      }
-
-      // Update via API with all required fields, removing production line assignment
-      const updateData = {
-        roundId: currentOrder.originalOrder.roundId || 1,
-        deliveryId: currentOrder.originalOrder.deliveryId,
-        appUserId: currentOrder.originalOrder.appUserId,
-        motorType: currentOrder.originalOrder.motorType,
-        quantity: currentOrder.originalOrder.quantity,
-        signature: currentOrder.originalOrder.signature,
-        productionLine: null,
-        status: currentOrder.originalOrder.status
-      };
-      
-      await api.put(`/api/Order/${selectedOrder.id}`, updateData);
-      
-      // Update local state
-      setOrders((prevOrders) => {
-        const filtered = prevOrders.filter((order) => order.id !== selectedOrder.id);
-        setLastRemovedOrder(selectedOrder);
-        return filtered;
-      });
-      setSelectedOrder(null);
-      console.log(`✅ Order ${selectedOrder.id} removed from production line`);
-    } catch (error) {
-      console.error('❌ Error removing order from production line:', error);
     }
   };
 
@@ -345,34 +333,96 @@ const ProductionLine2Dashboard = () => {
     );
   };
 
-  const renderOrderDetails = (order) => (
-    <div className="grid grid-cols-2 gap-4 mb-6">
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Customer</label>
-        <p className="text-zinc-900 dark:text-white font-medium">{order.customer}</p>
+  const renderOrderDetails = (order) => {
+    // Calculate block requirements based on motor type and quantity
+    const blockRequirements = MotorBlockRequirements[order.motorType] 
+      ? {
+          Blauw: MotorBlockRequirements[order.motorType].Blauw * order.quantity,
+          Rood: MotorBlockRequirements[order.motorType].Rood * order.quantity,
+          Grijs: MotorBlockRequirements[order.motorType].Grijs * order.quantity
+        }
+      : { Blauw: 0, Rood: 0, Grijs: 0 };
+
+    return (
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Customer</label>
+          <p className="text-zinc-900 dark:text-white font-medium">{order.customer}</p>
+        </div>
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Quantity</label>
+          <p className="text-zinc-900 dark:text-white font-medium">{order.quantity}</p>
+        </div>
+        <div className={`p-3 rounded-lg ${getMotorTypeColors(order.motorType).bg}`}>
+          <label className={`text-sm font-medium ${getMotorTypeColors(order.motorType).text}`}>Motor Type</label>
+          <p className={`font-medium ${getMotorTypeColors(order.motorType).text}`}>{order.motorType}</p>
+        </div>
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Simulation</label>
+          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 font-medium">
+            Sim {order.simulationId}
+          </span>
+        </div>
+        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Round</label>
+          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 font-medium">
+            Round {order.roundNumber}
+          </span>
+        </div>
+        
+        {/* Block Requirements Section */}
+        <div className="col-span-2 bg-gradient-to-r from-blue-50 to-red-50 dark:from-blue-900/20 dark:to-red-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400 mb-3 block">Required Building Blocks</label>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg">
+              <div className="text-blue-700 dark:text-blue-300 font-bold text-2xl">{blockRequirements.Blauw}</div>
+              <div className="text-blue-600 dark:text-blue-400 text-sm font-medium">Blue Blocks</div>
+            </div>
+            <div className="text-center bg-red-100 dark:bg-red-900/50 p-3 rounded-lg">
+              <div className="text-red-700 dark:text-red-300 font-bold text-2xl">{blockRequirements.Rood}</div>
+              <div className="text-red-600 dark:text-red-400 text-sm font-medium">Red Blocks</div>
+            </div>
+            <div className="text-center bg-zinc-200 dark:bg-zinc-700 p-3 rounded-lg">
+              <div className="text-zinc-700 dark:text-zinc-300 font-bold text-2xl">{blockRequirements.Grijs}</div>
+              <div className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">Gray Blocks</div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 text-center">
+            Total blocks needed: {blockRequirements.Blauw + blockRequirements.Rood + blockRequirements.Grijs}
+          </div>
+        </div>
       </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Quantity</label>
-        <p className="text-zinc-900 dark:text-white font-medium">{order.quantity}</p>
-      </div>
-      <div className={`p-3 rounded-lg ${getMotorTypeColors(order.motorType).bg}`}>
-        <label className={`text-sm font-medium ${getMotorTypeColors(order.motorType).text}`}>Motor Type</label>
-        <p className={`font-medium ${getMotorTypeColors(order.motorType).text}`}>{order.motorType}</p>
-      </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Simulation</label>
-        <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 font-medium">
-          Sim {order.simulationId}
-        </span>
-      </div>
-      <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-lg">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Round</label>
-        <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 font-medium">
-          Round {order.roundNumber}
-        </span>
-      </div>
-    </div>
-  );
+    );
+  };
+
+  // Handle starting production for orders approved by VoorraadBeheer
+  const handleStartProduction = async (orderId) => {
+    try {
+      setUpdating(orderId);
+      
+      // Call the new API endpoint to start production
+      await api.post(`/api/Order/${orderId}/start-production`);
+      
+      // Update local state to reflect the status change
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId ? { ...order, status: 'InProduction' } : order
+        )
+      );
+      
+      // Update selected order if it's the one being changed
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, status: 'InProduction' }));
+      }
+      
+      console.log(`✅ Production started for order ${orderId}`);
+    } catch (error) {
+      console.error('❌ Failed to start production:', error);
+      alert('Failed to start production. Please try again.');
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   return (
     <>
@@ -490,6 +540,32 @@ const ProductionLine2Dashboard = () => {
                   </div>
                   
                   {/* Conditional rendering based on status */}
+                  {(selectedOrder.status === 'ApprovedByVoorraadbeheer' || selectedOrder.status === 'ToProduction') && (
+                    <>
+                      {renderOrderDetails(selectedOrder)}
+                      
+                      <div className="flex space-x-3">
+                        <button
+                          className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                          onClick={() => handleStartProduction(selectedOrder.id)}
+                          disabled={updating === selectedOrder.id}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          {updating === selectedOrder.id ? 'Starting...' : 'Start Production'}
+                        </button>
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          className="w-full flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                          onClick={handleReportMissingBlocks}
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Report Missing Building Blocks
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  
                   {(selectedOrder.status === 'In Queue' || selectedOrder.status === 'Pending') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
@@ -515,7 +591,7 @@ const ProductionLine2Dashboard = () => {
                     </>
                   )}
                   
-                  {(selectedOrder.status === 'In Progress' || selectedOrder.status === 'InProduction') && (
+                  {(selectedOrder.status === 'In Production' || selectedOrder.status === 'InProduction') && (
                     <>
                       {renderOrderDetails(selectedOrder)}
                       

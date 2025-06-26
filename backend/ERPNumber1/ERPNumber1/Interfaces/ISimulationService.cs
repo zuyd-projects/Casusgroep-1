@@ -9,6 +9,7 @@ namespace ERPNumber1.Interfaces
         Task<Round?> GetCurrentRoundAsync(int simulationId);
         Task<bool> IsSimulationRunningAsync(int simulationId);
         int GetRoundDurationSeconds();
+        int GetMaxRounds();
         int GetRemainingTimeForCurrentRound(int simulationId);
     }
 }
