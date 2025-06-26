@@ -61,6 +61,12 @@ const ProductionLine2Dashboard = () => {
     }
   };
 
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    await fetchOrders();
+    await checkMaintenanceStatus();
+  };
+
   // Fetch orders assigned to Production Line 2
   const fetchOrders = async () => {
     try {
@@ -665,6 +671,29 @@ const ProductionLine2Dashboard = () => {
             <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-400">Assigned Orders</h3>
+                {/* Refresh button */}
+                <button
+                  onClick={handleManualRefresh}
+                  disabled={loading}
+                  className="px-3 py-2 bg-zinc-600 hover:bg-zinc-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors border border-zinc-600 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  title="Refresh production line data"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  {loading ? "Refreshing..." : "Refresh"}
+                </button>
               </div>
               
               {loading ? (
