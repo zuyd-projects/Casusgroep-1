@@ -60,8 +60,22 @@ export default function PlanningPage() {
       // Store rounds data for lookup
       setRounds(apiRounds);
 
+      // Filter orders to only show those approved by VoorraadBeheer
+      const approvedOrders = apiOrders.filter(order => 
+        order.status === "ApprovedByVoorraadbeheer" || 
+        order.status === "ToProduction" ||
+        order.status === "InProduction" ||
+        order.status === "AwaitingAccountManagerApproval" ||
+        order.status === "ApprovedByAccountManager" ||
+        order.status === "RejectedByAccountManager" ||
+        order.status === "Delivered" ||
+        order.status === "Completed" ||
+        order.status === "ProductionError" ||
+        order.status === "RejectedByVoorraadbeheer" // Keep rejected orders for reference
+      );
+      
       // Transform API orders to match the planning table format
-      const fetchedOrders = apiOrders.map((order) => {
+      const fetchedOrders = approvedOrders.map((order) => {
         const blockRequirements = MotorBlockRequirements[order.motorType] || {};
         const totalBlocks = {
           blauw: (blockRequirements.Blauw || 0) * order.quantity,

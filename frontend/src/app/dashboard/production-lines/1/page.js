@@ -319,12 +319,12 @@ const ProductionLine1Dashboard = () => {
     }
   };
 
-  const handleReportMissingBlocks = async () => {
+  const handleReportMissingBlocks = () => {
     if (!selectedOrder) return;
-
-    // Reset missing blocks state and show form
-    setMissingBlocks({ blue: 0, red: 0, gray: 0 });
-    setShowMissingBlocksForm(true);
+    
+    // Use functional state updates to ensure proper batching
+    setMissingBlocks(() => ({ blue: 0, red: 0, gray: 0 }));
+    setShowMissingBlocksForm(prev => !prev); // Toggle instead of just setting to true
   };
 
   const handleSubmitMissingBlocks = async () => {

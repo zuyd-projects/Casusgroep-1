@@ -316,12 +316,11 @@ const ProductionLine2Dashboard = () => {
     }
   };
 
-  const handleReportMissingBlocks = async () => {
+  const handleReportMissingBlocks = () => {
     if (!selectedOrder) return;
-
-    // Reset missing blocks state and show form
-    setMissingBlocks({ blue: 0, red: 0, gray: 0 });
-    setShowMissingBlocksForm(true);
+    // Use functional state updates to ensure proper batching
+    setMissingBlocks(() => ({ blue: 0, red: 0, gray: 0 }));
+    setShowMissingBlocksForm(prev => !prev); // Toggle instead of just setting to true
   };
 
   const handleSubmitMissingBlocks = async () => {
@@ -348,11 +347,6 @@ const ProductionLine2Dashboard = () => {
 
       // Send to API (this will also update the order status to ProductionError automatically)
       await api.post('/api/MissingBlocks', missingBlocksData);
-
-      // Close form and show success message
-      setShowMissingBlocksForm(false);
-      alert(`Missing blocks reported for Order ${selectedOrder.id}. Sent to supplier for delivery.`);
-
       // Refresh orders to get updated status
       fetchOrders();
 
@@ -807,6 +801,7 @@ const ProductionLine2Dashboard = () => {
                           Report Missing Building Blocks
                         </button>
                       </div>
+                      {renderMissingBlocksForm()}
                     </>
                   )}
 
