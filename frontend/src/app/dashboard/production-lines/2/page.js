@@ -779,7 +779,6 @@ const ProductionLine2Dashboard = () => {
                           Report Missing Building Blocks
                         </button>
                       </div>
-                      {renderMissingBlocksForm()}
                     </>
                   )}
                   
