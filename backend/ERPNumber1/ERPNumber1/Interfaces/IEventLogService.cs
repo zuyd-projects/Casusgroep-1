@@ -91,6 +91,11 @@ namespace ERPNumber1.Interfaces
         Task<object> GetCaseJourneyAnalysisAsync(string? caseId = null, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
+        /// Get detailed process timing analysis with timestamps and stage durations
+        /// </summary>
+        Task<object> GetDetailedProcessTimingAnalysisAsync(string? caseId = null, DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
         /// Get process optimization recommendations based on analysis
         /// </summary>
         Task<object> GetProcessOptimizationRecommendationsAsync(DateTime? startDate = null, DateTime? endDate = null);

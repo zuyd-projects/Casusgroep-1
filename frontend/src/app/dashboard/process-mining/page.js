@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Card from '@CASUSGROEP1/components/Card';
 import { api } from '@CASUSGROEP1/utils/api';
 import { 
@@ -11,7 +12,7 @@ import {
   AlertTriangle, TrendingUp, Clock, Activity, 
   Target, AlertCircle, CheckCircle, XCircle, 
   Users, BarChart3, Settings, Lightbulb, 
-  MapPin, Timer, TrendingDown, Zap 
+  Timer, TrendingDown, Zap 
 } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -25,7 +26,6 @@ export default function ProcessMining() {
   const [activityPerformance, setActivityPerformance] = useState(null);
   const [conformanceAnalysis, setConformanceAnalysis] = useState(null);
   const [resourceUtilization, setResourceUtilization] = useState(null);
-  const [caseJourneys, setCaseJourneys] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('30'); // days
@@ -51,7 +51,6 @@ export default function ProcessMining() {
         activityRes,
         conformanceRes,
         resourceRes,
-        journeyRes,
         recommendationsRes
       ] = await Promise.all([
         api.get(`/api/ProcessMining/statistics?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
@@ -62,7 +61,6 @@ export default function ProcessMining() {
         api.get(`/api/ProcessMining/activity-performance?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
         api.get(`/api/ProcessMining/conformance?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
         api.get(`/api/ProcessMining/resource-utilization?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        api.get(`/api/ProcessMining/case-journey?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
         api.get(`/api/ProcessMining/optimization-recommendations?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
       ]);
 
@@ -74,7 +72,6 @@ export default function ProcessMining() {
       setActivityPerformance(activityRes);
       setConformanceAnalysis(conformanceRes);
       setResourceUtilization(resourceRes);
-      setCaseJourneys(journeyRes);
       setRecommendations(recommendationsRes);
     } catch (error) {
       console.error('Error fetching process mining data:', error);
@@ -149,6 +146,18 @@ export default function ProcessMining() {
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
         </select>
+      </div>
+
+      {/* Process Mining Navigation */}
+      <div className="flex space-x-4 mb-6">
+        <Link href="/dashboard/process-mining" className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/40">
+          <BarChart3 className="h-4 w-4" />
+          <span>Main Dashboard</span>
+        </Link>
+        <Link href="/dashboard/process-mining/detailed-timing" className="flex items-center space-x-2 px-4 py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700">
+          <Timer className="h-4 w-4" />
+          <span>Detailed Timing</span>
+        </Link>
       </div>
 
       {/* Tab Navigation */}
@@ -585,13 +594,6 @@ export default function ProcessMining() {
               {/* Quick Actions */}
               <Card title="Quick Actions">
                 <div className="flex space-x-4">
-                  <a
-                    href="/dashboard/process-mining/case-journey"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    <span>Analyze Case Journey</span>
-                  </a>
                   <button
                     onClick={() => window.open('/api/ProcessMining/export/xes', '_blank')}
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center space-x-2"

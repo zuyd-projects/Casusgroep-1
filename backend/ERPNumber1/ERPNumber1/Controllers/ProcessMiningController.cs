@@ -270,6 +270,27 @@ namespace ERPNumber1.Controllers
         }
 
         /// <summary>
+        /// Get detailed process timing analysis with timestamps and stage durations
+        /// </summary>
+        [HttpGet("detailed-timing")]
+        public async Task<ActionResult<object>> GetDetailedProcessTimingAnalysis(
+            [FromQuery] string? caseId = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var timingAnalysis = await _eventLogService.GetDetailedProcessTimingAnalysisAsync(caseId, startDate, endDate);
+                return Ok(timingAnalysis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving detailed timing analysis: {Message}", ex.Message);
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get process optimization recommendations based on analysis
         /// </summary>
         [HttpGet("optimization-recommendations")]
