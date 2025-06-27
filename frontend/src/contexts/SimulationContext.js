@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { simulationService } from '@CASUSGROEP1/utils/simulationService';
 import { api } from '@CASUSGROEP1/utils/api';
+import { useToast } from '@CASUSGROEP1/contexts/ToastContext';
 
 const SimulationContext = createContext();
 
@@ -33,6 +34,8 @@ const SimulationContext = createContext();
     });
 
 export function SimulationProvider({ children }) {
+  const { showInfo } = useToast();
+  
   const [currentSimulation, setCurrentSimulation] = useState(null);
   const [currentRound, setCurrentRound] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -315,6 +318,25 @@ export function SimulationProvider({ children }) {
       clearPersistedState();
     });
 
+    const unsubscribePaused = simulationService.onSimulationPaused((data) => {
+      console.log('⏸️ Simulation paused after reaching round limit:', data.simulationId);
+      // Clear simulation state similar to stop, but show a different message
+      setCurrentSimulation(null);
+      setCurrentRound(null);
+      setIsRunning(false);
+      setRoundTimeLeft(0);
+      
+      // Clear persisted state
+      clearPersistedState();
+      
+      // Show notification that simulation paused after reaching the round limit
+      const maxRounds = data.maxRounds || data.finalRoundNumber || 36;
+      showInfo(
+        `Simulation ${data.simulationId} has been automatically paused after completing round ${maxRounds}.`,
+        8000 // Show for 8 seconds since this is important information
+      );
+    });
+
     const unsubscribeNewRound = simulationService.onNewRound((data) => {
       console.log('🎯 Round', data.roundNumber, 'started');
       const newRoundInfo = {
@@ -363,6 +385,7 @@ export function SimulationProvider({ children }) {
     return () => {
       unsubscribeStarted();
       unsubscribeStopped();
+      unsubscribePaused();
       unsubscribeNewRound();
       unsubscribeConnection();
       unsubscribeTimerUpdate();

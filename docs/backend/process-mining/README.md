@@ -13,6 +13,117 @@ Process Mining is a data science technique that enables organizations to:
 - **Improve** processes by identifying bottlenecks and inefficiencies
 - **Ensure compliance** by checking process conformance to defined models
 
+## Business Process Analysis Features
+
+### New Analysis Capabilities
+
+The system now includes advanced business process analysis features:
+
+#### 1. Comprehensive Business Process Analysis
+- **Endpoint**: `GET /api/ProcessMining/business-analysis`
+- **Purpose**: Provides overall process performance metrics including cycle times, throughput, and efficiency
+- **Key Metrics**:
+  - Total and completed cases
+  - Average and median cycle times
+  - Throughput per day
+  - Process efficiency and rework rates
+  - Stage performance analysis
+  - Process variants identification
+
+#### 2. Activity Performance Analysis
+- **Endpoint**: `GET /api/ProcessMining/activity-performance`
+- **Purpose**: Detailed analysis of individual activities and their performance
+- **Key Metrics**:
+  - Activity frequency and resource utilization
+  - Success and error rates per activity
+  - Average execution times
+  - Bottleneck identification
+  - Process impact assessment
+
+#### 3. Process Conformance Analysis
+- **Endpoint**: `GET /api/ProcessMining/conformance`
+- **Purpose**: Analyzes how well actual processes conform to expected flows
+- **Key Metrics**:
+  - Conformance scores per case
+  - Process variants and their frequency
+  - Common deviations from expected flow
+  - Non-conformant case identification
+
+#### 4. Resource Utilization Analysis
+- **Endpoint**: `GET /api/ProcessMining/resource-utilization`
+- **Purpose**: Analyzes workload distribution and resource efficiency
+- **Key Metrics**:
+  - Resource workload and activity distribution
+  - Performance metrics per resource
+  - Utilization scores and recommendations
+  - Over/under-utilized resource identification
+
+#### 5. Case Journey Analysis
+- **Endpoint**: `GET /api/ProcessMining/case-journey`
+- **Purpose**: Detailed analysis of individual case journeys through the process
+- **Key Metrics**:
+  - Individual case timelines and steps
+  - Journey duration and success rates
+  - Common journey issues identification
+  - Problematic vs successful journey comparison
+
+#### 6. Process Optimization Recommendations
+- **Endpoint**: `GET /api/ProcessMining/optimization-recommendations`
+- **Purpose**: AI-driven recommendations for process improvements
+- **Key Features**:
+  - Bottleneck resolution suggestions
+  - Rework reduction strategies
+  - Resource optimization recommendations
+  - Implementation roadmap with expected benefits
+
+### Real-World Business Value
+
+Based on your order processing workflow (Order Created → Approval → Production → Delivery), these analyses provide:
+
+1. **Order Cycle Time Analysis**: Track how long orders take from creation to completion
+2. **Bottleneck Detection**: Identify which approval or production steps cause delays
+3. **Resource Efficiency**: See which controllers/systems are over/under-utilized
+4. **Quality Metrics**: Monitor rework rates and process deviations
+5. **Delivery Predictions**: Forecast potential delays and delivery issues
+
+### Example Usage Scenarios
+
+#### 1. Daily Operations Dashboard
+```http
+GET /api/ProcessMining/business-analysis?startDate=2025-06-25&endDate=2025-06-26
+```
+Returns comprehensive metrics for orders processed in the last day.
+
+#### 2. Performance Monitoring
+```http
+GET /api/ProcessMining/activity-performance?startDate=2025-06-01
+```
+Identifies which activities are performing well vs poorly.
+
+#### 3. Process Compliance Check
+```http
+GET /api/ProcessMining/conformance?startDate=2025-06-01
+```
+Shows how well orders follow the expected approval workflow.
+
+#### 4. Resource Planning
+```http
+GET /api/ProcessMining/resource-utilization?startDate=2025-06-01
+```
+Helps plan resource allocation and identify bottlenecks.
+
+#### 5. Order-Specific Analysis
+```http
+GET /api/ProcessMining/case-journey?caseId=Order-1
+```
+Deep dive into a specific order's journey through the system.
+
+#### 6. Process Improvement Planning
+```http
+GET /api/ProcessMining/optimization-recommendations
+```
+Get AI-driven suggestions for improving your order processing workflow.
+
 ## System Architecture
 
 ### Core Components
@@ -285,3 +396,17 @@ For detailed integration examples, see:
 ---
 
 For questions or support, refer to the development team or check the examples directory for detailed implementation patterns.
+
+## Expected Order Processing Flow
+
+Based on your event logs, the expected order flow is:
+1. **Order Created** - Customer places order
+2. **Order Approved by VoorraadBeheer** - Inventory approval
+3. **To Production** - Order moves to production queue
+4. **In Production** - Manufacturing begins
+5. **Awaiting Account Manager Approval** - Final approval step
+6. **Approved by Account Manager** - Final approval granted
+7. **Delivered** - Order shipped to customer
+8. **Completed** - Order fully processed
+
+The conformance analysis will measure how well actual orders follow this expected path and identify deviations.

@@ -10,6 +10,7 @@ namespace ERPNumber1.Models
         public int Quantity { get; set; }
         public string? Status { get; set; }  // Must have "FromProduction" status, that can be used in the supplier page or "From Order" to continue automatically.
         public int round_number { get; set; }
+        public int? DeliveryRound { get; set; }  // Round when delivery is scheduled
         public bool IsRMA { get; set; }
         public DateTime OrderDate { get; set; }
         [JsonIgnore]

@@ -15,6 +15,7 @@ namespace ERPNumber1.Mapper
                 Quantity = model.Quantity,
                 Status = model.Status,
                 RoundNumber = model.round_number,
+                DeliveryRound = model.DeliveryRound,
                 IsRMA = model.IsRMA,
                 OrderDate = model.OrderDate
             };
@@ -29,6 +30,7 @@ namespace ERPNumber1.Mapper
                 Quantity = dto.Quantity,
                 Status = dto.Status,
                 round_number = dto.RoundNumber,
+                DeliveryRound = dto.DeliveryRound,
                 IsRMA = dto.IsRMA,
                 OrderDate = dto.OrderDate
             };
@@ -43,6 +45,7 @@ namespace ERPNumber1.Mapper
                 Quantity = dto.Quantity,
                 Status = dto.Status,
                 round_number = dto.RoundNumber,
+                DeliveryRound = dto.DeliveryRound,
                 IsRMA = dto.IsRMA,
                 OrderDate = dto.OrderDate
             };

@@ -3,6 +3,8 @@ namespace ERPNumber1.Models
     public enum OrderStatus
     {
         Pending,
+        ApprovedByVoorraadbeheer,
+        ToProduction,
         InProduction,
         RejectedByVoorraadbeheer,
         AwaitingAccountManagerApproval,

@@ -9,10 +9,9 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Simulations", href: "/dashboard/simulations" },
   { label: "Orders", href: "/dashboard/orders" },
-  { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Voorraad Beheer", href: "/dashboard/voorraadBeheer" },
+  { label: "Supplier", href: "/dashboard/supplier" },
   { label: "Plannings", href: "/dashboard/plannings" },
-  { label: "Runner", href: "/dashboard/runner" },
   {
     label: "Production Lines",
     href: "/dashboard/production-lines",

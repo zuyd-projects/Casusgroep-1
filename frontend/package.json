@@ -17,11 +17,13 @@
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "recharts": "^2.15.3"
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.8",
     "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.4",
     "cypress": "^14.5.0",
     "postcss": "^8.5.4",
     "tailwindcss": "^4.1.8"

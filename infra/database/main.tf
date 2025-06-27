@@ -52,7 +52,7 @@ resource "azurerm_linux_virtual_machine" "database" {
     version   = "latest"
   }
 
-  computer_name      = "database-vm"
+  computer_name      = "database-vm${var.environment == "prod" ? "" : "-${var.environment}"}"
   provision_vm_agent = true
 
   custom_data = var.cloud_init

@@ -207,6 +207,46 @@ namespace ERPNumber1.Migrations
                     b.ToTable("Inventories");
                 });
 
+            modelBuilder.Entity("ERPNumber1.Models.MaintenanceOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductionLine")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RoundId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoundNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ScheduledDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoundId");
+
+                    b.ToTable("MaintenanceOrders");
+                });
+
             modelBuilder.Entity("ERPNumber1.Models.Material", b =>
                 {
                     b.Property<int>("Id")
@@ -454,6 +494,9 @@ namespace ERPNumber1.Migrations
                     b.Property<string>("AppUserId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("DeliveryRound")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsRMA")
                         .HasColumnType("bit");
 
@@ -658,6 +701,15 @@ namespace ERPNumber1.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("AppUser");
+                });
+
+            modelBuilder.Entity("ERPNumber1.Models.MaintenanceOrder", b =>
+                {
+                    b.HasOne("ERPNumber1.Models.Round", "Round")
+                        .WithMany()
+                        .HasForeignKey("RoundId");
+
+                    b.Navigation("Round");
                 });
 
             modelBuilder.Entity("ERPNumber1.Models.Material", b =>
