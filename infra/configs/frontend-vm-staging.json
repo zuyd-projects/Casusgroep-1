@@ -2,12 +2,12 @@
   "containers": [
     {
       "name": "frontend",
-      "image": "ghcr.io/zuyd-projects/frontend-staging:20250626213206"
+      "image": "ghcr.io/zuyd-projects/frontend-staging:20250627110147"
     },
     {
       "name": "proxy",
       "image": "ghcr.io/zuyd-projects/proxy-staging:20250626072251"
     }
   ],
-  "lastUpdated": "2025-06-26T21:33:20Z"
+  "lastUpdated": "2025-06-27T11:03:10Z"
 }
