@@ -28,7 +28,10 @@ Casusgroep-1 is a full-stack application designed for business process automatio
   - [Testing Guide](./backend/test/README.md) - Unit and integration testing
 
 - **[Frontend Documentation](./frontend/README.md)** - React components, styling, and user interface
-- #TODO
+  - [Setup Guide](./frontend/setup/getting-started.md) - Installation and development environment
+  - [Testing Guide](./frontend/test/README.md) - E2E and component testing with Cypress
+  - [Process Mining Frontend](./frontend/proces-mining/process-mining-frontend.md) - Analytics interface
+  - [Simulations](./frontend/simulations/README.md) - Process simulation interface
 
 - **[Infrastructure Documentation](./infra/README.md)** - Deployment, cloud resources, and DevOps
 - #TODO
