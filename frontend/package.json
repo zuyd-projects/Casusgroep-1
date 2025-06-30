@@ -9,7 +9,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cypress:open": "cypress open"
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:e2e": "cypress run --spec 'cypress/e2e/**/*.cy.js'",
+    "test:e2e:headed": "cypress run --headed --spec 'cypress/e2e/**/*.cy.js'",
+    "test:e2e:chrome": "cypress run --browser chrome --spec 'cypress/e2e/**/*.cy.js'",
+    "test:e2e:firefox": "cypress run --browser firefox --spec 'cypress/e2e/**/*.cy.js'",
+    "test:auth": "cypress run --spec 'cypress/e2e/auth/*.cy.js'",
+    "test:orders": "cypress run --spec 'cypress/e2e/orders/*.cy.js'",
+    "test:simulations": "cypress run --spec 'cypress/e2e/simulations/*.cy.js'",
+    "test:dashboard": "cypress run --spec 'cypress/e2e/dashboard/*.cy.js'",
+    "test:integration": "cypress run --spec 'cypress/e2e/integration/*.cy.js'",
+    "test:component": "cypress run --component",
+    "test:all": "npm run test:component && npm run test:e2e",
+    "cy:verify": "cypress verify",
+    "cy:info": "cypress info"
   },
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
