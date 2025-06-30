@@ -9,23 +9,27 @@ The simulations module provides interactive controls for managing business proce
 ## Features
 
 ### Real-time Simulations
+
 - **[Real-time Simulations](./real-time-simulations.md)** - Core simulation functionality and implementation
 - **[Real-time Simulations Fixed](./real-time-simulations-fixed.md)** - Bug fixes and improvements
 
 ### Advanced Features
+
 - **[Auto-pause Feature](./auto-pause-feature.md)** - Automatic simulation pausing based on business rules
 
 ## Integration
 
 The simulations interface integrates with:
+
 - Process Mining analytics
-- Order management workflows  
+- Order management workflows
 - Production line status monitoring
 - Account manager approvals
 
 ## Access
 
 The simulations dashboard is available at:
+
 - **URL**: `/dashboard/simulations`
 - **Authentication**: Required
 - **Permissions**: Admin and simulation operator roles

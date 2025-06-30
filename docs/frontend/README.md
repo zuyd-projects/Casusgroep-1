@@ -40,25 +40,29 @@ The frontend is built with modern React technologies and provides a responsive, 
 ## 🚀 Quick Start
 
 1. **Install Dependencies**
+
    ```bash
    cd frontend
    npm install
    ```
 
 2. **Start Development Server**
+
    ```bash
    npm run dev
    ```
 
 3. **Access Application**
+
    - Main Application: http://localhost:3000
    - Dashboard: http://localhost:3000/dashboard (requires authentication)
 
 4. **Run Tests**
+
    ```bash
    # Run all E2E tests
    npm run cypress:run
-   
+
    # Open interactive test runner
    npm run cypress:open
    ```
@@ -67,19 +71,19 @@ The frontend is built with modern React technologies and provides a responsive, 
 
 The frontend provides dedicated dashboards for each business department:
 
-| Department | URL | Purpose |
-|------------|-----|---------|
-| **Orders Management** | `/dashboard/orders` | Customer order creation and management |
-| **VoorraadBeheer** | `/dashboard/voorraadBeheer` | Inventory management and stock approval |
-| **Supplier** | `/dashboard/supplier` | Supply chain and missing blocks management |
-| **Planning** | `/dashboard/plannings` | Production planning and line assignment |
-| **Production Line 1** | `/dashboard/production-lines/1` | Motor Type A manufacturing |
-| **Production Line 2** | `/dashboard/production-lines/2` | Motor Type B & C manufacturing |
-| **Account Manager** | `/dashboard/accountManager` | Quality control and approval |
-| **Delivery** | `/dashboard/delivery` | Shipping and delivery management |
-| **Process Mining** | `/dashboard/process-mining` | Analytics and process optimization |
-| **Simulations** | `/dashboard/simulations` | Process control and testing |
-| **Admin** | `/dashboard/admin` | System administration |
+| Department            | URL                             | Purpose                                    |
+| --------------------- | ------------------------------- | ------------------------------------------ |
+| **Orders Management** | `/dashboard/orders`             | Customer order creation and management     |
+| **VoorraadBeheer**    | `/dashboard/voorraadBeheer`     | Inventory management and stock approval    |
+| **Supplier**          | `/dashboard/supplier`           | Supply chain and missing blocks management |
+| **Planning**          | `/dashboard/plannings`          | Production planning and line assignment    |
+| **Production Line 1** | `/dashboard/production-lines/1` | Motor Type A manufacturing                 |
+| **Production Line 2** | `/dashboard/production-lines/2` | Motor Type B & C manufacturing             |
+| **Account Manager**   | `/dashboard/accountManager`     | Quality control and approval               |
+| **Delivery**          | `/dashboard/delivery`           | Shipping and delivery management           |
+| **Process Mining**    | `/dashboard/process-mining`     | Analytics and process optimization         |
+| **Simulations**       | `/dashboard/simulations`        | Process control and testing                |
+| **Admin**             | `/dashboard/admin`              | System administration                      |
 
 ## 🔧 Development Features
 

@@ -164,13 +164,14 @@ npx cypress run --component --spec "src/components/test/{OrderStatusManager,Plan
 - **Visual Workflow Demonstration**: Step-by-step navigation through business process
 
 **Department Coverage:**
+
 1. Main Dashboard - Central hub
 2. Orders Management - Order creation
 3. VoorraadBeheer - Inventory management
 4. Supplier - Supply chain management
 5. Planning - Production planning
 6. Production Line 1 - Motor Type A manufacturing
-7. Production Line 2 - Motor Type B & C manufacturing  
+7. Production Line 2 - Motor Type B & C manufacturing
 8. Account Manager - Quality control
 9. Delivery - Shipping management
 10. Process Mining - Analytics
@@ -195,14 +196,14 @@ npx cypress run --component --spec "src/components/test/{OrderStatusManager,Plan
 
 ✅ **All E2E Tests Passing: 22/22 tests across 6 files**
 
-| Test File | Tests | Status | Duration | Purpose |
-|-----------|-------|---------|----------|---------|
-| `authentication-real.cy.js` | 4 | ✅ Passing | ~24s | Authentication flows |
-| `basic-navigation.cy.js` | 4 | ✅ Passing | ~13s | Page navigation & routing |
-| `complete-business-flow.cy.js` | 3 | ✅ Passing | ~5s | API business workflow |
-| `health-check.cy.js` | 4 | ✅ Passing | ~4s | App health & assets |
-| `process-check.cy.js` | 5 | ✅ Passing | ~4s | Service connectivity |
-| `website-workflow.cy.js` | 2 | ✅ Passing | ~86s | Visual website navigation |
+| Test File                      | Tests | Status     | Duration | Purpose                   |
+| ------------------------------ | ----- | ---------- | -------- | ------------------------- |
+| `authentication-real.cy.js`    | 4     | ✅ Passing | ~24s     | Authentication flows      |
+| `basic-navigation.cy.js`       | 4     | ✅ Passing | ~13s     | Page navigation & routing |
+| `complete-business-flow.cy.js` | 3     | ✅ Passing | ~5s      | API business workflow     |
+| `health-check.cy.js`           | 4     | ✅ Passing | ~4s      | App health & assets       |
+| `process-check.cy.js`          | 5     | ✅ Passing | ~4s      | Service connectivity      |
+| `website-workflow.cy.js`       | 2     | ✅ Passing | ~86s     | Visual website navigation |
 
 **Total Test Execution Time**: ~2 minutes 17 seconds
 

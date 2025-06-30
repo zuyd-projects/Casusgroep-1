@@ -9,6 +9,7 @@ Before you begin, ensure you have the following installed:
 ### Required Software
 
 - **Node.js** (v18.0+ recommended, v22.0+ for optimal performance)
+
   - [Download for Windows](https://nodejs.org/dist/v22.13.0/node-v22.13.0-x64.msi)
   - [Download for macOS](https://nodejs.org/dist/v22.13.0/node-v22.13.0.pkg)
   - [Download for Linux](https://nodejs.org/en/download/)
@@ -16,6 +17,7 @@ Before you begin, ensure you have the following installed:
 - **npm** (comes with Node.js) or **yarn** package manager
 
 - **Docker Desktop** (v4.0+) - for containerized deployment
+
   - [Download for Windows](https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe)
   - [Download for macOS](https://desktop.docker.com/mac/main/amd64/Docker.dmg)
   - [Download for Linux](https://docs.docker.com/desktop/install/linux-install/)
@@ -138,12 +140,14 @@ curl http://localhost:3000/api/health
 ### 3. Test User Interface
 
 1. **Navigate to Dashboard**
+
    ```bash
    # Open in browser
    http://localhost:3000/dashboard
    ```
 
 2. **Test Department Pages**
+
    ```bash
    # Test various department dashboards
    http://localhost:3000/dashboard/orders
@@ -167,7 +171,7 @@ Open browser console and check for:
 
 ```javascript
 // Check SignalR connection
-console.log('SignalR Status:', window.signalRConnection?.state);
+console.log("SignalR Status:", window.signalRConnection?.state);
 ```
 
 ### 2. Dashboard Real-time Updates
@@ -191,6 +195,7 @@ http://localhost:3000/dashboard/production-lines/2
 **Visual Studio Code** (Recommended):
 
 1. Install essential extensions:
+
    ```bash
    # Install via VS Code Extensions marketplace
    - ES7+ React/Redux/React-Native snippets
@@ -201,6 +206,7 @@ http://localhost:3000/dashboard/production-lines/2
    ```
 
 2. Open the workspace:
+
    ```bash
    code .
    ```
@@ -217,6 +223,7 @@ http://localhost:3000/dashboard/production-lines/2
    ```
 
 **Alternative Editors**:
+
 - **WebStorm**: Full Next.js support with intelligent code completion
 - **Sublime Text**: With React and Tailwind CSS packages
 
@@ -345,7 +352,7 @@ npm run dev
 // Monitor console for errors and warnings
 
 // Debug SignalR connection
-console.log('SignalR Connection:', window.signalRConnection);
+console.log("SignalR Connection:", window.signalRConnection);
 ```
 
 #### 2. Next.js Debugging
@@ -403,6 +410,7 @@ npx cypress run --component --spec "src/components/test/Header.cy.js"
 ### Test Results
 
 Current test coverage:
+
 - **E2E Tests**: 22 tests covering complete business workflows
 - **Component Tests**: 141 tests covering UI components
 - **Success Rate**: 100% (22/22 E2E), 95.7% (135/141 component)
@@ -412,22 +420,27 @@ Current test coverage:
 ### Dependencies Overview
 
 **Core Framework**:
+
 - `next` (v15.3.3): React framework with SSR/SSG
 - `react` (v19.1.0): Core React library
 - `react-dom` (v19.1.0): React DOM rendering
 
 **UI & Styling**:
+
 - `tailwindcss` (v4.1.8): Utility-first CSS framework
 - `lucide-react` (v0.513.0): Modern icon library
 - `autoprefixer` (v10.4.21): CSS vendor prefixing
 
 **Data Visualization**:
+
 - `recharts` (v2.15.4): React chart library for analytics
 
 **Real-time Communication**:
+
 - `@microsoft/signalr` (v8.0.7): SignalR client for WebSocket
 
 **Testing**:
+
 - `cypress` (v14.5.0): E2E and component testing
 
 ### Updating Dependencies
@@ -484,7 +497,7 @@ docker run --replicas=3 erp-frontend:latest
 
 ```yaml
 # docker-compose.yml example
-version: '3.8'
+version: "3.8"
 services:
   frontend:
     build: .
