@@ -15,10 +15,12 @@ The testing suite includes:
 - **Accessibility Tests**: Validate ARIA attributes and keyboard navigation
 - **Responsive Design Tests**: Test components across different viewport sizes
 
+
 ## Test Structure
 
 ```
 frontend/
+
 ├── cypress/
 │   ├── e2e/                     # End-to-end tests
 │   │   ├── basic/               # Core E2E test suite (6 files, 22 tests)
@@ -65,20 +67,27 @@ frontend/
 cd frontend
 npm install
 
+
 # Run all E2E tests in headless mode
 npm run cypress:run
 
 # Run component tests in headless mode
 npm run cypress:run --component
 
-# Open Cypress Test Runner (interactive mode)
-npm run cypress:open
+
+# Open Cypress Test Runner (interactive mode with browser)
+npx cypress open
+
 
 # Run specific E2E test suite
 npx cypress run --spec "cypress/e2e/basic/complete-business-flow.cy.js"
 
 # Run specific component tests
+
 npx cypress run --component --spec "src/components/test/Header.cy.js"
+
+# Run tests with browser visible (headed mode)
+npx cypress run --component --headed
 ```
 
 ### Running E2E Test Categories
@@ -381,6 +390,7 @@ describe("<MyComponent />", () => {
 });
 ```
 
+
 ### Test Data and Mocking
 
 - Use `cy.intercept()` for API call mocking in component tests
@@ -499,6 +509,21 @@ cy.waitForSignalRUpdate(eventName); // Wait for real-time updates
 - **API Response Times**: Average 200-500ms per request
 - **Database Operations**: Average 100-300ms per query
 
+### Component Test Breakdown
+
+| Component          | Tests | Duration | Coverage Areas           |
+| ------------------ | ----- | -------- | ------------------------ |
+| Card               | 17    | 1s       | UI, Props, Styling       |
+| Header             | 13    | 1s       | Navigation, Auth, Mobile |
+| LogoutButton       | 12    | 1s       | Auth, Interactions       |
+| OrderStatusManager | 23    | 14s      | Business Logic, API      |
+| PlannerWarnings    | 19    | 2s       | Data Display, API        |
+| ProtectedRoute     | 8     | 1s       | Auth, Routing            |
+| Sidebar            | 24    | 3s       | Navigation, Mobile       |
+| SimulationStatus   | 15    | 2s       | Real-time, Timers        |
+| StatusBadge        | 31    | 2s       | Styling, Formatting      |
+
+
 ## Package.json Scripts
 
 ```json
@@ -515,8 +540,18 @@ cy.waitForSignalRUpdate(eventName); // Wait for real-time updates
     "test:business-flow": "cypress run --spec 'cypress/e2e/basic/complete-business-flow.cy.js'",
     "test:health": "cypress run --spec 'cypress/e2e/basic/process-check.cy.js,cypress/e2e/basic/health-check.cy.js'",
     "test:auth": "cypress run --spec 'cypress/e2e/basic/login-check.cy.js'"
+
   }
 }
+```
+
+**Note**: Component tests are run directly with Cypress CLI commands rather than npm scripts:
+
+```bash
+# Recommended commands for testing
+npx cypress run --component              # Run all tests headless
+npx cypress open                         # Open interactive test runner
+npx cypress run --component --headed     # Run with browser visible
 ```
 
 ## Troubleshooting
@@ -654,7 +689,12 @@ npx cypress open --component
 - **Business Rule Validation**: Department filtering and workflow enforcement
 - **Alternative Workflows**: Missing blocks and supplier resolution paths
 
-## Continuous Integration
+- **Order Management**: Status changes, approvals, and workflow validation
+- **Simulation Monitoring**: Real-time updates and timer management
+- **Warning Systems**: Alert generation, filtering, and display logic
+- **Navigation**: Route protection and menu functionality
+
+## Continuous Integration Recommendations
 
 ### GitHub Actions Integration
 
@@ -690,7 +730,7 @@ Tests should be integrated with CI/CD pipeline to run on:
 - Test result reports and coverage
 - Performance metrics and timing data
 
-## Performance Considerations
+### Test Execution Strategy
 
 - **E2E Test Optimization**: Use real APIs but optimize with strategic waits and timeouts
 - **Component Test Speed**: Mock slow API calls with `cy.intercept()`
