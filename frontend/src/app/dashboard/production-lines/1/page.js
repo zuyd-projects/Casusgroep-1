@@ -623,7 +623,7 @@ const ProductionLine1Dashboard = () => {
         type="module"
         strategy="afterInteractive"
       />
-      <div className="h-screen bg-black">
+      <div className="h-screen bg-gray-50 dark:bg-gray-900">
         <div className="p-6">
           {/* Maintenance Warning Banner */}
           {maintenanceStatus.isUnderMaintenance && (
